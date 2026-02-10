@@ -1,0 +1,49 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Gig {
+  id String @id @default(cuid())
+
+  // ── Event details ──────────────────────────────────────
+  eventName       String
+  date            DateTime
+  performers      String // band name or comma-separated member names
+  numberOfMusicians Int
+
+  // ── Financials ─────────────────────────────────────────
+  performanceFee    Float           // music fee — split among musicians
+  technicalFee      Float  @default(0) // optional — belongs to manager, not split
+  managerBonusType  String @default("fixed") // "fixed" | "percentage"
+  managerBonusAmount Float @default(0) // bonus value ($ or %)
+
+  // ── Payment tracking ───────────────────────────────────
+  paymentReceived     Boolean   @default(false)
+  paymentReceivedDate DateTime?
+  bandPaid            Boolean   @default(false)
+  bandPaidDate        DateTime?
+
+  // ── Meta ───────────────────────────────────────────────
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Future multi-user support ─────────────────────────────────
+  // userId String?
+  // user   User?   @relation(fields: [userId], references: [id])
+
+  // ── Future multi-band support ─────────────────────────────────
+  // bandId String?
+  // band   Band?   @relation(fields: [bandId], references: [id])
+
+  @@index([date])
+  @@index([paymentReceived])
+  @@index([bandPaid])
+}

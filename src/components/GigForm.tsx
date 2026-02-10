@@ -1,0 +1,416 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import type { Gig, GigFormData } from "@/types";
+import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
+
+interface GigFormProps {
+  gig?: Gig | null;
+  onSubmit: (data: GigFormData) => Promise<void>;
+  onCancel: () => void;
+}
+
+const emptyForm: GigFormData = {
+  eventName: "",
+  date: "",
+  performers: "",
+  numberOfMusicians: 1,
+  performanceFee: 0,
+  technicalFee: 0,
+  managerBonusType: "fixed",
+  managerBonusAmount: 0,
+  paymentReceived: false,
+  paymentReceivedDate: "",
+  bandPaid: false,
+  bandPaidDate: "",
+  notes: "",
+};
+
+function gigToFormData(gig: Gig): GigFormData {
+  return {
+    eventName: gig.eventName,
+    date: gig.date ? gig.date.split("T")[0] : "",
+    performers: gig.performers,
+    numberOfMusicians: gig.numberOfMusicians,
+    performanceFee: gig.performanceFee,
+    technicalFee: gig.technicalFee,
+    managerBonusType: gig.managerBonusType,
+    managerBonusAmount: gig.managerBonusAmount,
+    paymentReceived: gig.paymentReceived,
+    paymentReceivedDate: gig.paymentReceivedDate
+      ? gig.paymentReceivedDate.split("T")[0]
+      : "",
+    bandPaid: gig.bandPaid,
+    bandPaidDate: gig.bandPaidDate ? gig.bandPaidDate.split("T")[0] : "",
+    notes: gig.notes ?? "",
+  };
+}
+
+export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
+  const [form, setForm] = useState<GigFormData>(
+    gig ? gigToFormData(gig) : emptyForm
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Live financial preview
+  const calc = useMemo(
+    () =>
+      calculateGigFinancials(
+        form.performanceFee,
+        form.technicalFee,
+        form.managerBonusType,
+        form.managerBonusAmount,
+        form.numberOfMusicians
+      ),
+    [
+      form.performanceFee,
+      form.technicalFee,
+      form.managerBonusType,
+      form.managerBonusAmount,
+      form.numberOfMusicians,
+    ]
+  );
+
+  const set = <K extends keyof GigFormData>(key: K, value: GigFormData[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!form.eventName || !form.date || !form.performers) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+    if (form.numberOfMusicians < 1) {
+      setError("Number of musicians must be at least 1.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit(form);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Shared styles ──────────────────────────────────────────────────────────
+  const inputCls =
+    "block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50";
+  const labelCls = "mb-1 block text-xs font-medium text-slate-600";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-slate-900">
+            {gig ? "Edit Performance" : "Add Performance"}
+          </h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {gig
+              ? "Update the details of this gig."
+              : "Enter the details for the new gig."}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5">
+          {error && (
+            <div className="mb-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* ── Event details ─────────────────────────────────────────── */}
+          <fieldset className="mb-5">
+            <legend className="mb-3 text-sm font-semibold text-slate-800">
+              Event Details
+            </legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className={labelCls}>
+                  Event Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className={inputCls}
+                  placeholder="e.g. Jazz at the Park"
+                  value={form.eventName}
+                  onChange={(e) => set("eventName", e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className={labelCls}>
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  className={inputCls}
+                  value={form.date}
+                  onChange={(e) => set("date", e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className={labelCls}>
+                  Performers <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className={inputCls}
+                  placeholder="Band name or members"
+                  value={form.performers}
+                  onChange={(e) => set("performers", e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className={labelCls}>
+                  Number of Musicians <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  className={inputCls}
+                  value={form.numberOfMusicians}
+                  onChange={(e) =>
+                    set("numberOfMusicians", Math.max(1, Number(e.target.value)))
+                  }
+                  required
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          {/* ── Financials ────────────────────────────────────────────── */}
+          <fieldset className="mb-5">
+            <legend className="mb-3 text-sm font-semibold text-slate-800">
+              Financials
+            </legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelCls}>
+                  Performance Fee ($) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inputCls}
+                  value={form.performanceFee || ""}
+                  onChange={(e) =>
+                    set("performanceFee", Number(e.target.value) || 0)
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Technical Fee ($)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inputCls}
+                  value={form.technicalFee || ""}
+                  onChange={(e) =>
+                    set("technicalFee", Number(e.target.value) || 0)
+                  }
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Manager Bonus Type</label>
+                <select
+                  className={inputCls}
+                  value={form.managerBonusType}
+                  onChange={(e) =>
+                    set(
+                      "managerBonusType",
+                      e.target.value as "fixed" | "percentage"
+                    )
+                  }
+                >
+                  <option value="fixed">Fixed Amount ($)</option>
+                  <option value="percentage">Percentage (%)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>
+                  Bonus Amount{" "}
+                  {form.managerBonusType === "percentage" ? "(%)" : "($)"}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inputCls}
+                  value={form.managerBonusAmount || ""}
+                  onChange={(e) =>
+                    set("managerBonusAmount", Number(e.target.value) || 0)
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Live calculation preview */}
+            <div className="mt-4 rounded-lg bg-brand-50/60 p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-600">
+                Calculated Preview
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+                <div>
+                  <span className="text-slate-500">Total</span>
+                  <p className="font-bold text-slate-900">
+                    {formatCurrency(calc.totalReceived)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Per Musician</span>
+                  <p className="font-semibold text-slate-700">
+                    {formatCurrency(calc.amountPerMusician)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-brand-600">My Earnings</span>
+                  <p className="font-bold text-brand-700">
+                    {formatCurrency(calc.myEarnings)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-amber-600">Owe Others</span>
+                  <p className="font-semibold text-amber-700">
+                    {formatCurrency(calc.amountOwedToOthers)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          {/* ── Payment status ────────────────────────────────────────── */}
+          <fieldset className="mb-5">
+            <legend className="mb-3 text-sm font-semibold text-slate-800">
+              Payment Status
+            </legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Client payment */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    checked={form.paymentReceived}
+                    onChange={(e) => {
+                      set("paymentReceived", e.target.checked);
+                      if (!e.target.checked) set("paymentReceivedDate", "");
+                    }}
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    Payment received from client
+                  </span>
+                </label>
+                {form.paymentReceived && (
+                  <div className="mt-2">
+                    <label className={labelCls}>Date received</label>
+                    <input
+                      type="date"
+                      className={inputCls}
+                      value={form.paymentReceivedDate}
+                      onChange={(e) =>
+                        set("paymentReceivedDate", e.target.value)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Band payment */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    checked={form.bandPaid}
+                    onChange={(e) => {
+                      set("bandPaid", e.target.checked);
+                      if (!e.target.checked) set("bandPaidDate", "");
+                    }}
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    Band members paid
+                  </span>
+                </label>
+                {form.bandPaid && (
+                  <div className="mt-2">
+                    <label className={labelCls}>Date paid</label>
+                    <input
+                      type="date"
+                      className={inputCls}
+                      value={form.bandPaidDate}
+                      onChange={(e) => set("bandPaidDate", e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </fieldset>
+
+          {/* ── Notes ─────────────────────────────────────────────────── */}
+          <fieldset className="mb-6">
+            <label className={labelCls}>Notes</label>
+            <textarea
+              rows={2}
+              className={inputCls}
+              placeholder="Any additional notes..."
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </fieldset>
+
+          {/* ── Actions ───────────────────────────────────────────────── */}
+          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={loading}
+              className="rounded-lg border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50"
+            >
+              {loading && (
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+              )}
+              {gig ? "Save Changes" : "Add Performance"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
