@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Gig, GigFormData, DashboardSummary } from "@/types";
 import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
+import { useAuth } from "./AuthProvider";
+import { LoginForm } from "./LoginForm";
 import GigCard from "./GigCard";
 import GigForm from "./GigForm";
 import DeleteConfirm from "./DeleteConfirm";
 
 export default function Dashboard() {
+  const { session, isLoading: authLoading, signOut } = useAuth();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [totalGigCount, setTotalGigCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -16,21 +19,63 @@ export default function Dashboard() {
   const [deleteGig, setDeleteGig] = useState<Gig | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
 
+  // Helper to get auth header
+  const getAuthHeader = useCallback(async () => {
+    if (!session?.user) return null;
+    try {
+      const { data } = await require("@/lib/supabase-client").supabaseClient.auth.getSession();
+      return data.session?.access_token ? `Bearer ${data.session.access_token}` : null;
+    } catch {
+      return null;
+    }
+  }, [session?.user]);
+
   // ── Data fetching ──────────────────────────────────────────────────────────
 
   const fetchGigs = useCallback(async () => {
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/gigs");
-      if (!res.ok) throw new Error();
-      const json = await res.json();
-      setGigs(json.data ?? json); // support paginated or raw response
-      setTotalGigCount(json.total ?? (json.data ?? json).length);
-    } catch {
+      setLoading(true);
+      const { supabaseClient } = await import("@/lib/supabase-client");
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        flash("No session token found", "err");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("/api/gigs", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          flash("Session expired. Please sign in again.", "err");
+        } else {
+          flash("Failed to load gigs.", "err");
+        }
+        setGigs([]);
+        setTotalGigCount(0);
+      } else {
+        const json = await res.json();
+        setGigs(json.data ?? json);
+        setTotalGigCount(json.total ?? (json.data ?? json).length);
+      }
+    } catch (err) {
+      console.error("Fetch gigs error:", err);
       flash("Failed to load gigs.", "err");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.user]);
 
   useEffect(() => {
     fetchGigs();
@@ -46,38 +91,80 @@ export default function Dashboard() {
   // ── CRUD handlers ──────────────────────────────────────────────────────────
 
   const handleCreate = async (data: GigFormData) => {
-    const res = await fetch("/api/gigs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        paymentReceivedDate: data.paymentReceivedDate || null,
-        bandPaidDate: data.bandPaidDate || null,
-        notes: data.notes || null,
-      }),
-    });
-    if (!res.ok) throw new Error();
-    setShowForm(false);
-    flash("Performance added!");
-    fetchGigs();
+    try {
+      const { supabaseClient } = await import("@/lib/supabase-client");
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        flash("No session token. Please sign in again.", "err");
+        return;
+      }
+
+      const res = await fetch("/api/gigs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...data,
+          paymentReceivedDate: data.paymentReceivedDate || null,
+          bandPaidDate: data.bandPaidDate || null,
+          notes: data.notes || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create gig");
+      }
+
+      setShowForm(false);
+      flash("Performance added!");
+      fetchGigs();
+    } catch (err: any) {
+      flash(err.message || "Failed to create gig.", "err");
+    }
   };
 
   const handleUpdate = async (data: GigFormData) => {
     if (!editGig) return;
-    const res = await fetch(`/api/gigs/${editGig.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        paymentReceivedDate: data.paymentReceivedDate || null,
-        bandPaidDate: data.bandPaidDate || null,
-        notes: data.notes || null,
-      }),
-    });
-    if (!res.ok) throw new Error();
-    setEditGig(null);
-    flash("Performance updated!");
-    fetchGigs();
+    try {
+      const { supabaseClient } = await import("@/lib/supabase-client");
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        flash("No session token. Please sign in again.", "err");
+        return;
+      }
+
+      const res = await fetch(`/api/gigs/${editGig.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...data,
+          paymentReceivedDate: data.paymentReceivedDate || null,
+          bandPaidDate: data.bandPaidDate || null,
+          notes: data.notes || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update gig");
+      }
+
+      setEditGig(null);
+      flash("Performance updated!");
+      fetchGigs();
+    } catch (err: any) {
+      flash(err.message || "Failed to update gig.", "err");
+    }
   };
 
   const handleDelete = async () => {
@@ -87,7 +174,23 @@ export default function Dashboard() {
     setGigs((g) => g.filter((x) => x.id !== deleteGig.id));
     setDeleteGig(null);
     try {
-      const res = await fetch(`/api/gigs/${deleteGig.id}`, { method: "DELETE" });
+      const { supabaseClient } = await import("@/lib/supabase-client");
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        setGigs(prev);
+        flash("No session token. Please sign in again.", "err");
+        return;
+      }
+
+      const res = await fetch(`/api/gigs/${deleteGig.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (!res.ok) throw new Error();
       flash("Performance deleted.");
       fetchGigs(); // re-sync
@@ -124,6 +227,42 @@ export default function Dashboard() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <svg className="h-8 w-8 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4">
+        <div className="w-full">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-600 shadow-md">
+                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
+                </svg>
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Welcome to <span className="text-brand-600">GigManager</span>
+            </h1>
+            <p className="mt-2 text-slate-600">Track your performances and manage payments</p>
+          </div>
+          <LoginForm />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
@@ -140,18 +279,31 @@ export default function Dashboard() {
             </h1>
           </div>
 
-          <button
-            onClick={() => {
-              setEditGig(null);
-              setShowForm(true);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 active:bg-brand-800"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Performance
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-slate-600">
+              {session.user?.email}
+            </div>
+            <button
+              onClick={() => {
+                setEditGig(null);
+                setShowForm(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 active:bg-brand-800"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add Performance
+            </button>
+            <button
+              onClick={async () => {
+                await signOut();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-300"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
