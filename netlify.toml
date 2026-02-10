@@ -10,6 +10,8 @@
   NODE_VERSION        = "18"
   # Prisma needs the engine for the Lambda runtime
   PRISMA_CLI_QUERY_ENGINE_TYPE = "library"
+  # Suppress false positive: NEXT_PUBLIC_SUPABASE_URL is intentionally public
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL"
 
 # ─── Next.js Runtime Plugin ──────────────────────────────────────────────────
 
