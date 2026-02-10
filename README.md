@@ -265,3 +265,5 @@ GigManager/
 ## License
 
 MIT
+#   G i g M a n a g e r  
+ 
