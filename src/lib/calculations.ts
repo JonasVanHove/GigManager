@@ -23,7 +23,8 @@ export function calculateGigFinancials(
   managerBonusAmount: number,
   numberOfMusicians: number,
   claimPerformanceFee = true,
-  claimTechnicalFee = true
+  claimTechnicalFee = true,
+  technicalFeeClaimAmount: number | null = null
 ): GigCalculations {
   const actualManagerBonus =
     managerBonusType === "percentage"
@@ -35,11 +36,33 @@ export function calculateGigFinancials(
     numberOfMusicians > 0 ? performanceFee / numberOfMusicians : 0;
 
   const perfShare = claimPerformanceFee ? amountPerMusician : 0;
-  const techShare = claimTechnicalFee ? technicalFee : 0;
+  
+  // Technical share: 
+  // - If not claiming: 0
+  // - If claiming all (no specific amount): technicalFee
+  // - If claiming specific amount: min(that amount, technicalFee)
+  const techShare = !claimTechnicalFee 
+    ? 0 
+    : (technicalFeeClaimAmount === null 
+        ? technicalFee 
+        : Math.min(technicalFeeClaimAmount, technicalFee));
+  
   const myEarnings = perfShare + techShare + actualManagerBonus;
 
-  const amountOwedToOthers =
+  // Owed to band members: always (numberOfMusicians - 1) * per person share
+  const amountOwedToBand =
     numberOfMusicians > 1 ? (numberOfMusicians - 1) * amountPerMusician : 0;
+
+  // Owed for technical fee: if claiming but not all of it, owe the rest
+  // If not claiming at all, owe everything
+  const amountOwedForTechnical = !claimTechnicalFee 
+    ? technicalFee 
+    : (technicalFeeClaimAmount === null 
+        ? 0 
+        : Math.max(0, technicalFee - technicalFeeClaimAmount));
+
+  // Legacy field: total owed
+  const amountOwedToOthers = amountOwedToBand + amountOwedForTechnical;
 
   return {
     actualManagerBonus: round(actualManagerBonus),

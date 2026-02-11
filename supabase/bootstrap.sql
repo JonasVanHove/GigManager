@@ -44,12 +44,28 @@ CREATE TABLE IF NOT EXISTS "User" (
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
+-- ── Create the UserSettings table ───────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS "UserSettings" (
+    "id"                    TEXT         NOT NULL DEFAULT gen_random_uuid()::text,
+    "currency"              TEXT         NOT NULL DEFAULT 'EUR',
+    "claimPerformanceFee"   BOOLEAN      NOT NULL DEFAULT true,
+    "claimTechnicalFee"     BOOLEAN      NOT NULL DEFAULT true,
+    "userId"                TEXT         NOT NULL UNIQUE,
+    "createdAt"             TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt"             TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "UserSettings_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "UserSettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE
+);
+
 -- ── Indexes for performance ─────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS "Gig_userId_idx"         ON "Gig" ("userId");
 CREATE INDEX IF NOT EXISTS "Gig_date_idx"            ON "Gig" ("date");
 CREATE INDEX IF NOT EXISTS "Gig_paymentReceived_idx" ON "Gig" ("paymentReceived");
 CREATE INDEX IF NOT EXISTS "Gig_bandPaid_idx"        ON "Gig" ("bandPaid");
+CREATE INDEX IF NOT EXISTS "UserSettings_userId_idx" ON "UserSettings" ("userId");
 
 -- ── Prisma migrations tracking table ────────────────────────────────────────
 -- This tells Prisma that the initial migration has already been applied,
@@ -87,6 +103,12 @@ CREATE TRIGGER gig_updated_at
 DROP TRIGGER IF EXISTS user_updated_at ON "User";
 CREATE TRIGGER user_updated_at
     BEFORE UPDATE ON "User"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS usersettings_updated_at ON "UserSettings";
+CREATE TRIGGER usersettings_updated_at
+    BEFORE UPDATE ON "UserSettings"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 

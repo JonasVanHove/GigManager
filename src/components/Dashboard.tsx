@@ -10,6 +10,7 @@ import GigCard from "./GigCard";
 import GigForm from "./GigForm";
 import DeleteConfirm from "./DeleteConfirm";
 import SettingsModal from "./SettingsModal";
+import AnalyticsPage from "./AnalyticsPage";
 
 export default function Dashboard() {
   const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [deleteGig, setDeleteGig] = useState<Gig | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [activeTab, setActiveTab] = useState<"gigs" | "analytics">("gigs");
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -208,8 +210,9 @@ export default function Dashboard() {
         g.managerBonusType,
         g.managerBonusAmount,
         g.numberOfMusicians,
-        settings.claimPerformanceFee,
-        settings.claimTechnicalFee
+        g.claimPerformanceFee,
+        g.claimTechnicalFee,
+        g.technicalFeeClaimAmount
       );
       acc.totalGigs += 1;
       acc.totalEarnings += c.myEarnings;
@@ -343,50 +346,91 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* ── Gig list ───────────────────────────────────────────────── */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <svg className="h-8 w-8 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          </div>
-        ) : gigs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 py-20 text-center">
-            <svg className="mb-4 h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
-            </svg>
-            <h3 className="text-lg font-semibold text-slate-700">
-              No performances yet
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Add your first gig to start tracking.
-            </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        {/* ── Tabs ───────────────────────────────────────────────────── */}
+        <div className="mb-6 flex gap-2 border-b border-slate-200">
+          <button
+            onClick={() => setActiveTab("gigs")}
+            className={`px-4 py-3 text-sm font-medium transition ${
+              activeTab === "gigs"
+                ? "border-b-2 border-brand-600 text-brand-600"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span className="inline-flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6Zm0 9.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25v-2.25Zm9-9.75A2.25 2.25 0 0 1 15 3.75H17.25a2.25 2.25 0 0 1 2.25 2.25V6A2.25 2.25 0 0 1 17.25 8.25H15a2.25 2.25 0 0 1-2.25-2.25V6Zm0 9.75A2.25 2.25 0 0 1 15 13.5H17.25a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 17.25 20.25H15a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
               </svg>
-              Add Performance
-            </button>
-          </div>
-        ) : (
-          <div className="grid gap-5">
-            {gigs.map((gig) => (
-              <GigCard
-                key={gig.id}
-                gig={gig}
-                onEdit={(g) => setEditGig(g)}
-                onDelete={(g) => setDeleteGig(g)}
-                fmtCurrency={fmtCurrency}
-                claimPerformanceFee={settings.claimPerformanceFee}
-                claimTechnicalFee={settings.claimTechnicalFee}
-              />
-            ))}
-          </div>
-        )}
+              Gigs
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`px-4 py-3 text-sm font-medium transition ${
+              activeTab === "analytics"
+                ? "border-b-2 border-brand-600 text-brand-600"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span className="inline-flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 6.75c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v13.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V6.75ZM16.5 6.75c0-.621.504-1.125 1.125-1.125h2.25C20.496 5.625 21 6.129 21 6.75v13.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V6.75Z" />
+              </svg>
+              Analytics
+            </span>
+          </button>
+        </div>
+
+        {/* ── Content ────────────────────────────────────────────────── */}
+        {activeTab === "gigs" ? (
+          <>
+            {/* ── Gig list ───────────────────────────────────────────────── */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <svg className="h-8 w-8 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            ) : gigs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 py-20 text-center">
+                <svg className="mb-4 h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-slate-700">
+                  No performances yet
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Add your first gig to start tracking.
+                </p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Add Performance
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-5">
+                {gigs.map((gig) => (
+                  <GigCard
+                    key={gig.id}
+                    gig={gig}
+                    onEdit={(g) => setEditGig(g)}
+                    onDelete={(g) => setDeleteGig(g)}
+                    fmtCurrency={fmtCurrency}
+                    claimPerformanceFee={gig.claimPerformanceFee}
+                    claimTechnicalFee={gig.claimTechnicalFee}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : activeTab === "analytics" ? (
+          <AnalyticsPage gigs={gigs} fmtCurrency={fmtCurrency} />
+        ) : null}
       </main>
 
       {/* ── Modals ───────────────────────────────────────────────────── */}

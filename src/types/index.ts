@@ -10,6 +10,9 @@ export interface Gig {
   technicalFee: number;
   managerBonusType: "fixed" | "percentage";
   managerBonusAmount: number;
+  claimPerformanceFee: boolean; // claim this fee for this gig
+  claimTechnicalFee: boolean; // claim this fee for this gig
+  technicalFeeClaimAmount: number | null; // amount of technical fee to claim (null = all)
   paymentReceived: boolean;
   paymentReceivedDate: string | null;
   bandPaid: boolean;
@@ -55,6 +58,9 @@ export interface GigFormData {
   technicalFee: number;
   managerBonusType: "fixed" | "percentage";
   managerBonusAmount: number;
+  claimPerformanceFee: boolean; // claim this fee for this gig
+  claimTechnicalFee: boolean; // claim this fee for this gig
+  technicalFeeClaimAmount: number | null; // amount of technical fee to claim (null = all)
   paymentReceived: boolean;
   paymentReceivedDate: string; // "" or "YYYY-MM-DD"
   bandPaid: boolean;

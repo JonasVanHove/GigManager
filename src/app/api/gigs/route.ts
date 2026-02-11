@@ -68,6 +68,9 @@ function toGigData(body: Record<string, unknown>, userId: string) {
     technicalFee: Math.max(0, Number(body.technicalFee) || 0),
     managerBonusType: (body.managerBonusType as string) || "fixed",
     managerBonusAmount: Math.max(0, Number(body.managerBonusAmount) || 0),
+    claimPerformanceFee: body.claimPerformanceFee !== false,
+    claimTechnicalFee: body.claimTechnicalFee !== false,
+    technicalFeeClaimAmount: body.technicalFeeClaimAmount ? Number(body.technicalFeeClaimAmount) : null,
     paymentReceived: Boolean(body.paymentReceived),
     paymentReceivedDate: body.paymentReceivedDate
       ? new Date(String(body.paymentReceivedDate))

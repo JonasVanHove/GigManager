@@ -24,6 +24,11 @@ model Gig {
   managerBonusType  String @default("fixed") // "fixed" | "percentage"
   managerBonusAmount Float @default(0) // bonus value ($ or %)
 
+  // ── Fee claims — whether manager claims these fees for this gig ──
+  claimPerformanceFee Boolean @default(true)
+  claimTechnicalFee   Boolean @default(true)
+  technicalFeeClaimAmount Float? // amount of technical fee to claim (null = claim all)
+
   // ── Payment tracking ───────────────────────────────────
   paymentReceived     Boolean   @default(false)
   paymentReceivedDate DateTime?

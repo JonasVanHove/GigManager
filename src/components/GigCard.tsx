@@ -29,8 +29,9 @@ export default function GigCard({
     gig.managerBonusType,
     gig.managerBonusAmount,
     gig.numberOfMusicians,
-    claimPerformanceFee,
-    claimTechnicalFee
+    gig.claimPerformanceFee,
+    gig.claimTechnicalFee,
+    gig.technicalFeeClaimAmount
   );
 
   return (
@@ -133,31 +134,117 @@ export default function GigCard({
       </div>
 
       {/* ── Per-person breakdown ───────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4 border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-sm">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-            Per Musician
-          </p>
-          <p className="mt-0.5 font-semibold text-slate-700">
-            {fmtCurrency(calc.amountPerMusician)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-brand-500">
-            My Earnings
-          </p>
-          <p className="mt-0.5 font-bold text-brand-700">
-            {fmtCurrency(calc.myEarnings)}
-          </p>
-        </div>
-        {calc.amountOwedToOthers > 0 && (
+      <div className="space-y-3 border-t border-slate-100 px-5 py-3">
+        {/* Row 1: Per musician + My earnings */}
+        <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-amber-500">
-              Owe to Others
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+              Per Musician
             </p>
-            <p className="mt-0.5 font-semibold text-amber-700">
+            <p className="mt-0.5 font-semibold text-slate-700">
+              {fmtCurrency(calc.amountPerMusician)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-brand-500">
+              My Earnings
+            </p>
+            <p className="mt-0.5 font-bold text-brand-700">
+              {fmtCurrency(calc.myEarnings)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-brand-500">
+              Total Owed
+            </p>
+            <p className="mt-0.5 font-semibold text-brand-700">
               {fmtCurrency(calc.amountOwedToOthers)}
             </p>
+          </div>
+        </div>
+
+        {/* Row 2: Fee claims + Breakdown of owed */}
+        {calc.amountOwedToOthers > 0 && (
+          <div className="grid grid-cols-3 gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs">
+            <div>
+              <p className="font-medium uppercase tracking-wider text-slate-600">
+                Claims{" "}
+              </p>
+              <div className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-2">
+                  {gig.claimPerformanceFee ? (
+                    <svg className="h-3.5 w-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="h-3.5 w-3.5 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.47 4.47a.75.75 0 0 1 1.06 0L10 8.94l4.47-4.47a.75.75 0 1 1 1.06 1.06L11.06 10l4.47 4.47a.75.75 0 1 1-1.06 1.06L10 11.06l-4.47 4.47a.75.75 0 0 1-1.06-1.06L8.94 10 4.47 5.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <span className={gig.claimPerformanceFee ? "text-slate-700" : "text-slate-500"}>
+                    Performance
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {gig.claimTechnicalFee ? (
+                    <svg className="h-3.5 w-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="h-3.5 w-3.5 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.47 4.47a.75.75 0 0 1 1.06 0L10 8.94l4.47-4.47a.75.75 0 1 1 1.06 1.06L11.06 10l4.47 4.47a.75.75 0 1 1-1.06 1.06L10 11.06l-4.47 4.47a.75.75 0 0 1-1.06-1.06L8.94 10 4.47 5.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <span className={gig.claimTechnicalFee ? "text-slate-700" : "text-slate-500"}>
+                    Technical
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-medium uppercase tracking-wider text-amber-600">
+                Owed to Band
+              </p>
+              <p className="mt-1.5 font-semibold text-amber-700">
+                {fmtCurrency(
+                  gig.numberOfMusicians > 1
+                    ? (gig.numberOfMusicians - 1) * (gig.performanceFee / gig.numberOfMusicians)
+                    : 0
+                )}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                ({gig.numberOfMusicians - 1} musician{gig.numberOfMusicians > 2 ? "s" : ""})
+              </p>
+            </div>
+
+            {!gig.claimTechnicalFee && gig.technicalFee > 0 && (
+              <div>
+                <p className="font-medium uppercase tracking-wider text-red-600">
+                  Owed (Tech)
+                </p>
+                <p className="mt-1.5 font-semibold text-red-700">
+                  {fmtCurrency(gig.technicalFee)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  (not claimed)
+                </p>
+              </div>
+            )}
+
+            {gig.claimTechnicalFee && gig.technicalFee > 0 && gig.technicalFeeClaimAmount && gig.technicalFeeClaimAmount < gig.technicalFee && (
+              <div>
+                <p className="font-medium uppercase tracking-wider text-orange-600">
+                  Claimed (Tech)
+                </p>
+                <p className="mt-1.5 font-semibold text-orange-700">
+                  {fmtCurrency(gig.technicalFeeClaimAmount)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Owed: {fmtCurrency(gig.technicalFee - gig.technicalFeeClaimAmount)}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -19,6 +19,9 @@ const emptyForm: GigFormData = {
   technicalFee: 0,
   managerBonusType: "fixed",
   managerBonusAmount: 0,
+  claimPerformanceFee: true,
+  claimTechnicalFee: true,
+  technicalFeeClaimAmount: null,
   paymentReceived: false,
   paymentReceivedDate: "",
   bandPaid: false,
@@ -36,6 +39,9 @@ function gigToFormData(gig: Gig): GigFormData {
     technicalFee: gig.technicalFee,
     managerBonusType: gig.managerBonusType,
     managerBonusAmount: gig.managerBonusAmount,
+    claimPerformanceFee: gig.claimPerformanceFee ?? true,
+    claimTechnicalFee: gig.claimTechnicalFee ?? true,
+    technicalFeeClaimAmount: gig.technicalFeeClaimAmount ?? null,
     paymentReceived: gig.paymentReceived,
     paymentReceivedDate: gig.paymentReceivedDate
       ? gig.paymentReceivedDate.split("T")[0]
@@ -61,7 +67,10 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
         form.technicalFee,
         form.managerBonusType,
         form.managerBonusAmount,
-        form.numberOfMusicians
+        form.numberOfMusicians,
+        form.claimPerformanceFee,
+        form.claimTechnicalFee,
+        form.technicalFeeClaimAmount
       ),
     [
       form.performanceFee,
@@ -69,6 +78,9 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
       form.managerBonusType,
       form.managerBonusAmount,
       form.numberOfMusicians,
+      form.claimPerformanceFee,
+      form.claimTechnicalFee,
+      form.technicalFeeClaimAmount,
     ]
   );
 
@@ -254,6 +266,61 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                   }
                 />
               </div>
+            </div>
+
+            {/* Fee claims for this gig */}
+            <div className="mt-4 space-y-3 rounded-lg border border-brand-200 bg-brand-50/40 p-3">
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500"
+                  checked={form.claimPerformanceFee}
+                  onChange={(e) => set("claimPerformanceFee", e.target.checked)}
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  Claim performance fee
+                </span>
+              </label>
+              
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500"
+                  checked={form.claimTechnicalFee}
+                  onChange={(e) => {
+                    set("claimTechnicalFee", e.target.checked);
+                    if (e.target.checked && form.technicalFeeClaimAmount === null) {
+                      set("technicalFeeClaimAmount", form.technicalFee);
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  Claim technical fee
+                </span>
+              </label>
+
+              {/* Technical fee claim amount — only if claiming */}
+              {form.claimTechnicalFee && form.technicalFee > 0 && (
+                <div className="ml-6 mt-2 rounded border border-brand-300/50 bg-white p-2">
+                  <label className={labelCls}>
+                    Amount to claim (default: all)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={form.technicalFee}
+                    step="0.01"
+                    className={inputCls}
+                    value={form.technicalFeeClaimAmount ?? form.technicalFee}
+                    onChange={(e) =>
+                      set("technicalFeeClaimAmount", Number(e.target.value) || 0)
+                    }
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Leave blank to claim the full {formatCurrency(form.technicalFee)}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Live calculation preview */}
