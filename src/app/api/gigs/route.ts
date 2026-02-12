@@ -89,6 +89,7 @@ function toGigData(body: Record<string, unknown>, userId: string) {
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
+    console.warn("[API Auth] Missing Authorization header");
     return NextResponse.json(
       { error: "Unauthorized: missing token" },
       { status: 401 }
@@ -96,16 +97,19 @@ async function requireAuth(request: NextRequest) {
   }
 
   const token = authHeader.slice(7);
+  console.log("[API Auth] Token received, length:", token.length);
   
   try {
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data.user) {
-      console.error("[Auth] Supabase error:", error?.message || "No user data");
+      console.error("[API Auth] Supabase validation failed:", error?.message || "No user data");
       return NextResponse.json(
         { error: "Unauthorized: invalid token" },
         { status: 401 }
       );
     }
+    
+    console.log("[API Auth] Token valid for user:", data.user.id);
     
     // Get or create user record
     const user = await getOrCreateUser(
@@ -114,10 +118,11 @@ async function requireAuth(request: NextRequest) {
       data.user.user_metadata?.name
     );
     
+    console.log("[API Auth] DB user ready:", user.id);
     return { user };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[Auth] Token validation failed:", errorMsg);
+    console.error("[API Auth] Exception during token validation:", errorMsg, err);
     return NextResponse.json(
       { error: "Unauthorized: token validation failed" },
       { status: 401 }
@@ -131,10 +136,14 @@ export async function GET(request: NextRequest) {
   const { user } = authResult as { user: any };
 
   try {
+    console.log("[GET /api/gigs] Authenticated user:", user.id);
+    
     const { searchParams } = new URL(request.url);
     const take = Math.min(Number(searchParams.get("take")) || 100, 200);
     const skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
 
+    console.log("[GET /api/gigs] Querying gigs for user:", user.id);
+    
     const [gigs, total] = await Promise.all([
       prisma.gig.findMany({
         where: { userId: user.id },
@@ -145,11 +154,13 @@ export async function GET(request: NextRequest) {
       prisma.gig.count({ where: { userId: user.id } }),
     ]);
 
+    console.log("[GET /api/gigs] Success: found", gigs.length, "of", total, "gigs");
     return NextResponse.json({ data: gigs, total, take, skip });
   } catch (error) {
-    console.error("[GET /api/gigs]", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[GET /api/gigs] Exception:", errorMsg, error);
     return NextResponse.json(
-      { error: "Failed to fetch gigs" },
+      { error: "Failed to fetch gigs", details: errorMsg },
       { status: 500 }
     );
   }

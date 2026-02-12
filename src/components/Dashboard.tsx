@@ -29,6 +29,7 @@ export default function Dashboard() {
 
   const fetchGigs = useCallback(async () => {
     if (!session?.user) {
+      console.log("[fetchGigs] No user session");
       setGigs([]);
       setTotalGigCount(0);
       setLoading(false);
@@ -37,23 +38,31 @@ export default function Dashboard() {
 
     try {
       setLoading(true);
+      console.log("[fetchGigs] Getting access token for user:", session.user.email);
       const token = await getAccessToken();
 
       if (!token) {
-        // Token not available yet — don't show error, just wait
+        // Token not available yet — wait a bit and retry
+        console.warn("[fetchGigs] No token available, retrying in 500ms...");
         setLoading(false);
+        setTimeout(fetchGigs, 500);
         return;
       }
 
+      console.log("[fetchGigs] Got token, fetching gigs...");
       const res = await fetch("/api/gigs", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      console.log("[fetchGigs] Response status:", res.status);
+
       if (!res.ok) {
         if (res.status === 401) {
+          console.warn("[fetchGigs] Got 401, attempting token refresh and retry...");
           // Token might be expired — try to refresh
           const newToken = await getAccessToken();
-          if (newToken) {
+          if (newToken && newToken !== token) {
+            console.log("[fetchGigs] Got new token after refresh, retrying...");
             const retryRes = await fetch("/api/gigs", {
               headers: { Authorization: `Bearer ${newToken}` },
             });
@@ -61,17 +70,21 @@ export default function Dashboard() {
               const json = await retryRes.json();
               setGigs(json.data ?? json);
               setTotalGigCount(json.total ?? (json.data ?? json).length);
+              console.log("[fetchGigs] Success after retry:", (json.data ?? json).length, "gigs");
               return;
             }
           }
           flash("Session expired. Please sign out and sign in again.", "err");
         } else {
+          const errorText = await res.text();
+          console.error("[fetchGigs] Error response:", errorText);
           flash("Failed to load gigs.", "err");
         }
         setGigs([]);
         setTotalGigCount(0);
       } else {
         const json = await res.json();
+        console.log("[fetchGigs] Success:", json.total || (json.data ?? json).length, "gigs");
         setGigs(json.data ?? json);
         setTotalGigCount(json.total ?? (json.data ?? json).length);
       }

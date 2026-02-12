@@ -23,17 +23,22 @@ export const AuthContext = React.createContext<AuthContextType | undefined>(
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   // ── Session management ──────────────────────────────────────────────────
 
-  const updateSession = useCallback((user: any | null) => {
+  const updateSession = useCallback((user: any | null, token?: string | null) => {
     if (user) {
       setSession({
         user: { ...user, email: user.email || "" },
         isLoading: false,
       });
+      if (token) {
+        setAccessToken(token);
+      }
     } else {
       setSession(null);
+      setAccessToken(null);
     }
   }, []);
 
@@ -45,7 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
-        if (mounted) updateSession(session?.user ?? null);
+        if (mounted) {
+          updateSession(
+            session?.user ?? null,
+            session?.access_token ?? null
+          );
+        }
       } catch (err) {
         console.error("Failed to check session:", err);
         if (mounted) updateSession(null);
@@ -60,7 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       if (mounted) {
-        updateSession(session?.user ?? null);
+        updateSession(
+          session?.user ?? null,
+          session?.access_token ?? null
+        );
         setIsLoading(false);
       }
     });
@@ -144,29 +157,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     try {
-      // Try to get current session first
+      // If we have a cached token, return it immediately
+      if (accessToken) {
+        console.log("[getAccessToken] Using cached token");
+        return accessToken;
+      }
+
+      // Try to get session from Supabase
       let {
         data: { session },
       } = await supabaseClient.auth.getSession();
-      
-      // If session exists and token is still good, return it
+
+      // If we got a token from session, cache it and return
       if (session?.access_token) {
+        console.log("[getAccessToken] Got token from session");
+        setAccessToken(session.access_token);
         return session.access_token;
       }
-      
-      // If no session or token expired, try to refresh
-      const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession();
-      if (refreshError || !refreshedData.session?.access_token) {
-        console.warn("[getAccessToken] Could not refresh session");
+
+      // If no session, try to refresh
+      console.log("[getAccessToken] No session, attempting refresh...");
+      const { data: refreshedData, error: refreshError } =
+        await supabaseClient.auth.refreshSession();
+
+      if (refreshError) {
+        console.error("[getAccessToken] Refresh failed:", refreshError.message);
         return null;
       }
-      
-      return refreshedData.session.access_token;
+
+      if (refreshedData.session?.access_token) {
+        console.log("[getAccessToken] Got new token from refresh");
+        setAccessToken(refreshedData.session.access_token);
+        return refreshedData.session.access_token;
+      }
+
+      console.warn("[getAccessToken] No token after refresh attempt");
+      return null;
     } catch (err) {
-      console.error("[getAccessToken] Error:", err instanceof Error ? err.message : String(err));
+      console.error(
+        "[getAccessToken] Exception:",
+        err instanceof Error ? err.message : String(err)
+      );
       return null;
     }
-  }, []);
+  }, [accessToken]);
 
   // ── Provider ────────────────────────────────────────────────────────────
 
