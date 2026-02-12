@@ -259,7 +259,7 @@ export default function Dashboard() {
               </svg>
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Gig<span className="text-brand-600">Manager</span>
+              Gigs<span className="text-brand-600">Manager</span>
             </h1>
           </div>
 

@@ -6,7 +6,7 @@ import { ClientLayout } from "@/components/ClientLayout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GigManager — Track Your Performances",
+  title: "GigsManager — Track Your Performances",
   description:
     "Manage live music performances, track payments, and calculate musician earnings.",
   icons: {

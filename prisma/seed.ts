@@ -14,7 +14,7 @@ async function main() {
     testUser = await prisma.user.create({
       data: {
         supabaseId: "demo-user-123",
-        email: "demo@gigmanager.local",
+        email: "demo@gigsmanager.local",
         name: "Demo User",
       },
     });

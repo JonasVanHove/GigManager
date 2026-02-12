@@ -129,7 +129,7 @@ export default function LandingPage() {
               <MusicIcon className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-900">
-              Gig<span className="text-brand-600">Manager</span>
+              Gigs<span className="text-brand-600">Manager</span>
             </span>
           </div>
 
@@ -179,7 +179,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-6 text-lg leading-relaxed text-slate-600 sm:text-xl">
-              GigManager helps musicians and band managers track performances,
+              GigsManager helps musicians and band managers track performances,
               split fees, and manage payments — all in one simple dashboard.
               Stop juggling spreadsheets and start focusing on the music.
             </p>
@@ -283,7 +283,7 @@ export default function LandingPage() {
               Everything you need to manage your gigs
             </h2>
             <p className="mt-4 text-lg text-slate-600">
-              From booking to payment, GigManager handles the financial complexity so you can focus on performing.
+              From booking to payment, GigsManager handles the financial complexity so you can focus on performing.
             </p>
           </div>
 
@@ -310,7 +310,7 @@ export default function LandingPage() {
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Why choose GigManager?
+                Why choose GigsManager?
               </h2>
               <p className="mt-4 text-lg text-slate-600">
                 Built by musicians, for musicians. We know the pain of tracking payments after a
@@ -336,7 +336,7 @@ export default function LandingPage() {
                 From gig to payment in under 60 seconds
               </p>
               <p className="mt-4 text-brand-200 leading-relaxed">
-                Add a performance, enter the fees, and GigManager instantly calculates
+                Add a performance, enter the fees, and GigsManager instantly calculates
                 each musician's share, your earnings, and what you owe. No formulas, no
                 mistakes, no stress.
               </p>
@@ -405,11 +405,11 @@ export default function LandingPage() {
               <MusicIcon className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-semibold text-slate-900">
-              Gig<span className="text-brand-600">Manager</span>
+              Gigs<span className="text-brand-600">Manager</span>
             </span>
           </div>
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} GigManager. Free and open-source.
+            &copy; {new Date().getFullYear()} GigsManager. Free and open-source.
           </p>
         </div>
       </footer>

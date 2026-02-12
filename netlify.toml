@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Netlify build configuration for GigManager (Next.js 14 + Prisma)
+# Netlify build configuration for GigsManager (Next.js 14 + Prisma)
 # ─────────────────────────────────────────────────────────────────────────────
 
 [build]

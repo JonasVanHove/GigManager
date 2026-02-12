@@ -1,4 +1,4 @@
-# GigManager 🎵
+# GigsManager 🎵
 
 A production-ready full-stack web app for tracking live music performances, managing payments, and calculating musician earnings — deployed on **Netlify** with **Supabase PostgreSQL**.
 
@@ -49,8 +49,8 @@ A production-ready full-stack web app for tracking live music performances, mana
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/JonasVanHove/GigManager.git
-cd GigManager
+git clone https://github.com/JonasVanHove/GigsManager.git
+cd GigsManager
 ```
 
 ### 2. Install dependencies
@@ -144,7 +144,7 @@ Supabase pauses free-tier databases after **7 days of inactivity**. This repo in
 ### 1. Connect repo
 
 1. Go to [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import from Git**
-2. Select your GitHub repo (`JonasVanHove/GigManager`)
+2. Select your GitHub repo (`JonasVanHove/GigsManager`)
 3. Netlify auto-detects `netlify.toml` settings
 
 ### 2. Set environment variables
@@ -177,7 +177,7 @@ This applies all migrations to the production database.
 ## Project Structure
 
 ```
-GigManager/
+GigsManager/
 ├── .github/workflows/
 │   ├── ci.yml                # Lint + build on every push/PR
 │   └── keepalive.yml         # Cron: ping Supabase every 4 days

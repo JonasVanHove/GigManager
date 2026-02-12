@@ -1,5 +1,5 @@
 -- ============================================================================
--- GigManager — Supabase SQL Bootstrap
+-- GigsManager — Supabase SQL Bootstrap
 -- ============================================================================
 -- Run this in Supabase Dashboard → SQL Editor → New Query → Run
 -- This creates the same schema that Prisma migrations would create.
@@ -151,5 +151,5 @@ VALUES
 */
 
 -- ============================================================================
--- Done! Your database is ready for GigManager.
+-- Done! Your database is ready for GigsManager.
 -- ============================================================================
