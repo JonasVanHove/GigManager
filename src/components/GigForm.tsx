@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { Gig, GigFormData } from "@/types";
 import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
 
@@ -100,6 +100,13 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
 
   const set = <K extends keyof GigFormData>(key: K, value: GigFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Auto-set performance fee to 0 when charity is checked
+  useEffect(() => {
+    if (form.isCharity && form.performanceFee > 0) {
+      setForm((prev) => ({ ...prev, performanceFee: 0 }));
+    }
+  }, [form.isCharity]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
