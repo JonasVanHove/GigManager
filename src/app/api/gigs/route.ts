@@ -100,6 +100,10 @@ async function requireAuth(request: NextRequest) {
   console.log("[API Auth] Token received, length:", token.length);
   console.log("[API Auth] Token starts with:", token.substring(0, 20));
   
+  // Check environment
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  console.log("[API Auth] SUPABASE_SERVICE_ROLE_KEY set:", hasServiceKey);
+  
   try {
     console.log("[API Auth] Calling supabaseAdmin.auth.getUser...");
     const { data, error } = await supabaseAdmin.auth.getUser(token);
@@ -109,9 +113,15 @@ async function requireAuth(request: NextRequest) {
         message: error.message,
         status: (error as any).status,
         code: (error as any).code,
+        fullError: JSON.stringify(error),
       });
       return NextResponse.json(
-        { error: "Unauthorized: invalid token", details: error.message },
+        { 
+          error: "Unauthorized: invalid token", 
+          details: error.message,
+          status: (error as any).status,
+          hasServiceKey,
+        },
         { status: 401 }
       );
     }
@@ -140,9 +150,10 @@ async function requireAuth(request: NextRequest) {
     console.error("[API Auth] Exception during token validation:", {
       message: errorMsg,
       error: err,
+      errorString: JSON.stringify(err),
     });
     return NextResponse.json(
-      { error: "Unauthorized: token validation failed", details: errorMsg },
+      { error: "Unauthorized: token validation failed", details: errorMsg, hasServiceKey },
       { status: 401 }
     );
   }

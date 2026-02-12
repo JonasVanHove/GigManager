@@ -15,6 +15,10 @@ async function requireAuth(request: NextRequest) {
   const token = authHeader.slice(7);
   console.log("[Settings Auth] Token received, length:", token.length);
 
+  // Check environment
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  console.log("[Settings Auth] SUPABASE_SERVICE_ROLE_KEY set:", hasServiceKey);
+
   try {
     console.log("[Settings Auth] Calling supabaseAdmin.auth.getUser...");
     const {
@@ -26,8 +30,10 @@ async function requireAuth(request: NextRequest) {
       console.error("[Settings Auth] Supabase error:", {
         message: error.message,
         status: (error as any).status,
+        code: (error as any).code,
+        fullError: JSON.stringify(error),
       });
-      return { error: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
+      return { error: NextResponse.json({ error: "Invalid token", details: error.message, hasServiceKey }, { status: 401 }) };
     }
 
     if (!supabaseUser) {
@@ -44,8 +50,12 @@ async function requireAuth(request: NextRequest) {
     return { user };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[Settings Auth] Exception:", errorMsg, err);
-    return { error: NextResponse.json({ error: "Auth error" }, { status: 500 }) };
+    console.error("[Settings Auth] Exception:", { 
+      message: errorMsg, 
+      error: err,
+      errorString: JSON.stringify(err),
+    });
+    return { error: NextResponse.json({ error: "Auth error", details: errorMsg, hasServiceKey }, { status: 500 }) };
   }
 }
 
