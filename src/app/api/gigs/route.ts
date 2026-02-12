@@ -100,6 +100,7 @@ async function requireAuth(request: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data.user) {
+      console.error("[Auth] Supabase error:", error?.message || "No user data");
       return NextResponse.json(
         { error: "Unauthorized: invalid token" },
         { status: 401 }
@@ -115,7 +116,8 @@ async function requireAuth(request: NextRequest) {
     
     return { user };
   } catch (err) {
-    console.error("[Auth]", err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[Auth] Token validation failed:", errorMsg);
     return NextResponse.json(
       { error: "Unauthorized: token validation failed" },
       { status: 401 }

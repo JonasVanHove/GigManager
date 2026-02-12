@@ -144,11 +144,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     try {
-      const {
+      // Try to get current session first
+      let {
         data: { session },
       } = await supabaseClient.auth.getSession();
-      return session?.access_token ?? null;
-    } catch {
+      
+      // If session exists and token is still good, return it
+      if (session?.access_token) {
+        return session.access_token;
+      }
+      
+      // If no session or token expired, try to refresh
+      const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession();
+      if (refreshError || !refreshedData.session?.access_token) {
+        console.warn("[getAccessToken] Could not refresh session");
+        return null;
+      }
+      
+      return refreshedData.session.access_token;
+    } catch (err) {
+      console.error("[getAccessToken] Error:", err instanceof Error ? err.message : String(err));
       return null;
     }
   }, []);

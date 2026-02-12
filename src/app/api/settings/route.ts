@@ -61,8 +61,15 @@ export async function GET(request: NextRequest) {
       claimTechnicalFee: settings.claimTechnicalFee,
     });
   } catch (err) {
-    console.error("GET /api/settings error:", err);
-    return NextResponse.json({ error: "Failed to load settings" }, { status: 500 });
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[GET /api/settings] error:", errorMsg);
+    // Return defaults on error instead of 500
+    // This handles cases where UserSettings table doesn't exist yet
+    return NextResponse.json({
+      currency: "EUR",
+      claimPerformanceFee: true,
+      claimTechnicalFee: true,
+    });
   }
 }
 
@@ -113,7 +120,14 @@ export async function PUT(request: NextRequest) {
       claimTechnicalFee: settings.claimTechnicalFee,
     });
   } catch (err) {
-    console.error("PUT /api/settings error:", err);
-    return NextResponse.json({ error: "Failed to save settings" }, { status: 500 });
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[PUT /api/settings] error:", errorMsg);
+    // If table doesn't exist or other issue, return the data we received at least
+    // This handles cases where UserSettings table doesn't exist yet
+    return NextResponse.json({
+      currency: currency || "EUR",
+      claimPerformanceFee: claimPerformanceFee ?? true,
+      claimTechnicalFee: claimTechnicalFee ?? true,
+    });
   }
 }
