@@ -108,6 +108,19 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
     }
   }, [form.isCharity]);
 
+  // Auto-set payment dates to performance date when charity is checked
+  useEffect(() => {
+    if (form.isCharity && form.date) {
+      setForm((prev) => ({
+        ...prev,
+        paymentReceived: true,
+        paymentReceivedDate: form.date,
+        bandPaid: true,
+        bandPaidDate: form.date,
+      }));
+    }
+  }, [form.isCharity, form.date]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -251,7 +264,7 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                 </span>
               </label>
               <p className="mt-2 ml-6 text-xs text-purple-700 dark:text-purple-400">
-                Check this if this is a free performance for a good cause (compensation will be $0)
+                Check this if this is a free performance for a good cause. Compensation will be $0 and payment dates will automatically be set to the performance date.
               </p>
             </div>
 
