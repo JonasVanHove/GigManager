@@ -1,9 +1,8 @@
 "use client";
 
-export default function Footer() {
-  // Get version - hardcoded to match package.json
-  const version = "1.0.2";
+import { APP_VERSION } from "@/lib/version";
 
+export default function Footer() {
   return (
     <footer className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 py-6 px-4 mt-12">
       <div className="max-w-7xl mx-auto">
@@ -14,7 +13,7 @@ export default function Footer() {
             {" "}by Jonas Van Hove
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-500">
-            v{version}
+            v{APP_VERSION}
           </p>
         </div>
       </div>
