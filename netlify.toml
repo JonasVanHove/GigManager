@@ -5,6 +5,11 @@
 [build]
   command   = "npm run build"
   publish   = ".next"
+  # Fetch git tags for version extraction
+  [build.processing]
+    skip_processing = false
+  [build.processing.git]
+    depth = 0
 
 [build.environment]
   NODE_VERSION        = "18"

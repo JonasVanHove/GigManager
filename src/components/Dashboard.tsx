@@ -229,14 +229,20 @@ export default function Dashboard() {
         g.numberOfMusicians,
         g.claimPerformanceFee,
         g.claimTechnicalFee,
-        g.technicalFeeClaimAmount
+        g.technicalFeeClaimAmount,
+        g.advanceReceivedByManager,
+        g.advanceToMusicians,
+        g.isCharity
       );
       acc.totalGigs += 1;
       acc.totalEarnings += c.myEarnings;
       if (g.paymentReceived) {
+        // Full payment received
         acc.totalEarningsReceived += c.myEarnings;
       } else {
-        acc.totalEarningsPending += c.myEarnings;
+        // Only advance received so far, rest is still pending
+        acc.totalEarningsReceived += c.myEarningsAlreadyReceived;
+        acc.totalEarningsPending += c.myEarningsStillOwed;
       }
       if (!g.paymentReceived) acc.pendingClientPayments += 1;
       if (!g.bandPaid && g.managerHandlesDistribution) acc.outstandingToBand += c.amountOwedToOthers;
