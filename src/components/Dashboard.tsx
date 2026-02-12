@@ -12,6 +12,7 @@ import DeleteConfirm from "./DeleteConfirm";
 import SettingsModal from "./SettingsModal";
 import AnalyticsPage from "./AnalyticsPage";
 import InvestmentsTab from "./InvestmentsTab";
+import Footer from "./Footer";
 import { DashboardSummary as DashboardSummaryComponent } from "./DashboardSummary";
 
 export default function Dashboard() {
@@ -488,6 +489,9 @@ export default function Dashboard() {
           {toast.msg}
         </div>
       )}
+
+      {/* ── Footer ────────────────────────────────────────────────────── */}
+      <Footer />
     </div>
   );
 }
