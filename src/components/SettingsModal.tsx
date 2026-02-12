@@ -28,13 +28,15 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [currency, setCurrency] = useState(settings.currency);
   const [claimPerf, setClaimPerf] = useState(settings.claimPerformanceFee);
   const [claimTech, setClaimTech] = useState(settings.claimTechnicalFee);
+  const [theme, setTheme] = useState(settings.theme);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const hasChanges =
     currency !== settings.currency ||
     claimPerf !== settings.claimPerformanceFee ||
-    claimTech !== settings.claimTechnicalFee;
+    claimTech !== settings.claimTechnicalFee ||
+    theme !== settings.theme;
 
   const handleSave = async () => {
     if (!hasChanges) {
@@ -50,6 +52,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         currency,
         claimPerformanceFee: claimPerf,
         claimTechnicalFee: claimTech,
+        theme,
       });
       onClose();
     } catch {
@@ -97,7 +100,34 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </p>
           </div>
 
-          {/* ── Fee claims ────────────────────────────────────────────── */}
+          {/* ── Theme ────────────────────────────────────────────────── */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Appearance
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["light", "dark", "system"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
+                    theme === t
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  }`}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              {theme === "system"
+                ? "Matches your device settings"
+                : theme === "dark"
+                ? "Always dark mode"
+                : "Always light mode"}
+            </p>
+          </div>
           <fieldset>
             <legend className="text-sm font-medium text-slate-700 mb-2">
               Fee components you claim

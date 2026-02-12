@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
         currency: "EUR",
         claimPerformanceFee: true,
         claimTechnicalFee: true,
+        theme: "system",
       });
     }
 
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
       currency: settings.currency,
       claimPerformanceFee: settings.claimPerformanceFee,
       claimTechnicalFee: settings.claimTechnicalFee,
+      theme: settings.theme || "system",
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -93,6 +95,7 @@ export async function GET(request: NextRequest) {
       currency: "EUR",
       claimPerformanceFee: true,
       claimTechnicalFee: true,
+      theme: "system",
     });
   }
 }
@@ -111,6 +114,7 @@ export async function PUT(request: NextRequest) {
   let currency: string | undefined;
   let claimPerformanceFee: boolean | undefined;
   let claimTechnicalFee: boolean | undefined;
+  let theme: string | undefined;
 
   try {
     const body = await request.json();
@@ -126,10 +130,16 @@ export async function PUT(request: NextRequest) {
     claimTechnicalFee =
       typeof body.claimTechnicalFee === "boolean" ? body.claimTechnicalFee : undefined;
 
+    theme =
+      typeof body.theme === "string" && ["light", "dark", "system"].includes(body.theme)
+        ? body.theme
+        : undefined;
+
     const data: Record<string, any> = {};
     if (currency !== undefined) data.currency = currency;
     if (claimPerformanceFee !== undefined) data.claimPerformanceFee = claimPerformanceFee;
     if (claimTechnicalFee !== undefined) data.claimTechnicalFee = claimTechnicalFee;
+    if (theme !== undefined) data.theme = theme;
 
     const settings = await prisma.userSettings.upsert({
       where: { userId: auth.user.id },
@@ -139,6 +149,7 @@ export async function PUT(request: NextRequest) {
         currency: currency ?? "EUR",
         claimPerformanceFee: claimPerformanceFee ?? true,
         claimTechnicalFee: claimTechnicalFee ?? true,
+        theme: theme ?? "system",
       },
     });
 
@@ -146,6 +157,7 @@ export async function PUT(request: NextRequest) {
       currency: settings.currency,
       claimPerformanceFee: settings.claimPerformanceFee,
       claimTechnicalFee: settings.claimTechnicalFee,
+      theme: settings.theme || "system",
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -156,6 +168,7 @@ export async function PUT(request: NextRequest) {
       currency: currency || "EUR",
       claimPerformanceFee: claimPerformanceFee ?? true,
       claimTechnicalFee: claimTechnicalFee ?? true,
+      theme: theme || "system",
     });
   }
 }

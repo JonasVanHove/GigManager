@@ -93,10 +93,12 @@ export interface UserSettingsData {
   currency: string;
   claimPerformanceFee: boolean;
   claimTechnicalFee: boolean;
+  theme: "light" | "dark" | "system";
 }
 
 export const DEFAULT_SETTINGS: UserSettingsData = {
   currency: "EUR",
   claimPerformanceFee: true,
   claimTechnicalFee: true,
+  theme: "system",
 };
