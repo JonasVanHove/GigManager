@@ -270,17 +270,26 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
 
             {/* Fee claims for this gig */}
             <div className="mt-4 space-y-3 rounded-lg border border-brand-200 bg-brand-50/40 p-3">
-              <label className="flex items-center gap-2.5">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500"
-                  checked={form.claimPerformanceFee}
-                  onChange={(e) => set("claimPerformanceFee", e.target.checked)}
-                />
-                <span className="text-sm font-medium text-slate-700">
-                  Claim performance fee
-                </span>
-              </label>
+              <div>
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500"
+                    checked={form.claimPerformanceFee}
+                    onChange={(e) => set("claimPerformanceFee", e.target.checked)}
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    Claim performance fee
+                  </span>
+                </label>
+                <p className="mt-1 ml-6 text-xs text-slate-500">
+                  {form.claimPerformanceFee 
+                    ? `Split among ${form.numberOfMusicians} musicians (your share: ${formatCurrency(form.performanceFee / form.numberOfMusicians)})`
+                    : `Fee split among ${Math.max(1, form.numberOfMusicians - 1)} musicians only — you pay all of it to them`
+                  }
+                </p>
+              </div>
+              </div>
               
               <label className="flex items-center gap-2.5">
                 <input

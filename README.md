@@ -230,9 +230,17 @@ GigsManager/
 | ------------------ | ----------------------------------------------------------------------- |
 | Actual Bonus       | Fixed: `bonusAmount` · Percentage: `performanceFee × bonusAmount / 100` |
 | Total Received     | `performanceFee + technicalFee + actualBonus`                           |
-| Per Musician       | `performanceFee / numberOfMusicians`                                    |
+| Per Musician       | `performanceFee / numberOfMusicians` *                                  |
 | My Earnings        | `perMusician + technicalFee + actualBonus`                              |
-| Owe to Others      | `(numberOfMusicians − 1) × perMusician`                                |
+| Owe to Others      | `(numberOfMusicians − 1) × perMusician` *                              |
+
+**\* Important:** If you **don't claim** the performance fee, the split automatically adjusts:
+- `numberOfMusicians` for calculation → `numberOfMusicians - 1`
+- Your share → `0`
+- Per Musician share → increases (fewer people splitting)
+- You owe all performers their full shares (the entire performance fee)
+
+This ensures you're only paid for fees you claim and performers get fair compensation.
 
 ---
 

@@ -4,17 +4,18 @@ import type { GigCalculations } from "@/types";
  * Core financial calculations for a gig.
  *
  * Rules:
- *  - Performance fee is split **evenly** among all musicians (including the manager).
+ *  - Performance fee is split **evenly** among all performers.
  *  - Manager bonus is added on top and goes entirely to the manager.
  *  - Technical fee is **not** split — it belongs to the manager.
  *  - "Amount owed to others" = the shares that must be paid to the other musicians.
  *
- * The `claimPerformanceFee` and `claimTechnicalFee` flags control what the
- * manager actually earns:
- *  - If the manager does NOT claim the performance fee, their share of the
- *    performance-fee split is excluded from `myEarnings`.
- *  - If the manager does NOT claim the technical fee, the tech fee is excluded
- *    from `myEarnings`.
+ * The `claimPerformanceFee` and `claimTechnicalFee` flags control:
+ *  - If NOT claiming performance fee:
+ *    - Manager is NOT counted as one of the performers
+ *    - Fee is split among only the (numberOfMusicians - 1) actual performers
+ *    - Manager owes the full performance fee to those performers
+ *    - Manager earns only bonus + technical fee
+ *  - If NOT claiming technical fee, the tech fee is excluded from `myEarnings`.
  */
 export function calculateGigFinancials(
   performanceFee: number,
@@ -32,8 +33,14 @@ export function calculateGigFinancials(
       : managerBonusAmount;
 
   const totalReceived = performanceFee + technicalFee + actualManagerBonus;
+  
+  // If not claiming performance fee, manager is not part of the split
+  const musiciansInSplit = claimPerformanceFee 
+    ? numberOfMusicians 
+    : Math.max(1, numberOfMusicians - 1);
+  
   const amountPerMusician =
-    numberOfMusicians > 0 ? performanceFee / numberOfMusicians : 0;
+    musiciansInSplit > 0 ? performanceFee / musiciansInSplit : 0;
 
   const perfShare = claimPerformanceFee ? amountPerMusician : 0;
   
