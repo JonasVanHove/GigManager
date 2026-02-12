@@ -292,13 +292,18 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                   min={0}
                   step="0.01"
                   className={inputCls}
-                  value={form.performanceFee ?? ""}
+                  value={form.performanceFee === 0 ? "" : form.performanceFee}
                   onChange={(e) => {
-                    const val = e.target.value.trim();
+                    const val = e.target.value;
                     if (val === "" || val === "-") {
                       set("performanceFee", 0);
                     } else {
                       set("performanceFee", Math.max(0, Number(val)));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === "" || e.target.value === "-") {
+                      set("performanceFee", 0);
                     }
                   }}
                   required
@@ -311,10 +316,20 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                   min={0}
                   step="0.01"
                   className={inputCls}
-                  value={form.technicalFee || ""}
-                  onChange={(e) =>
-                    set("technicalFee", Number(e.target.value) || 0)
-                  }
+                  value={form.technicalFee === 0 ? "" : form.technicalFee}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") {
+                      set("technicalFee", 0);
+                    } else {
+                      set("technicalFee", Math.max(0, Number(val)));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === "" || e.target.value === "-") {
+                      set("technicalFee", 0);
+                    }
+                  }}
                 />
               </div>
               <div>
@@ -343,10 +358,20 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                   min={0}
                   step="0.01"
                   className={inputCls}
-                  value={form.managerBonusAmount || ""}
-                  onChange={(e) =>
-                    set("managerBonusAmount", Number(e.target.value) || 0)
-                  }
+                  value={form.managerBonusAmount === 0 ? "" : form.managerBonusAmount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") {
+                      set("managerBonusAmount", 0);
+                    } else {
+                      set("managerBonusAmount", Math.max(0, Number(val)));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === "" || e.target.value === "-") {
+                      set("managerBonusAmount", 0);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -402,10 +427,21 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                     max={form.technicalFee}
                     step="0.01"
                     className={inputCls}
-                    value={form.technicalFeeClaimAmount ?? form.technicalFee}
-                    onChange={(e) =>
-                      set("technicalFeeClaimAmount", Number(e.target.value) || 0)
-                    }
+                    value={form.technicalFeeClaimAmount === null || form.technicalFeeClaimAmount === form.technicalFee ? "" : form.technicalFeeClaimAmount}
+                    placeholder={form.technicalFee.toString()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "" || val === "-") {
+                        set("technicalFeeClaimAmount", form.technicalFee);
+                      } else {
+                        set("technicalFeeClaimAmount", Math.max(0, Math.min(form.technicalFee, Number(val))));
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === "" || e.target.value === "-") {
+                        set("technicalFeeClaimAmount", form.technicalFee);
+                      }
+                    }}
                   />
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Leave blank to claim the full {formatCurrency(form.technicalFee)}
@@ -554,10 +590,20 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                   step="0.01"
                   className={inputCls}
                   placeholder="0.00"
-                  value={form.advanceReceivedByManager || ""}
-                  onChange={(e) =>
-                    set("advanceReceivedByManager", Number(e.target.value) || 0)
-                  }
+                  value={form.advanceReceivedByManager === 0 ? "" : form.advanceReceivedByManager}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") {
+                      set("advanceReceivedByManager", 0);
+                    } else {
+                      set("advanceReceivedByManager", Math.max(0, Number(val)));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === "" || e.target.value === "-") {
+                      set("advanceReceivedByManager", 0);
+                    }
+                  }}
                 />
                 <p className="mt-2 text-xs text-green-700 dark:text-green-400">
                   Amount you already received as advance
@@ -574,10 +620,20 @@ export default function GigForm({ gig, onSubmit, onCancel }: GigFormProps) {
                   step="0.01"
                   className={inputCls}
                   placeholder="0.00"
-                  value={form.advanceToMusicians || ""}
-                  onChange={(e) =>
-                    set("advanceToMusicians", Number(e.target.value) || 0)
-                  }
+                  value={form.advanceToMusicians === 0 ? "" : form.advanceToMusicians}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") {
+                      set("advanceToMusicians", 0);
+                    } else {
+                      set("advanceToMusicians", Math.max(0, Number(val)));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === "" || e.target.value === "-") {
+                      set("advanceToMusicians", 0);
+                    }
+                  }}
                 />
                 <p className="mt-2 text-xs text-orange-700 dark:text-orange-400">
                   Amount you already paid to band members
