@@ -41,3 +41,6 @@ prisma/dev.db-journal
 
 # netlify
 .netlify/
+
+# generated files
+src/lib/version.ts
