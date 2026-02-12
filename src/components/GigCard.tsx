@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useState } from "react";
 import type { Gig } from "@/types";
 import {
   calculateGigFinancials,
@@ -23,6 +24,9 @@ export default function GigCard({
   claimPerformanceFee = true,
   claimTechnicalFee = true,
 }: GigCardProps) {
+  // Charity gigs start collapsed, others start expanded
+  const [isExpanded, setIsExpanded] = useState(!gig.isCharity);
+
   const calc = calculateGigFinancials(
     gig.performanceFee,
     gig.technicalFee,
@@ -41,10 +45,36 @@ export default function GigCard({
     <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
       {/* -- Header ------------------------------------------------------ */}
       <div className="flex items-start justify-between border-b border-slate-100 bg-slate-50/50 px-5 py-4 dark:border-slate-700/50 dark:bg-slate-800/50">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
-            {gig.eventName}
-          </h3>
+        {/* Left side: Event info (clickable to expand/collapse) */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="min-w-0 flex-1 text-left transition-opacity hover:opacity-80"
+        >
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
+              {gig.eventName}
+            </h3>
+            {gig.isCharity && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30">
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
+                </svg>
+                Charity
+              </span>
+            )}
+            {/* Expand/collapse chevron */}
+            <svg
+              className={`h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 ${
+                isExpanded ? "rotate-180" : ""
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
             <span className="inline-flex items-center gap-1">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -65,14 +95,14 @@ export default function GigCard({
               {gig.numberOfMusicians} musician{gig.numberOfMusicians !== 1 ? "s" : ""}
             </span>
           </p>
-        </div>
+        </button>
 
         {/* Actions */}
         <div className="ml-4 flex shrink-0 gap-1">
           <button
             onClick={() => onEdit(gig)}
             title="Edit"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600"
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/20"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -81,7 +111,7 @@ export default function GigCard({
           <button
             onClick={() => onDelete(gig)}
             title="Delete"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -90,8 +120,11 @@ export default function GigCard({
         </div>
       </div>
 
-      {/* -- Financial breakdown ------------------------------------------ */}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-5 py-4 text-sm sm:grid-cols-4 border-b border-slate-100 dark:border-slate-700/50">
+      {/* Collapsible content */}
+      {isExpanded && (
+        <>
+          {/* -- Financial breakdown ------------------------------------------ */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-5 py-4 text-sm sm:grid-cols-4 border-b border-slate-100 dark:border-slate-700/50">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Performance
@@ -360,6 +393,8 @@ export default function GigCard({
           </span>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
