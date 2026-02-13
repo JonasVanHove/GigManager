@@ -156,22 +156,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getAccessToken = useCallback(async (): Promise<string | null> => {
+    const debug = process.env.NODE_ENV !== "production";
+    const logDebug = (...args: unknown[]) => {
+      if (debug) {
+        console.debug(...args);
+      }
+    };
+
     try {
       // Always try to get fresh session from Supabase first
       // Don't rely on cached token, as it may be expired
-      console.log("[getAccessToken] Fetching fresh session from Supabase...");
+      logDebug("[getAccessToken] Fetching fresh session from Supabase...");
       let {
         data: { session },
       } = await supabaseClient.auth.getSession();
 
       if (session?.access_token) {
-        console.log("[getAccessToken] Got valid token from session");
+        logDebug("[getAccessToken] Got valid token from session");
         setAccessToken(session.access_token);
         return session.access_token;
       }
 
       // If no valid session, try to refresh
-      console.log("[getAccessToken] No session, attempting refresh...");
+      logDebug("[getAccessToken] No session, attempting refresh...");
       const { data: refreshedData, error: refreshError } =
         await supabaseClient.auth.refreshSession();
 
@@ -182,12 +189,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (refreshedData.session?.access_token) {
-        console.log("[getAccessToken] Got new token from refresh");
+        logDebug("[getAccessToken] Got new token from refresh");
         setAccessToken(refreshedData.session.access_token);
         return refreshedData.session.access_token;
       }
 
-      console.warn("[getAccessToken] No token after refresh attempt");
+      logDebug("[getAccessToken] No token after refresh attempt");
       setAccessToken(null); // Clear cache
       return null;
     } catch (err) {

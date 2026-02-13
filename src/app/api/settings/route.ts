@@ -8,32 +8,20 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    console.warn("[Settings Auth] Missing Authorization header");
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
   const token = authHeader.slice(7);
-  console.log("[Settings Auth] Token received, length:", token.length);
-
-  // Check environment
-  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-  console.log("[Settings Auth] SUPABASE_SERVICE_ROLE_KEY set:", hasServiceKey);
 
   try {
-    console.log("[Settings Auth] Calling supabaseAdmin.auth.getUser...");
     const {
       data: { user: supabaseUser },
       error,
     } = await supabaseAdmin.auth.getUser(token);
 
     if (error) {
-      console.error("[Settings Auth] Supabase error:", {
-        message: error.message,
-        status: (error as any).status,
-        code: (error as any).code,
-        fullError: JSON.stringify(error),
-      });
-      return { error: NextResponse.json({ error: "Invalid token", details: error.message, hasServiceKey }, { status: 401 }) };
+      console.error("[Settings Auth] Invalid token:", error.message);
+      return { error: NextResponse.json({ error: "Invalid token", details: error.message }, { status: 401 }) };
     }
 
     if (!supabaseUser) {
@@ -50,12 +38,8 @@ async function requireAuth(request: NextRequest) {
     return { user };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[Settings Auth] Exception:", { 
-      message: errorMsg, 
-      error: err,
-      errorString: JSON.stringify(err),
-    });
-    return { error: NextResponse.json({ error: "Auth error", details: errorMsg, hasServiceKey }, { status: 500 }) };
+    console.error("[Settings Auth] Exception:", errorMsg);
+    return { error: NextResponse.json({ error: "Auth error", details: errorMsg }, { status: 500 }) };
   }
 }
 
