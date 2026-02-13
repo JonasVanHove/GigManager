@@ -52,10 +52,16 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
       }
       acc[key].earnings += calc.myEarnings;
       acc[key].gigs += 1;
+      // Account for advances received
+      const advanceAmount = gig.advanceReceivedByManager || 0;
       if (gig.paymentReceived) {
         acc[key].received += calc.myEarnings;
       } else {
         acc[key].pending += calc.myEarnings;
+      }
+      // Add advance to what's already received
+      if (advanceAmount > 0) {
+        acc[key].received += advanceAmount;
       }
       // Only count as owed if manager handles distribution
       if (gig.managerHandlesDistribution && !gig.bandPaid) {
@@ -67,7 +73,9 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
     {} as Record<string, { earnings: number; gigs: number; received: number; pending: number; owed: number }>
   );
 
-  const sortedBands = Object.entries(bandBreakdown).sort((a, b) => b[1].earnings - a[1].earnings);
+  const sortedBands = Object.entries(bandBreakdown)
+    .map(([band, data]): [string, typeof data & { totalReceived: number }] => [band, { ...data, totalReceived: data.received }])
+    .sort((a, b) => b[1].totalReceived - a[1].totalReceived);
 
   return (
     <div className="space-y-3">

@@ -12,14 +12,27 @@ interface KeyboardShortcutsProps {
   shortcuts: Shortcut[];
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export default function KeyboardShortcuts({
   shortcuts,
   onExpandAll,
   onCollapseAll,
+  isOpen = false,
+  onClose,
 }: KeyboardShortcutsProps) {
-  const [showHelp, setShowHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(isOpen);
+
+  useEffect(() => {
+    setShowHelp(isOpen);
+  }, [isOpen]);
+
+  const handleCloseHelp = () => {
+    setShowHelp(false);
+    onClose?.();
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,13 +46,13 @@ export default function KeyboardShortcuts({
       // Close help with Escape
       if (e.key === "Escape" && showHelp) {
         e.preventDefault();
-        setShowHelp(false);
+        handleCloseHelp();
         return;
       }
 
       // Don't trigger shortcuts if user is typing in an input/textarea
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.hasAttribute('contenteditable')) {
         return;
       }
 
@@ -86,7 +99,7 @@ export default function KeyboardShortcuts({
         <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Keyboard Shortcuts</h2>
           <button
-            onClick={() => setShowHelp(false)}
+            onClick={handleCloseHelp}
             title="Close (Esc)"
             className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -129,29 +142,17 @@ export default function KeyboardShortcuts({
                 {onExpandAll && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-700 dark:text-slate-300">Expand all</span>
-                    <div className="flex gap-1">
-                      <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}
-                      </kbd>
-                      <span className="text-slate-400">+</span>
-                      <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        E
-                      </kbd>
-                    </div>
+                    <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      E
+                    </kbd>
                   </div>
                 )}
                 {onCollapseAll && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-700 dark:text-slate-300">Collapse all</span>
-                    <div className="flex gap-1">
-                      <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}
-                      </kbd>
-                      <span className="text-slate-400">+</span>
-                      <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        C
-                      </kbd>
-                    </div>
+                    <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      C
+                    </kbd>
                   </div>
                 )}
               </div>
