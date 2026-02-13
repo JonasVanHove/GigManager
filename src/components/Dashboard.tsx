@@ -328,11 +328,11 @@ export default function Dashboard() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3">
           {/* Logo & Title */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-brand-600 shadow-sm flex-shrink-0">
-              <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
-              </svg>
-            </div>
+            <img
+              src="/favicon.svg"
+              alt="GigsManager"
+              className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
+            />
             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
               Gigs<span className="text-brand-600 dark:text-brand-400">Manager</span>
             </h1>
