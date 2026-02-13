@@ -47,6 +47,7 @@ export interface AuthSession {
     email: string;
     user_metadata?: {
       name?: string;
+      avatar_url?: string;
     };
   } | null;
   isLoading: boolean;
