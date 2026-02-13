@@ -345,9 +345,17 @@ export default function Dashboard() {
               <button
                 onClick={() => setShowProfileMenu((open) => !open)}
                 title="Profile"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
               >
-                {(session.user?.user_metadata?.name || session.user?.email || "?").charAt(0).toUpperCase()}
+                {session.user?.user_metadata?.avatar_url ? (
+                  <img
+                    src={session.user.user_metadata.avatar_url}
+                    alt="Profile avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  (session.user?.user_metadata?.name || session.user?.email || "?").charAt(0).toUpperCase()
+                )}
               </button>
               {showProfileMenu && (
                 <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">

@@ -1,6 +1,8 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabaseClient } from "@/lib/supabase-client";
+import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 
 const CURRENCIES = [
@@ -24,22 +26,34 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
+  const { session } = useAuth();
   const { settings, updateSettings } = useSettings();
   const [currency, setCurrency] = useState(settings.currency);
   const [claimPerf, setClaimPerf] = useState(settings.claimPerformanceFee);
   const [claimTech, setClaimTech] = useState(settings.claimTechnicalFee);
   const [theme, setTheme] = useState(settings.theme);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const hasChanges =
+  const hasSettingsChanges =
     currency !== settings.currency ||
     claimPerf !== settings.claimPerformanceFee ||
     claimTech !== settings.claimTechnicalFee ||
     theme !== settings.theme;
 
+  const hasProfileChanges =
+    displayName !== (session?.user?.user_metadata?.name || "") ||
+    avatarUrl !== (session?.user?.user_metadata?.avatar_url || "");
+
+  useEffect(() => {
+    setDisplayName(session?.user?.user_metadata?.name || "");
+    setAvatarUrl(session?.user?.user_metadata?.avatar_url || "");
+  }, [session?.user]);
+
   const handleSave = async () => {
-    if (!hasChanges) {
+    if (!hasSettingsChanges && !hasProfileChanges) {
       onClose();
       return;
     }
@@ -48,12 +62,27 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     setError("");
 
     try {
-      await updateSettings({
-        currency,
-        claimPerformanceFee: claimPerf,
-        claimTechnicalFee: claimTech,
-        theme,
-      });
+      if (hasSettingsChanges) {
+        await updateSettings({
+          currency,
+          claimPerformanceFee: claimPerf,
+          claimTechnicalFee: claimTech,
+          theme,
+        });
+      }
+
+      if (hasProfileChanges) {
+        const { error: profileError } = await supabaseClient.auth.updateUser({
+          data: {
+            name: displayName.trim(),
+            avatar_url: avatarUrl.trim() || null,
+          },
+        });
+
+        if (profileError) {
+          throw profileError;
+        }
+      }
       onClose();
     } catch {
       setError("Failed to save settings. Please try again.");
@@ -79,6 +108,47 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         </div>
 
         <div className="space-y-6 px-6 py-5">
+          {/* -- Profile --------------------------- */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              Profile
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-200 text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-100">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Profile avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-semibold">
+                    {(displayName || session?.user?.email || "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Display name"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 shadow-sm transition focus:border-brand-500 dark:focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:focus:ring-brand-400/20"
+                />
+                <input
+                  type="url"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="Avatar image URL"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 shadow-sm transition focus:border-brand-500 dark:focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:focus:ring-brand-400/20"
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Update your display name and avatar image.
+            </p>
+          </div>
+
           {/* -- Currency -------------------------- */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
