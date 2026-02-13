@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "./AuthProvider";
 
 interface BandMember {
   id: string;
@@ -21,6 +22,7 @@ interface BandMembersProps {
 }
 
 export default function BandMembers({ fmtCurrency, flash }: BandMembersProps) {
+  const { getAccessToken } = useAuth();
   const [members, setMembers] = useState<BandMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -35,7 +37,11 @@ export default function BandMembers({ fmtCurrency, flash }: BandMembersProps) {
   // Fetch band members
   const fetchMembers = async () => {
     try {
-      const response = await fetch("/api/band-members");
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
+      const response = await fetch("/api/band-members", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setMembers(data);
@@ -59,6 +65,8 @@ export default function BandMembers({ fmtCurrency, flash }: BandMembersProps) {
     }
 
     try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
       const url = editingId
         ? `/api/band-members/${editingId}`
         : "/api/band-members";
@@ -66,7 +74,10 @@ export default function BandMembers({ fmtCurrency, flash }: BandMembersProps) {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(formData),
       });
 
@@ -104,8 +115,11 @@ export default function BandMembers({ fmtCurrency, flash }: BandMembersProps) {
     if (!confirm(`Delete ${name}? This will remove them from all gigs.`)) return;
 
     try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
       const response = await fetch(`/api/band-members/${id}`, {
         method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) throw new Error("Failed to delete");

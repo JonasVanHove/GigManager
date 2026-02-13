@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { useAuth } from "./AuthProvider";
 
 interface FinancialReport {
   summary: {
@@ -42,6 +43,7 @@ interface FinancialReportsProps {
 }
 
 export default function FinancialReports({ fmtCurrency, flash }: FinancialReportsProps) {
+  const { getAccessToken } = useAuth();
   const [report, setReport] = useState<FinancialReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<string>("all");
@@ -53,6 +55,8 @@ export default function FinancialReports({ fmtCurrency, flash }: FinancialReport
   const fetchReport = async () => {
     setLoading(true);
     try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
       let url = "/api/reports/financial";
       
       if (period === "custom") {
@@ -63,7 +67,9 @@ export default function FinancialReports({ fmtCurrency, flash }: FinancialReport
         url += `?period=${period}`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setReport(data);

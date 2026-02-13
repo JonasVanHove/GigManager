@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Calendar as BigCalendar, momentLocalizer, View } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { useAuth } from "./AuthProvider";
 
 const localizer = momentLocalizer(moment);
 
@@ -31,6 +32,7 @@ interface CalendarViewProps {
 }
 
 export default function CalendarView({ fmtCurrency, onEditGig }: CalendarViewProps) {
+  const { getAccessToken } = useAuth();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
@@ -39,7 +41,11 @@ export default function CalendarView({ fmtCurrency, onEditGig }: CalendarViewPro
 
   const fetchGigs = async () => {
     try {
-      const response = await fetch("/api/gigs");
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
+      const response = await fetch("/api/gigs", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setGigs(data);
