@@ -26,11 +26,13 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [expandedBand, setExpandedBand] = useState<string | null>(null);
   const [expandedUnpaidBand, setExpandedUnpaidBand] = useState<string | null>(null);
+  const [expandedPerformanceType, setExpandedPerformanceType] = useState<string | null>(null);
 
   const toggleCard = (cardId: string) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
     setExpandedBand(null); // Reset band expansion when switching cards
     setExpandedUnpaidBand(null);
+    setExpandedPerformanceType(null);
   };
 
   const toggleBand = (bandName: string) => {
@@ -39,6 +41,10 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
 
   const toggleUnpaidBand = (bandName: string) => {
     setExpandedUnpaidBand(expandedUnpaidBand === bandName ? null : bandName);
+  };
+
+  const togglePerformanceType = (type: string) => {
+    setExpandedPerformanceType(expandedPerformanceType === type ? null : type);
   };
 
   const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, cardId: string) => {
@@ -98,21 +104,82 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
     <div className="space-y-2 sm:space-y-3">
       {/* -- Row 1: Total Gigs + My Earnings ------------------------------------ */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
-        {/* Total Gigs Card */}
-        <div className="rounded-xl border border-slate-200 bg-white p-2 sm:p-3 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Performances
-              </p>
-              <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-bold text-slate-900 dark:text-cyan-400">
-                {summary.totalGigs}
-              </p>
+        {/* Total Gigs Card - Expandable */}
+        <div>
+          <button
+            onClick={() => toggleCard("performances")}
+            type="button"
+            className="w-full rounded-xl border-2 border-purple-400 bg-gradient-to-br from-purple-50 to-purple-50/50 p-2 sm:p-3 shadow-sm transition hover:shadow-md hover:border-purple-300 active:bg-purple-100/50 text-left dark:border-purple-600 dark:from-purple-900/20 dark:to-purple-900/10 dark:bg-slate-900"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Performances
+                </p>
+                <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-bold text-purple-700 dark:text-purple-300">
+                  {summary.totalGigs}
+                </p>
+                {expandedCard !== "performances" && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+                    Click to see breakdown →
+                  </p>
+                )}
+              </div>
+              <svg
+                className={`h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400 transition-transform flex-shrink-0 ${expandedCard === "performances" ? "rotate-90" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
-            <svg className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
+          </button>
+
+          {/* Expanded performances breakdown */}
+          {expandedCard === "performances" && (
+            <div className="mt-2 sm:mt-3 space-y-2 rounded-lg border border-purple-200 bg-white p-2 sm:p-3 dark:border-purple-800 dark:bg-slate-800">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded bg-purple-50 dark:bg-purple-900/20 p-2">
+                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Total</p>
+                  <p className="mt-1 text-base sm:text-lg font-bold text-purple-900 dark:text-purple-200">{summary.totalGigs}</p>
+                </div>
+                <div className="rounded bg-green-50 dark:bg-green-900/20 p-2">
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Paid</p>
+                  <p className="mt-1 text-base sm:text-lg font-bold text-green-900 dark:text-green-200">
+                    {gigs.filter(g => g.paymentReceived).length}
+                  </p>
+                </div>
+                <div className="rounded bg-orange-50 dark:bg-orange-900/20 p-2">
+                  <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Pending</p>
+                  <p className="mt-1 text-base sm:text-lg font-bold text-orange-900 dark:text-orange-200">
+                    {gigs.filter(g => !g.paymentReceived).length}
+                  </p>
+                </div>
+                <div className="rounded bg-red-50 dark:bg-red-900/20 p-2">
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">Charity</p>
+                  <p className="mt-1 text-base sm:text-lg font-bold text-red-900 dark:text-red-200">
+                    {gigs.filter(g => g.isCharity).length}
+                  </p>
+                </div>
+              </div>
+
+              {/* By band breakdown */}
+              <div className="border-t border-purple-200 dark:border-purple-800 pt-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-purple-600 dark:text-purple-300 mb-2">
+                  By Band
+                </p>
+                <div className="space-y-1">
+                  {sortedBands.map(([band, data]) => (
+                    <div key={`perf-${band}`} className="flex items-center justify-between text-xs rounded px-2 py-1.5 bg-slate-50 dark:bg-slate-700/50">
+                      <p className="truncate font-medium text-slate-900 dark:text-slate-100">{band}</p>
+                      <p className="text-slate-600 dark:text-slate-400 flex-shrink-0 ml-2">{data.gigs}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Total Earnings Card - Expandable */}
