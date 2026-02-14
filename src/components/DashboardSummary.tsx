@@ -281,6 +281,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
         </div>
       </div>
 
+      {/* -- Row 2: Client Awaiting + Outstanding to Band (full width mobile) --- */}
+      <div className="grid grid-cols-1 gap-2 sm:gap-3 lg:grid-cols-2">
         {/* Pending Payments Card */}
         <button
           onClick={() => toggleCard("pending")}
@@ -466,8 +468,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
             </svg>
           </div>
         </button>
-
-      {/* -- Row 3: Expanded Payment Breakdowns --------------------------------- */}
+      </div>
       {expandedCard === "outstanding" && (
         <div className="space-y-2 rounded-xl border-2 border-pink-500 bg-pink-500/10 p-3 dark:border-pink-400 dark:bg-pink-500/15">
           <p className="text-xs font-semibold uppercase tracking-widest text-pink-600 dark:text-pink-300">
