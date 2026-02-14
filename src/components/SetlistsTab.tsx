@@ -382,50 +382,6 @@ export default function SetlistsTab() {
           </button>
         </div>
 
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Linked gigs</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Attach this setlist to one or more performances.
-              </p>
-            </div>
-            <span className="text-xs text-slate-400">
-              {selectedGigIds.length} selected
-            </span>
-          </div>
-          <div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
-            {gigs.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400">No gigs available.</p>
-            ) : (
-              gigs
-                .slice()
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((gig) => (
-                  <label
-                    key={gig.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedGigIds.includes(gig.id)}
-                        onChange={() => toggleGig(gig.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                      />
-                      <span className="font-medium text-slate-700 dark:text-slate-100">
-                        {gig.eventName}
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-400">
-                      {new Date(gig.date).toLocaleDateString()}
-                    </span>
-                  </label>
-                ))
-            )}
-          </div>
-        </div>
-
         <div className="mt-4 space-y-3">
           {draftItems.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -521,6 +477,70 @@ export default function SetlistsTab() {
               </div>
             ))
           )}
+        </div>
+
+        {/* Add buttons at the bottom for mobile convenience */}
+        {draftItems.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleAddItem("song")}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              + Add song
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAddItem("note")}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              + Add note
+            </button>
+          </div>
+        )}
+
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Linked gigs</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Attach this setlist to one or more performances.
+              </p>
+            </div>
+            <span className="text-xs text-slate-400">
+              {selectedGigIds.length} selected
+            </span>
+          </div>
+          <div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
+            {gigs.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">No gigs available.</p>
+            ) : (
+              gigs
+                .slice()
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map((gig) => (
+                  <label
+                    key={gig.id}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedGigIds.includes(gig.id)}
+                        onChange={() => toggleGig(gig.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      />
+                      <span className="font-medium text-slate-700 dark:text-slate-100">
+                        {gig.eventName}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400">
+                      {new Date(gig.date).toLocaleDateString()}
+                    </span>
+                  </label>
+                ))
+            )}
+          </div>
         </div>
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
