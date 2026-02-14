@@ -493,7 +493,7 @@ export default function Dashboard() {
             </button>
             
             <img
-              src="/favicon.svg"
+              src="/favicon.png"
               alt="GigsManager"
               className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 rounded-lg"
             />
@@ -620,8 +620,8 @@ export default function Dashboard() {
         {/* Mobile menu overlay */}
         {showMobileMenu && (
           <>
-            <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setShowMobileMenu(false)} />
-            <div className="lg:hidden fixed left-0 top-0 bottom-0 z-50 w-64 bg-white dark:bg-slate-900 shadow-xl overflow-y-auto">
+            <div className="lg:hidden fixed inset-0 z-[100] bg-black/50" onClick={() => setShowMobileMenu(false)} />
+            <div className="lg:hidden fixed left-0 top-0 bottom-0 z-[101] w-64 bg-white dark:bg-slate-900 shadow-xl overflow-y-auto">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Menu</h2>
