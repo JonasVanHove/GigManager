@@ -143,8 +143,17 @@ export default function SetlistsTab() {
     });
   };
 
-  const handleAddItem = (type: "song" | "note") => {
-    setDraftItems((prev) => [...prev, createDraftItem(type)]);
+  const handleAddItem = (type: "song" | "note", afterIndex?: number) => {
+    const newItem = createDraftItem(type);
+    if (afterIndex !== undefined) {
+      setDraftItems((prev) => {
+        const copy = [...prev];
+        copy.splice(afterIndex + 1, 0, newItem);
+        return copy;
+      });
+    } else {
+      setDraftItems((prev) => [...prev, newItem]);
+    }
   };
 
   const toggleGig = (gigId: string) => {
@@ -475,17 +484,41 @@ export default function SetlistsTab() {
           </button>
         </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-2">
           {draftItems.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
               Add your first song or a note to start building the setlist.
             </div>
           ) : (
             draftItems.map((item, index) => (
-              <div
-                key={item.id}
-                className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/50"
-              >
+              <div key={item.id}>
+                {/* Insert buttons above each item */}
+                <div className="group relative flex items-center justify-center py-1">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+                  </div>
+                  <div className="relative flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => handleAddItem("song", index - 1)}
+                      className="rounded bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 border border-slate-200 dark:border-slate-600 hover:border-brand-300 dark:hover:border-brand-600 shadow-sm"
+                      title="Insert song here"
+                    >
+                      + Song
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddItem("note", index - 1)}
+                      className="rounded bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 border border-slate-200 dark:border-slate-600 hover:border-brand-300 dark:hover:border-brand-600 shadow-sm"
+                      title="Insert note here"
+                    >
+                      + Note
+                    </button>
+                  </div>
+                </div>
+
+              {/* The actual item card */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {item.type === "song" ? `Song ${index + 1}` : `Note ${index + 1}`}
@@ -568,11 +601,39 @@ export default function SetlistsTab() {
                   </div>
                 )}
               </div>
+              </div>
             ))
+          )}
+          
+          {/* Insert buttons at the bottom */}
+          {draftItems.length > 0 && (
+            <div className="group relative flex items-center justify-center py-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+              </div>
+              <div className="relative flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => handleAddItem("song", draftItems.length - 1)}
+                  className="rounded bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 border border-slate-200 dark:border-slate-600 hover:border-brand-300 dark:hover:border-brand-600 shadow-sm"
+                  title="Add song at end"
+                >
+                  + Song
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddItem("note", draftItems.length - 1)}
+                  className="rounded bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 border border-slate-200 dark:border-slate-600 hover:border-brand-300 dark:hover:border-brand-600 shadow-sm"
+                  title="Add note at end"
+                >
+                  + Note
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Add buttons at the bottom for mobile convenience */}
+        {/* Quick add buttons remain visible for convenience */}
         {draftItems.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
