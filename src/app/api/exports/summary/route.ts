@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       include: {
         bandMembers: {
           include: {
-            member: true,
+            bandMember: true,
           },
         },
       },
@@ -55,24 +55,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Convert Prisma Gig (Date objects) to API Gig format (ISO strings)
+    const formattedGigs = gigs.map(gig => ({
+      ...gig,
+      date: gig.date.toISOString(),
+      paymentReceivedDate: gig.paymentReceivedDate?.toISOString() || null,
+      bandPaidDate: gig.bandPaidDate?.toISOString() || null,
+      bookingDate: gig.bookingDate.toISOString(),
+      createdAt: gig.createdAt.toISOString(),
+      updatedAt: gig.updatedAt.toISOString(),
+    })) as any;
+
+    // Currency formatter
+    const fmtCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+
     let content: string;
     let filename: string;
     let contentType: string;
 
     if (type === "report") {
       // Financial report as JSON (ready for PDF generation)
-      const data = generateFinancialReportJson(gigs);
+      const data = generateFinancialReportJson(formattedGigs, fmtCurrency);
       content = JSON.stringify(data, null, 2);
       filename = `financial-report-${new Date().toISOString().split("T")[0]}.json`;
       contentType = "application/json";
     } else if (type === "summary") {
       // Financial summary CSV
-      content = generateFinancialSummaryCsv(gigs);
+      content = generateFinancialSummaryCsv(formattedGigs, fmtCurrency);
       filename = `financial-summary-${new Date().toISOString().split("T")[0]}.csv`;
       contentType = "text/csv";
     } else {
       // Detailed gigs CSV
-      content = generateGigsCsv(gigs);
+      content = generateGigsCsv(formattedGigs, fmtCurrency);
       filename = `gigs-${new Date().toISOString().split("T")[0]}.csv`;
       contentType = "text/csv";
     }

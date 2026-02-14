@@ -83,6 +83,11 @@ model User {
   investments Investment[]
   bandMembers BandMember[]
 
+  // Notifications and webhooks
+  notifications       Notification[] @relation("UserNotifications")
+  notificationPref    NotificationPreference? @relation("UserNotificationPreference")
+  webhooks            Webhook[] @relation("UserWebhooks")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -178,3 +183,109 @@ model GigBandMember {
   @@index([bandMemberId])
   @@index([gigId, bandMemberId]) // composite for quick lookups
 }
+
+// ── Notifications ──────────────────────────────────────────────────
+model Notification {
+  id String @id @default(cuid())
+
+  // User who receives this notification
+  userId String
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification content
+  type          String   // payment_received, payment_overdue, upcoming_gig, band_paid, custom
+  title         String
+  message       String
+  icon          String?
+  actionUrl     String?
+  actionLabel   String?
+
+  // Status tracking
+  status        String   @default("unread") // unread, read, dismissed
+  createdAt     DateTime @default(now())
+  readAt        DateTime?
+  dismissedAt   DateTime?
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+// ── Notification Preferences ──────────────────────────────────────
+model NotificationPreference {
+  id String @id @default(cuid())
+
+  // User who owns these preferences
+  userId String @unique
+  user   User   @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification channels
+  emailNotifications    Boolean @default(true)
+  inAppNotifications    Boolean @default(true)
+
+  // Event types to notify about
+  paymentReminders      Boolean @default(true)
+  overdueAlerts         Boolean @default(true)
+  upcomingGigReminders  Boolean @default(true)
+  dailyDigest           Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Webhooks ───────────────────────────────────────────────────────
+model Webhook {
+  id String @id @default(cuid())
+
+  // User who owns this webhook
+  userId String
+  user   User   @relation("UserWebhooks", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Webhook configuration
+  provider String   // discord, n8n, custom
+  url      String
+  events   String[] // payment_received, payment_overdue, band_paid, upcoming_gig, gig_completed
+  enabled  Boolean  @default(true)
+  name     String?
+  secret   String?
+
+  // Activity tracking
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastTriggeredAt DateTime?
+
+  // Webhook logs
+  logs WebhookLog[]
+
+  @@index([userId, enabled])
+  @@index([userId, createdAt])
+}
+
+// ── Webhook Delivery Logs ──────────────────────────────────────────
+model WebhookLog {
+  id String @id @default(cuid())
+
+  // Associated webhook
+  webhookId String
+  webhook   Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  // Event that triggered the webhook
+  event  String // payment_received, payment_overdue, etc.
+  data   String // JSON stringified data
+
+  // Delivery result
+  statusCode Int?    // HTTP status code
+  response   String?
+  error      String?
+  success    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([webhookId, createdAt])
+  @@index([success])
+}
+
+// ── Update User model to include new relations ────────────────────
+// Note: User model above needs to be updated with these relations:
+// notifications    Notification[] @relation("UserNotifications")
+// notificationPref NotificationPreference? @relation("UserNotificationPreference")
+// webhooks         Webhook[] @relation("UserWebhooks")

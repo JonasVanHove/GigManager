@@ -68,7 +68,7 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
         gig.isCharity
       );
 
-      const managerEarnings = calc.managerEarnings;
+      const managerEarnings = calc.myEarnings;
       const date = new Date(gig.date);
       const monthKey = date.toLocaleDateString("nl-NL", { year: "numeric", month: "2-digit" });
 

@@ -4,6 +4,8 @@ import { calculateGigFinancials } from "@/lib/calculations";
 import { Prisma } from "@prisma/client";
 import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notifyPaymentReceived } from "@/lib/notification-service";
+import { webhookPaymentReceived } from "@/lib/webhook-service";
 
 // Auth middleware
 
@@ -123,6 +125,18 @@ export async function PUT(
         notes: body.notes ? String(body.notes).trim() : null,
       },
     });
+
+    // Trigger notifications and webhooks if payment status changed
+    if (!existing.paymentReceived && body.paymentReceived) {
+      // Payment just received - notify and webhook
+      const amount = body.performanceFee || 0;
+      notifyPaymentReceived(user.id, params.id, body.performers, amount).catch(err =>
+        console.error("[notifyPaymentReceived]", err)
+      );
+      webhookPaymentReceived(user.id, body.performers, amount, new Date(body.paymentReceivedDate || new Date()).toISOString()).catch(err =>
+        console.error("[webhookPaymentReceived]", err)
+      );
+    }
 
     if (Array.isArray(body.bandMemberIds)) {
       const bandMemberIds = body.bandMemberIds.filter(

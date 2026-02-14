@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getOrCreateUser } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
 
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
@@ -35,16 +36,24 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const status = searchParams.get("status"); // "unread", "read", "dismissed"
 
-    // TODO: Fetch from database when Notification model is created
-    // For now, return empty array with proper structure
+    const whereClause: {
+      userId: string;
+      status?: string;
+    } = { userId: user.id };
 
-    // Sample notifications for demo purposes
-    const mockNotifications = [];
+    if (status && ["unread", "read", "dismissed"].includes(status)) {
+      whereClause.status = status;
+    }
+
+    const notifications = await prisma.notification.findMany({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
 
     return NextResponse.json({
-      notifications: mockNotifications,
-      count: mockNotifications.length,
-      message: "Notification model not yet created in database",
+      notifications,
+      count: notifications.length,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -83,11 +92,33 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // TODO: Update in database when Notification model is created
+    // Verify notification belongs to user
+    const notification = await prisma.notification.findUnique({
+      where: { id: notifId },
+    });
+
+    if (!notification) {
+      return NextResponse.json(
+        { error: "Notification not found" },
+        { status: 404 }
+      );
+    }
+
+    if (notification.userId !== user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id: notifId },
+      data: { status: action },
+    });
 
     return NextResponse.json({
       success: true,
-      message: `Notification marked as ${action} (mock - database not yet configured)`,
+      notification: updated,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -106,12 +137,13 @@ export async function POST(request: NextRequest) {
   const { user } = authResult as { user: { id: string } };
 
   try {
-    // TODO: Clear all notifications in database when Notification model is created
+    const result = await prisma.notification.deleteMany({
+      where: { userId: user.id },
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Notifications cleared (mock - database not yet configured)",
-      cleared: 0,
+      cleared: result.count,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getOrCreateUser } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
 
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
@@ -31,11 +32,13 @@ export async function GET(request: NextRequest) {
   const { user } = authResult as { user: { id: string } };
 
   try {
-    // TODO: Fetch from database when Webhook model is created
-    // For now, return empty array with proper structure
+    const webhooks = await prisma.webhook.findMany({
+      where: { userId: user.id },
+      include: { logs: { take: 5, orderBy: { createdAt: "desc" } } },
+    });
+
     return NextResponse.json({
-      webhooks: [],
-      message: "Webhook model not yet created in database",
+      webhooks,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -74,23 +77,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Save to database when Webhook model is created
-    // For now, return mock response
-    const webhook = {
-      id: `webhook_${Date.now()}`,
-      userId: user.id,
-      url,
-      provider,
-      events,
-      name: name || `${provider} Webhook`,
-      enabled,
-      createdAt: new Date(),
-    };
+    const webhook = await prisma.webhook.create({
+      data: {
+        userId: user.id,
+        url,
+        provider,
+        events,
+        name: name || `${provider} Webhook`,
+        enabled,
+      },
+    });
 
     return NextResponse.json({
       success: true,
       webhook,
-      message: "Webhook created (mock - database not yet configured)",
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -119,14 +119,41 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { enabled, events, name } = body;
+    // Verify webhook belongs to user
+    const webhook = await prisma.webhook.findUnique({
+      where: { id: webhookId },
+    });
 
-    // TODO: Update in database when Webhook model is created
+    if (!webhook) {
+      return NextResponse.json(
+        { error: "Webhook not found" },
+        { status: 404 }
+      );
+    }
+
+    if (webhook.userId !== user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { enabled, events, name, url } = body;
+
+    const updated = await prisma.webhook.update({
+      where: { id: webhookId },
+      data: {
+        ...(enabled !== undefined && { enabled }),
+        ...(events && { events }),
+        ...(name && { name }),
+        ...(url && { url }),
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Webhook updated (mock - database not yet configured)",
+      webhook: updated,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -155,11 +182,36 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // TODO: Delete from database when Webhook model is created
+    // Verify webhook belongs to user
+    const webhook = await prisma.webhook.findUnique({
+      where: { id: webhookId },
+    });
+
+    if (!webhook) {
+      return NextResponse.json(
+        { error: "Webhook not found" },
+        { status: 404 }
+      );
+    }
+
+    if (webhook.userId !== user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    // Delete associated logs first (if not cascading)
+    await prisma.webhookLog.deleteMany({
+      where: { webhookId },
+    });
+
+    await prisma.webhook.delete({
+      where: { id: webhookId },
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Webhook deleted (mock - database not yet configured)",
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

@@ -17,10 +17,15 @@ export default function WebhookSettings({
   onDeleteWebhook,
 }: WebhookSettingsProps) {
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    provider: "discord" as const,
+  const [formData, setFormData] = useState<{
+    provider: "discord" | "n8n" | "custom";
+    url: string;
+    events: string[];
+    name: string;
+  }>({
+    provider: "discord",
     url: "",
-    events: [] as string[],
+    events: [],
     name: "",
   });
   const [loading, setLoading] = useState(false);

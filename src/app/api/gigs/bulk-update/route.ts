@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getOrCreateUser } from "@/lib/auth-helpers";
+import { notifyPaymentReceived } from "@/lib/notification-service";
+import { webhookPaymentReceived } from "@/lib/webhook-service";
 
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
@@ -66,6 +68,27 @@ export async function PATCH(request: NextRequest) {
         })
       )
     );
+
+    // Trigger notifications and webhooks for payment status changes
+    results.forEach((updatedGig, index) => {
+      const oldGig = gigs.find((g) => g.id === updatedGig.id);
+      if (oldGig && !oldGig.paymentReceived && updatedGig.paymentReceived) {
+        // Payment just received - notify and webhook
+        notifyPaymentReceived(
+          user.id,
+          updatedGig.id,
+          updatedGig.performers,
+          updatedGig.performanceFee
+        ).catch(err => console.error("[notifyPaymentReceived]", err));
+
+        webhookPaymentReceived(
+          user.id,
+          updatedGig.performers,
+          updatedGig.performanceFee,
+          updatedGig.paymentReceivedDate?.toISOString() || new Date().toISOString()
+        ).catch(err => console.error("[webhookPaymentReceived]", err));
+      }
+    });
 
     return NextResponse.json({
       success: true,
