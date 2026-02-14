@@ -85,6 +85,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [bandMembers, setBandMembers] = useState<BandMemberOption[]>([]);
   const [bandMembersLoading, setBandMembersLoading] = useState(false);
   const [allGigs, setAllGigs] = useState<Gig[]>([]);
@@ -140,6 +141,47 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
 
   const set = <K extends keyof GigFormData>(key: K, value: GigFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Validate individual fields
+  const validateField = (field: string, value: any): string => {
+    switch (field) {
+      case "eventName":
+        if (!value || !value.trim()) return "Event name is required";
+        if (value.length < 3) return "Event name must be at least 3 characters";
+        return "";
+      case "date":
+        if (!value) return "Date is required";
+        const gigDate = new Date(value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        oneYearAgo.setHours(0, 0, 0, 0);
+        if (gigDate < oneYearAgo) return "Date seems too far in the past";
+        return "";
+      case "performers":
+        if (!value || !value.trim()) return "Performers are required";
+        return "";
+      case "numberOfMusicians":
+        if (value < 1) return "Must be at least 1 musician";
+        if (value > 100) return "That's a lot of musicians! Please verify.";
+        return "";
+      case "performanceFee":
+        if (value < 0) return "Fee cannot be negative";
+        if (value > 1000000) return "Fee seems unusually high";
+        return "";
+      case "technicalFee":
+        if (value < 0) return "Fee cannot be negative";
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const handleBlur = (field: string, value: any) => {
+    const errorMsg = validateField(field, value);
+    setFieldErrors((prev) => ({ ...prev, [field]: errorMsg }));
+  };
 
   // Auto-set performance fee to 0 when charity is checked
   useEffect(() => {
@@ -424,12 +466,27 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 </label>
                 <input
                   type="text"
-                  className={inputCls}
+                  className={`${inputCls} ${
+                    fieldErrors.eventName
+                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
+                      : ""
+                  }`}
                   placeholder="e.g. Jazz at the Park"
                   value={form.eventName}
-                  onChange={(e) => set("eventName", e.target.value)}
+                  onChange={(e) => {
+                    set("eventName", e.target.value);
+                    if (fieldErrors.eventName) {
+                      setFieldErrors((prev) => ({ ...prev, eventName: "" }));
+                    }
+                  }}
+                  onBlur={(e) => handleBlur("eventName", e.target.value)}
                   required
                 />
+                {fieldErrors.eventName && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {fieldErrors.eventName}
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>
@@ -437,11 +494,26 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 </label>
                 <input
                   type="date"
-                  className={inputCls}
+                  className={`${inputCls} ${
+                    fieldErrors.date
+                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
+                      : ""
+                  }`}
                   value={form.date}
-                  onChange={(e) => set("date", e.target.value)}
+                  onChange={(e) => {
+                    set("date", e.target.value);
+                    if (fieldErrors.date) {
+                      setFieldErrors((prev) => ({ ...prev, date: "" }));
+                    }
+                  }}
+                  onBlur={(e) => handleBlur("date", e.target.value)}
                   required
                 />
+                {fieldErrors.date && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {fieldErrors.date}
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Booking Date</label>
@@ -461,12 +533,27 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 </label>
                 <input
                   type="text"
-                  className={inputCls}
+                  className={`${inputCls} ${
+                    fieldErrors.performers
+                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
+                      : ""
+                  }`}
                   placeholder="e.g. The Blue Notes"
                   value={form.performers}
-                  onChange={(e) => set("performers", e.target.value)}
+                  onChange={(e) => {
+                    set("performers", e.target.value);
+                    if (fieldErrors.performers) {
+                      setFieldErrors((prev) => ({ ...prev, performers: "" }));
+                    }
+                  }}
+                  onBlur={(e) => handleBlur("performers", e.target.value)}
                   required
                 />
+                {fieldErrors.performers && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {fieldErrors.performers}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   This is the band or artist name, not the member list.
                 </p>
@@ -526,24 +613,36 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 <input
                   type="number"
                   min={1}
-                  className={`${inputCls} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                  className={`${inputCls} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    fieldErrors.numberOfMusicians
+                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
+                      : ""
+                  }`}
                   style={{ MozAppearance: 'textfield' }}
                   value={form.numberOfMusicians || ""}
                   onChange={(e) => {
                     const val = e.target.value.trim();
                     if (val === "") {
-                      set("numberOfMusicians", 0); // Allow empty to enable clearing
+                      set("numberOfMusicians", 0);
                     } else {
                       set("numberOfMusicians", Math.max(1, Number(val)));
                     }
+                    if (fieldErrors.numberOfMusicians) {
+                      setFieldErrors((prev) => ({ ...prev, numberOfMusicians: "" }));
+                    }
                   }}
                   onBlur={(e) => {
-                    if (!form.numberOfMusicians || form.numberOfMusicians < 1) {
-                      set("numberOfMusicians", 1); // Default to 1 on blur if empty
-                    }
+                    const val = Math.max(1, Number(e.target.value) || 1);
+                    set("numberOfMusicians", val);
+                    handleBlur("numberOfMusicians", val);
                   }}
                   required
                 />
+                {fieldErrors.numberOfMusicians && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {fieldErrors.numberOfMusicians}
+                  </p>
+                )}
                 <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <input
                     type="checkbox"
@@ -679,7 +778,11 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                   type="number"
                   min={0}
                   step="0.01"
-                  className={inputCls}
+                  className={`${inputCls} ${
+                    fieldErrors.performanceFee
+                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
+                      : ""
+                  }`}
                   value={form.performanceFee === 0 ? "" : form.performanceFee}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -688,14 +791,22 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                     } else {
                       set("performanceFee", Math.max(0, Number(val)));
                     }
+                    if (fieldErrors.performanceFee) {
+                      setFieldErrors((prev) => ({ ...prev, performanceFee: "" }));
+                    }
                   }}
                   onBlur={(e) => {
-                    if (e.target.value === "" || e.target.value === "-") {
-                      set("performanceFee", 0);
-                    }
+                    const val = e.target.value === "" || e.target.value === "-" ? 0 : Number(e.target.value);
+                    set("performanceFee", Math.max(0, val));
+                    handleBlur("performanceFee", val);
                   }}
                   required
                 />
+                {fieldErrors.performanceFee && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {fieldErrors.performanceFee}
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Technical Fee ($)</label>
