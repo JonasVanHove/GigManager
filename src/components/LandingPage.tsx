@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { LoginForm } from "./LoginForm";
 
 // -- Icon Components ----------------------------------------------------------
@@ -125,11 +126,18 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg transition-colors">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 shadow-sm">
-              <MusicIcon className="h-5 w-5 text-white" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg shadow-sm overflow-hidden">
+              <Image
+                src="/favicon.png"
+                alt="GigsManager"
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+                priority
+              />
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Gigs<span className="text-brand-600 dark:text-brand-400">Manager</span>
+              Gigs<span className="text-gold-600 dark:text-gold-400">Manager</span>
             </span>
           </div>
 
@@ -161,12 +169,12 @@ export default function LandingPage() {
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-brand-100/60 dark:bg-brand-500/20 blur-3xl" />
-          <div className="absolute right-0 top-1/3 h-[400px] w-[400px] rounded-full bg-indigo-100/40 dark:bg-indigo-500/10 blur-3xl" />
+          <div className="absolute right-0 top-1/3 h-[400px] w-[400px] rounded-full bg-orange-100/40 dark:bg-orange-500/10 blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-36">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-brand-50 dark:bg-brand-950 px-4 py-1.5 text-sm font-medium text-brand-700 dark:text-brand-300 ring-1 ring-brand-200 dark:ring-brand-800">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-gold-50 dark:bg-gold-950 px-4 py-1.5 text-sm font-medium text-gold-700 dark:text-gold-300 ring-1 ring-gold-200 dark:ring-gold-800">
               <MusicIcon className="h-4 w-4" />
               Built for live music professionals
             </div>
@@ -401,11 +409,17 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-10 transition-colors">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-600">
-              <MusicIcon className="h-4 w-4 text-white" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md overflow-hidden">
+              <Image
+                src="/favicon.png"
+                alt="GigsManager"
+                width={28}
+                height={28}
+                className="h-full w-full object-cover"
+              />
             </div>
             <span className="text-sm font-semibold text-slate-900 dark:text-white">
-              Gigs<span className="text-brand-600 dark:text-brand-400">Manager</span>
+              Gigs<span className="text-gold-600 dark:text-gold-400">Manager</span>
             </span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
