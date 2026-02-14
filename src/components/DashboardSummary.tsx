@@ -284,164 +284,168 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
       {/* -- Row 2: Client Awaiting + Outstanding to Band (full width mobile) --- */}
       <div className="grid grid-cols-1 gap-2 sm:gap-3 lg:grid-cols-2">
         {/* Pending Payments Card */}
-        <button
-          onClick={() => toggleCard("pending")}
-          type="button"
-          className="rounded-xl border-2 border-orange-500 bg-orange-500/10 p-2 sm:p-3 shadow-sm transition hover:shadow-md hover:border-orange-400 active:bg-orange-500/20 text-left dark:border-orange-400 dark:bg-orange-500/15"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-orange-700 dark:text-orange-300">
-                Client Awaiting
-              </p>
-              <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-bold text-orange-800 dark:text-orange-200">
-                {summary.pendingClientPayments}
-              </p>
-              {expandedCard === "pending" && (
-                <div className="mt-2 sm:mt-3">
-                  <p className="text-xs text-orange-600 dark:text-orange-400 mb-2 font-medium">
-                    Gigs awaiting payment
-                  </p>
-                  {summary.pendingByBand.length > 0 && (
-                    <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                      {summary.pendingByBand
-                        .sort((a, b) => b.amount - a.amount)
-                        .map((item) => {
-                          const bandGigs = gigs.filter(
-                            (g) => (g.performers || "Unknown Band") === item.band && !g.paymentReceived
-                          );
-                          const isExpanded = expandedBand === item.band;
-                          const now = new Date();
-
-                          return (
-                            <div key={`band-${item.band}`}>
-                              <button
-                                onClick={() => toggleBand(item.band)}
-                                type="button"
-                                className="w-full flex items-center justify-between px-2 py-1.5 sm:py-2 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 cursor-pointer hover:bg-orange-500/20 dark:hover:bg-orange-500/30 active:bg-orange-500/30 dark:active:bg-orange-500/40 transition-colors gap-2 text-left border-0"
-                              >
-                                <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                                  <svg
-                                    className={`h-4 w-4 sm:h-5 sm:w-5 text-orange-700 dark:text-orange-300 transition-transform flex-shrink-0 ${
-                                      isExpanded ? "rotate-90" : ""
-                                    }`}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-orange-800 dark:text-orange-200 truncate">
-                                      {item.band}
-                                    </p>
-                                    <p className="text-xs text-orange-600 dark:text-orange-400">
-                                      {item.count} {item.count === 1 ? "gig" : "gigs"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <p className="text-xs sm:text-sm font-semibold text-orange-800 dark:text-orange-200 whitespace-nowrap flex-shrink-0">
-                                  {fmtCurrency(item.amount)}
-                                </p>
-                              </button>
-
-                              {isExpanded && (
-                                <div className="mt-2 sm:mt-2.5 ml-4 sm:ml-5 space-y-1 border-l-2 border-orange-300 dark:border-orange-600 pl-2.5 sm:pl-3">
-                                  {bandGigs.length === 0 ? (
-                                    <p className="text-xs text-orange-600 dark:text-orange-400 italic py-1">
-                                      No gigs found for this band
-                                    </p>
-                                  ) : (
-                                    bandGigs
-                                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                                      .map((gig) => {
-                                        const calc = calculateGigFinancials(
-                                          gig.performanceFee,
-                                          gig.technicalFee,
-                                          gig.managerBonusType,
-                                          gig.managerBonusAmount,
-                                          gig.numberOfMusicians,
-                                          gig.claimPerformanceFee,
-                                          gig.claimTechnicalFee,
-                                          gig.technicalFeeClaimAmount,
-                                          gig.advanceReceivedByManager,
-                                          gig.advanceToMusicians,
-                                          gig.isCharity
-                                        );
-                                        const gigDate = new Date(gig.date);
-                                        const isOverdue = gigDate < now && !gig.paymentReceived;
-
-                                        return (
-                                          <div
-                                            key={gig.id}
-                                            className={`rounded px-2 py-1.5 sm:py-2 text-xs ${
-                                              isOverdue
-                                                ? "bg-red-100 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600"
-                                                : "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800"
-                                            }`}
-                                          >
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
-                                              <div className="flex-1 min-w-0">
-                                                <p
-                                                  className={`font-semibold truncate ${
-                                                    isOverdue
-                                                      ? "text-red-800 dark:text-red-200"
-                                                      : "text-orange-800 dark:text-orange-200"
-                                                  }`}
-                                                >
-                                                  {gig.eventName || "Unnamed gig"}
-                                                </p>
-                                                <p
-                                                  className={`text-xs mt-0.5 ${
-                                                    isOverdue
-                                                      ? "text-red-600 dark:text-red-400 font-semibold"
-                                                      : "text-orange-600 dark:text-orange-400"
-                                                  }`}
-                                                >
-                                                  {new Date(gig.date).toLocaleDateString("nl-NL", {
-                                                    weekday: "short",
-                                                    day: "numeric",
-                                                    month: "short",
-                                                  })}
-                                                  {isOverdue && (
-                                                    <span className="ml-1.5 font-bold text-red-700 dark:text-red-300">⚠ OVERDUE</span>
-                                                  )}
-                                                </p>
-                                              </div>
-                                              <p
-                                                className={`font-bold whitespace-nowrap flex-shrink-0 ${
-                                                  isOverdue
-                                                    ? "text-red-800 dark:text-red-200 text-sm sm:text-base"
-                                                    : "text-orange-800 dark:text-orange-200"
-                                                }`}
-                                              >
-                                                {fmtCurrency(calc.myEarnings)}
-                                              </p>
-                                            </div>
-                                          </div>
-                                        );
-                                      })
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
+        <div>
+          <button
+            onClick={() => toggleCard("pending")}
+            type="button"
+            className="w-full rounded-xl border-2 border-orange-500 bg-orange-500/10 p-2 sm:p-3 shadow-sm transition hover:shadow-md hover:border-orange-400 active:bg-orange-500/20 text-left dark:border-orange-400 dark:bg-orange-500/15"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-orange-700 dark:text-orange-300">
+                  Client Awaiting
+                </p>
+                <p className="mt-0.5 sm:mt-1 text-base sm:text-lg font-bold text-orange-800 dark:text-orange-200">
+                  {summary.pendingClientPayments}
+                </p>
+              </div>
+              {summary.pendingByBand.length > 0 && (
+                <svg
+                  className={`h-5 w-5 sm:h-6 sm:w-6 text-orange-700 dark:text-orange-300 transition-transform flex-shrink-0 ${expandedCard === "pending" ? "rotate-90" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               )}
             </div>
-            <svg
-              className={`h-5 w-5 sm:h-6 sm:w-6 text-orange-700 dark:text-orange-300 transition-transform flex-shrink-0 ${expandedCard === "pending" ? "rotate-90" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
+          </button>
+
+          {/* Expanded content - OUTSIDE button */}
+          {expandedCard === "pending" && summary.pendingByBand.length > 0 && (
+            <div className="mt-2 sm:mt-3 space-y-1.5 rounded-lg border border-orange-200 bg-orange-50/50 p-2 sm:p-3 dark:border-orange-800 dark:bg-orange-900/10">
+              <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mb-2">
+                Gigs awaiting payment
+              </p>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {summary.pendingByBand
+                  .sort((a, b) => b.amount - a.amount)
+                  .map((item) => {
+                    const bandGigs = gigs.filter(
+                      (g) => (g.performers || "Unknown Band") === item.band && !g.paymentReceived
+                    );
+                    const isExpanded = expandedBand === item.band;
+                    const now = new Date();
+
+                    return (
+                      <div key={`band-${item.band}`}>
+                        <button
+                          onClick={() => toggleBand(item.band)}
+                          type="button"
+                          className="w-full flex items-center justify-between px-2 py-1.5 sm:py-2 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 cursor-pointer hover:bg-orange-500/20 dark:hover:bg-orange-500/30 active:bg-orange-500/30 dark:active:bg-orange-500/40 transition-colors gap-2 text-left border-0"
+                        >
+                          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                            <svg
+                              className={`h-4 w-4 sm:h-5 sm:w-5 text-orange-700 dark:text-orange-300 transition-transform flex-shrink-0 ${
+                                isExpanded ? "rotate-90" : ""
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-orange-800 dark:text-orange-200 truncate">
+                                {item.band}
+                              </p>
+                              <p className="text-xs text-orange-600 dark:text-orange-400">
+                                {item.count} {item.count === 1 ? "gig" : "gigs"}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs sm:text-sm font-semibold text-orange-800 dark:text-orange-200 whitespace-nowrap flex-shrink-0">
+                            {fmtCurrency(item.amount)}
+                          </p>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="mt-2 sm:mt-2.5 ml-4 sm:ml-5 space-y-1 border-l-2 border-orange-300 dark:border-orange-600 pl-2.5 sm:pl-3">
+                            {bandGigs.length === 0 ? (
+                              <p className="text-xs text-orange-600 dark:text-orange-400 italic py-1">
+                                No gigs found for this band
+                              </p>
+                            ) : (
+                              bandGigs
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                                .map((gig) => {
+                                  const calc = calculateGigFinancials(
+                                    gig.performanceFee,
+                                    gig.technicalFee,
+                                    gig.managerBonusType,
+                                    gig.managerBonusAmount,
+                                    gig.numberOfMusicians,
+                                    gig.claimPerformanceFee,
+                                    gig.claimTechnicalFee,
+                                    gig.technicalFeeClaimAmount,
+                                    gig.advanceReceivedByManager,
+                                    gig.advanceToMusicians,
+                                    gig.isCharity
+                                  );
+                                  const gigDate = new Date(gig.date);
+                                  const isOverdue = gigDate < now && !gig.paymentReceived;
+
+                                  return (
+                                    <div
+                                      key={gig.id}
+                                      className={`rounded px-2 py-1.5 sm:py-2 text-xs ${
+                                        isOverdue
+                                          ? "bg-red-100 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600"
+                                          : "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800"
+                                      }`}
+                                    >
+                                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <p
+                                            className={`font-semibold truncate ${
+                                              isOverdue
+                                                ? "text-red-800 dark:text-red-200"
+                                                : "text-orange-800 dark:text-orange-200"
+                                            }`}
+                                          >
+                                            {gig.eventName || "Unnamed gig"}
+                                          </p>
+                                          <p
+                                            className={`text-xs mt-0.5 ${
+                                              isOverdue
+                                                ? "text-red-600 dark:text-red-400 font-semibold"
+                                                : "text-orange-600 dark:text-orange-400"
+                                            }`}
+                                          >
+                                            {new Date(gig.date).toLocaleDateString("nl-NL", {
+                                              weekday: "short",
+                                              day: "numeric",
+                                              month: "short",
+                                            })}
+                                            {isOverdue && (
+                                              <span className="ml-1.5 font-bold text-red-700 dark:text-red-300">⚠ OVERDUE</span>
+                                            )}
+                                          </p>
+                                        </div>
+                                        <p
+                                          className={`font-bold whitespace-nowrap flex-shrink-0 ${
+                                            isOverdue
+                                              ? "text-red-800 dark:text-red-200 text-sm sm:text-base"
+                                              : "text-orange-800 dark:text-orange-200"
+                                          }`}
+                                        >
+                                          {fmtCurrency(calc.myEarnings)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Outstanding to Band Card */}
         <button
