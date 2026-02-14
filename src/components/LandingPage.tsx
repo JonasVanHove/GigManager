@@ -173,7 +173,7 @@ export default function LandingPage() {
 
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
               Manage your gigs,{" "}
-              <span className="bg-gradient-to-r from-brand-600 to-indigo-600 dark:from-brand-400 dark:to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-brand-600 to-orange-500 dark:from-brand-400 dark:to-orange-400 bg-clip-text text-transparent">
                 not spreadsheets
               </span>
             </h1>
@@ -270,7 +270,7 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Glow effect */}
-            <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-r from-brand-200/30 dark:from-brand-500/10 via-indigo-200/20 dark:via-indigo-500/5 to-brand-200/30 dark:to-brand-500/10 blur-2xl" />
+            <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-r from-brand-200/30 dark:from-brand-500/10 via-orange-200/20 dark:via-orange-500/5 to-brand-200/30 dark:to-brand-500/10 blur-2xl" />
           </div>
         </div>
       </section>
@@ -330,7 +330,7 @@ export default function LandingPage() {
             </div>
 
             {/* Stats block */}
-            <div className="rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-700 p-8 text-white shadow-xl sm:p-10">
+            <div className="rounded-2xl bg-gradient-to-br from-brand-600 to-orange-600 p-8 text-white shadow-xl sm:p-10">
               <h3 className="text-lg font-medium text-brand-100">Built for simplicity</h3>
               <p className="mt-3 text-3xl font-bold sm:text-4xl">
                 From gig to payment in under 60 seconds

@@ -493,7 +493,7 @@ export default function Dashboard() {
             </button>
             
             <img
-              src="/favicon.svg"
+              src="/favicon.png"
               alt="GigsManager"
               className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
             />
