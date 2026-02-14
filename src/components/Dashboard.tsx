@@ -53,6 +53,32 @@ export default function Dashboard() {
   const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
   const [selectedGigIds, setSelectedGigIds] = useState<Set<string>>(new Set());
   const [showBulkEditor, setShowBulkEditor] = useState(false);
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(true);
+
+  // Load overview expanded preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("overview-expanded");
+      if (saved !== null) {
+        setIsOverviewExpanded(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Failed to load overview preference:", e);
+    }
+  }, []);
+
+  // Save overview expanded preference to localStorage
+  const handleToggleOverview = useCallback(() => {
+    setIsOverviewExpanded((prev) => {
+      const newVal = !prev;
+      try {
+        localStorage.setItem("overview-expanded", JSON.stringify(newVal));
+      } catch (e) {
+        console.error("Failed to save overview preference:", e);
+      }
+      return newVal;
+    });
+  }, []);
 
   const handleEditGig = useCallback((gig: Gig) => {
     setEditGig(gig);
@@ -775,7 +801,33 @@ export default function Dashboard() {
         )}
         {/* -- Premium Summary Cards ----------------------------------- */}
         <div className="mb-4 sm:mb-8">
-          <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
+          {/* Overview collapse header */}
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Overview</h2>
+            <button
+              onClick={handleToggleOverview}
+              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              title={isOverviewExpanded ? "Collapse overview" : "Expand overview"}
+            >
+              <svg
+                className={`h-5 w-5 transition-transform duration-200 ${isOverviewExpanded ? "rotate-0" : "-rotate-90"}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+          </div>
+          {/* Collapsible content */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              isOverviewExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
+          </div>
         </div>
 
         {/* -- Tabs (desktop only) ----------------------------------------------------- */}
