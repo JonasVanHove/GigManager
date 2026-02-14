@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description:
     "Manage live music performances, track payments, and calculate musician earnings.",
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.svg",
   },
 };
 
