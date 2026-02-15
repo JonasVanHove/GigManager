@@ -10,6 +10,21 @@ import { sendVerificationEmail, sendWelcomeEmail } from "@/lib/email-service";
  * URL: https://yourdomain.com/api/auth-webhook
  */
 
+// GET handler for webhook URL verification (Supabase tests with GET before creating webhook)
+export async function GET() {
+  return new Response(
+    JSON.stringify({ 
+      status: "ok", 
+      endpoint: "auth-webhook",
+      message: "Webhook endpoint is ready to receive Supabase auth events"
+    }),
+    { 
+      status: 200, 
+      headers: { "content-type": "application/json" } 
+    }
+  );
+}
+
 export async function POST(request: Request) {
   try {
     // Get webhook signing secret from environment
