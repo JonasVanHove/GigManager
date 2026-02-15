@@ -20,7 +20,7 @@ Add these to your `.env`:
 
 ```bash
 # Resend Email Service
-RESEND_API_KEY=re_CyQhn1Vy_MK1KtM3PTPR4J3KRtnk68CwJ  # Your Resend API key
+RESEND_API_KEY=re_YOUR_RESEND_API_KEY_HERE  # Get from resend.com/api-keys
 
 # Supabase Webhook Secret
 SUPABASE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx  # Get from Supabase webhooks
