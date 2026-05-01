@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
     const monthlyBreakdown = gigsWithFinancials.reduce((acc: any[], gig) => {
       const date = new Date(gig.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const monthName = date.toLocaleDateString("en-US", {
+      const monthName = date.toLocaleDateString("nl-BE", {
         year: "numeric",
         month: "long",
       });

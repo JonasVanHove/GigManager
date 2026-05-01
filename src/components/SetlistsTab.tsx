@@ -346,7 +346,7 @@ export default function SetlistsTab() {
                     >
                       <p className="font-medium">{setlist.title}</p>
                       <p className="mt-0.5 text-xs text-slate-400">
-                        {itemCount} {itemCount === 1 ? "item" : "items"} · {new Date(setlist.updatedAt).toLocaleDateString()}
+                        {itemCount} {itemCount === 1 ? "item" : "items"} · {new Date(setlist.updatedAt).toLocaleDateString("nl-BE")}
                       </p>
                     </button>
                   </div>
@@ -662,7 +662,7 @@ export default function SetlistsTab() {
                       </span>
                     </div>
                     <span className="text-xs text-slate-400">
-                      {new Date(gig.date).toLocaleDateString()}
+                      {new Date(gig.date).toLocaleDateString("nl-BE")}
                     </span>
                   </label>
                 ))

@@ -139,7 +139,7 @@ export function formatCurrency(
   currency = "EUR",
   locale?: string
 ): string {
-  const loc = locale || (currency === "USD" ? "en-US" : currency === "EUR" ? "nl-BE" : "en-US");
+  const loc = locale || "nl-BE"; // Default to Belgian locale
   return new Intl.NumberFormat(loc, {
     style: "currency",
     currency,
@@ -147,12 +147,8 @@ export function formatCurrency(
 }
 
 export function formatDate(dateString: string): string {
-  const locale =
-    typeof document !== "undefined" && document.documentElement.lang
-      ? document.documentElement.lang
-      : typeof navigator !== "undefined" && navigator.language
-        ? navigator.language
-        : "en-US";
+  // Default to Belgian locale (nl-BE)
+  const locale = "nl-BE";
 
   return new Date(dateString).toLocaleDateString(locale, {
     year: "numeric",

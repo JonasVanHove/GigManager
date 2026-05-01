@@ -442,7 +442,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                       {inv.description || "Investment"}
                     </h4>
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(inv.date).toLocaleDateString()}
+                      {new Date(inv.date).toLocaleDateString("nl-BE")}
                     </span>
                   </div>
 

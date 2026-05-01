@@ -87,7 +87,7 @@ export async function notifyGigAdded(
   date: Date,
   amount: number
 ) {
-  const dateStr = new Date(date).toLocaleDateString();
+  const dateStr = new Date(date).toLocaleDateString("nl-BE");
   return createNotification({
     userId,
     type: "gig_added",

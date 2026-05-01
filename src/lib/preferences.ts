@@ -2,8 +2,11 @@ export type AppLanguage = "system" | "en" | "nl";
 
 const LANGUAGE_TO_LOCALE: Record<Exclude<AppLanguage, "system">, string> = {
   en: "en-US",
-  nl: "nl-NL",
+  nl: "nl-BE",
 };
+
+// Default Belgian locale for all formatting
+const DEFAULT_LOCALE = "nl-BE";
 
 function getNavigatorLocale() {
   if (typeof navigator !== "undefined" && navigator.language) {
@@ -15,7 +18,7 @@ function getNavigatorLocale() {
     if (lang) return lang;
   }
 
-  return "en-US";
+  return DEFAULT_LOCALE;
 }
 
 export function resolveLocale(language?: AppLanguage) {
@@ -27,7 +30,7 @@ export function resolveLocale(language?: AppLanguage) {
 }
 
 export function formatDate(value: string | Date, locale?: string) {
-  return new Intl.DateTimeFormat(locale || getNavigatorLocale(), {
+  return new Intl.DateTimeFormat(locale || DEFAULT_LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -35,7 +38,7 @@ export function formatDate(value: string | Date, locale?: string) {
 }
 
 export function formatDateTime(value: string | Date, locale?: string) {
-  return new Intl.DateTimeFormat(locale || getNavigatorLocale(), {
+  return new Intl.DateTimeFormat(locale || DEFAULT_LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",

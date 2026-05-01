@@ -48,7 +48,7 @@ export function generateGigsCsv(
 
     return [
       `"${gig.eventName}"`,
-      new Date(gig.date).toLocaleDateString("nl-NL"),
+      new Date(gig.date).toLocaleDateString("nl-BE"),
       `"${gig.performers}"`,
       gig.performanceFee.toFixed(2),
       gig.technicalFee.toFixed(2),
