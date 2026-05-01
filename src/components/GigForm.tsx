@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import type { Gig, GigFormData } from "@/types";
 import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
 import { useAuth } from "./AuthProvider";
+import { PhotoAnnotationEditor } from "./PhotoAnnotationEditor";
 
 interface BandMemberOption {
   id: string;
@@ -101,6 +102,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   const [customBands, setCustomBands] = useState<string[]>([]);
   const [selectedBandName, setSelectedBandName] = useState("");
   const [newBandName, setNewBandName] = useState("");
+  const [showNotesEditor, setShowNotesEditor] = useState(false);
 
   const parseNames = (value: string) =>
     value
@@ -443,8 +445,9 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   const labelCls = "mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
+    <>
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
+        <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
         {/* Header */}
         <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -1252,6 +1255,15 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 Delete Performance
               </button>
             )}
+            {gig && (
+              <button
+                type="button"
+                onClick={() => setShowNotesEditor(true)}
+                className="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/30 px-5 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 transition hover:bg-brand-100 dark:hover:bg-brand-900/50"
+              >
+                📝 Open notities (optreden)
+              </button>
+            )}
             <div className="flex gap-3 ml-auto">
               <button
                 type="button"
@@ -1294,5 +1306,38 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
         </form>
       </div>
     </div>
+
+    {showNotesEditor && gig && (
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
+        <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
+          <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Notities voor "{gig.eventName}"
+              </h2>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                Voeg foto's en aantekeningen toe voor deze optreden.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNotesEditor(false)}
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="max-h-[75vh] overflow-y-auto px-6 py-5">
+            <PhotoAnnotationEditor 
+              onExport={() => {}} 
+              persistId={gig.id}
+            />
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
+

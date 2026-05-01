@@ -231,6 +231,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // -- Periodic sync for offline notes ----------------------------------------
+  useEffect(() => {
+    if (!session?.user) return;
+
+    // Import syncPendingNotes dynamically to avoid circular dependency
+    let syncInterval: NodeJS.Timeout | null = null;
+    
+    const startPeriodicSync = async () => {
+      // Initial sync attempt
+      try {
+        const { syncPendingNotes } = await import("@/lib/notes-sync");
+        await syncPendingNotes(getAccessToken);
+      } catch (e) {
+        console.debug("Initial sync attempt failed", e);
+      }
+
+      // Then set up periodic sync every 30 seconds
+      syncInterval = setInterval(async () => {
+        try {
+          const { syncPendingNotes } = await import("@/lib/notes-sync");
+          await syncPendingNotes(getAccessToken);
+        } catch (e) {
+          console.debug("Periodic sync failed", e);
+        }
+      }, 30000); // 30 seconds
+    };
+
+    startPeriodicSync();
+
+    return () => {
+      if (syncInterval) clearInterval(syncInterval);
+    };
+  }, [session?.user, getAccessToken]);
+
   // -- Provider ------------------------------------------------------------
 
   return (

@@ -1,12 +1,13 @@
 ﻿"use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import type { Gig } from "@/types";
 import {
   calculateGigFinancials,
   formatDate,
 } from "@/lib/calculations";
 import { getBandColorStyles } from "@/lib/preferences";
+import { getLocalNotes } from "@/lib/notes-store";
 import BandTag from "./BandTag";
 
 function isPastGigDate(value: string) {
@@ -42,6 +43,21 @@ const GigCard = memo(function GigCard({
 }: GigCardProps) {
   // Charity gigs start collapsed, others start expanded, but can be overridden by global state
   const [isExpanded, setIsExpanded] = useState(!gig.isCharity);
+  const [hasPendingNotes, setHasPendingNotes] = useState(false);
+  
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rec = await getLocalNotes(gig.id);
+        if (!mounted) return;
+        setHasPendingNotes(rec !== null && !rec.syncedAt);
+      } catch (e) {
+        console.debug("Failed to check notes status", e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [gig.id]);
   
   // Use global expand state if provided, otherwise use local state
   const effectiveIsExpanded = isExpandedGlobal !== undefined ? isExpandedGlobal : isExpanded;
@@ -129,6 +145,14 @@ const GigCard = memo(function GigCard({
             {gig.isTentative && (
               <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
                 Tentative
+              </span>
+            )}
+            {hasPendingNotes && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30">
+                <svg className="h-3 w-3 shrink-0 animate-pulse" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <circle cx="10" cy="10" r="8" />
+                </svg>
+                Notities (pending)
               </span>
             )}
             {/* Expand/collapse chevron */}
