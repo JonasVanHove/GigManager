@@ -100,6 +100,21 @@ const config: Config = {
         "dark-secondary": "#1a1a25",
         "dark-tertiary": "#25252f",
       },
+      screens: {
+        // Mobile-first: phones at default
+        xs: "320px",    // Small phones
+        sm: "640px",    // Larger phones (current default)
+        // Tablet breakpoints
+        md: "768px",    // Tablet landscape / small tablets
+        lg: "1024px",   // Standard tablets & small laptops
+        xl: "1280px",   // Laptops
+        "2xl": "1536px", // Large screens
+        // Custom device breakpoints
+        "mobile": "320px",  // Phone devices
+        "tablet": "640px",  // Tablet devices (iPad ~7-9")
+        "tablet-lg": "1024px", // Large tablets (iPad Pro)
+        "desktop": "1280px", // Desktop devices
+      },
     },
   },
   plugins: [],

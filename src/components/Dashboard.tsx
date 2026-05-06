@@ -10,6 +10,7 @@ import { calculateGigFinancials } from "@/lib/calculations";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
+import { Icons } from "./Icons";
 import LandingPage from "./LandingPage";
 import GigCard from "./GigCard";
 import GigForm from "./GigForm";
@@ -772,13 +773,11 @@ export default function Dashboard() {
               className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition flex-shrink-0"
               title="Menu"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                {showMobileMenu ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                )}
-              </svg>
+              {showMobileMenu ? (
+                <Icons.Close className="h-5 w-5" />
+              ) : (
+                <Icons.Menu className="h-5 w-5" />
+              )}
             </button>
             
             <Image
@@ -796,9 +795,7 @@ export default function Dashboard() {
           {/* Center: Search (desktop) */}
           <div className="hidden md:block flex-1 max-w-md mx-4">
             <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-              </svg>
+              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
@@ -893,13 +890,9 @@ export default function Dashboard() {
               className="p-1.5 sm:p-0 sm:px-3 sm:py-2 rounded-lg bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 active:bg-brand-800 flex-shrink-0"
               title="Add Performance"
             >
-              <svg className="h-4 w-4 sm:hidden shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
+              <Icons.Plus className="h-4 w-4 sm:hidden shrink-0" />
               <span className="hidden sm:inline-flex items-center gap-1 text-sm font-medium">
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
+                <Icons.Plus className="h-4 w-4 shrink-0" />
                 Add
               </span>
             </button>
@@ -977,71 +970,63 @@ export default function Dashboard() {
       {showMobileMenu && (
         <>
           <div className="lg:hidden fixed inset-0 z-[100] bg-black/50" onClick={() => setShowMobileMenu(false)} />
-          <div className="lg:hidden fixed left-0 top-0 bottom-0 z-[101] w-[84vw] max-w-[19rem] bg-white dark:bg-slate-900 shadow-xl overflow-y-auto">
-            <div className="p-3">
+          {/* Responsive menu width: phone (84vw) → tablet (60vw) → large tablet (50vw) */}
+          <div className="lg:hidden fixed left-0 top-0 bottom-0 z-[101] w-[84vw] max-w-[19rem] tablet:w-[60vw] tablet:max-w-[30rem] tablet-lg:w-[50vw] tablet-lg:max-w-[40rem] bg-white dark:bg-slate-900 shadow-xl overflow-y-auto">
+            <div className="p-4 tablet:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Menu</h2>
                 <button
                   onClick={() => setShowMobileMenu(false)}
                   className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <Icons.Close className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="mb-4 grid grid-cols-2 gap-2">
+              {/* Action buttons - grid on small, flex on tablet */}
+              <div className="mb-4 grid grid-cols-2 tablet:grid-cols-3 gap-2">
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
                     setEditGig(null);
                     setShowForm(true);
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
+                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg bg-brand-600 px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium text-white transition hover:bg-brand-700"
                 >
-                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  Add gig
+                  <Icons.Plus className="h-4 w-4 shrink-0" />
+                  <span className="hidden tablet:inline">Add gig</span>
+                  <span className="tablet:hidden">Add</span>
                 </button>
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
                     handleToggleWideView();
                   }}
-                  className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                  className={`inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg border px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium transition ${
                     isWideView
                       ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   }`}
                 >
-                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M8.25 3.75H4.5A.75.75 0 0 0 3.75 4.5v3.75M15.75 3.75h3.75a.75.75 0 0 1 .75.75v3.75M20.25 15.75V19.5a.75.75 0 0 1-.75.75h-3.75M3.75 15.75V19.5a.75.75 0 0 0 .75.75h3.75" />
-                  </svg>
-                  {isWideView ? "Normaal" : "XL"}
+                  <Icons.Expand className="h-4 w-4 shrink-0" />
+                  <span className="hidden tablet:inline">{isWideView ? "Normal" : "XL"}</span>
                 </button>
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
                     handleTabChange("songs");
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg border border-slate-200 bg-white px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
-                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M4.5 4.5A2.25 2.25 0 0 1 6.75 2.25h8.25a2.25 2.25 0 0 1 2.25 2.25v15A2.25 2.25 0 0 1 15 21.75H6.75A2.25 2.25 0 0 1 4.5 19.5v-15Z" />
-                    <path d="M8.25 6.75h7.5M8.25 10.5h7.5M8.25 14.25H12" />
-                  </svg>
-                  Notities
+                  <Icons.Document className="h-4 w-4 shrink-0" />
+                  <span className="hidden tablet:inline">Notes</span>
                 </button>
               </div>
               
-              {/* Mobile search */}
-              <div className="mb-3 md:hidden">
+              {/* Mobile search - visible on phones, hidden on tablets (search in header) */}
+              <div className="mb-4 tablet:hidden">
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                  </svg>
+                  <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1054,9 +1039,7 @@ export default function Dashboard() {
                       onClick={() => setSearchQuery("")}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
                     >
-                      <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <Icons.Close className="h-4 w-4 text-slate-400" />
                     </button>
                   )}
                 </div>
@@ -1073,9 +1056,7 @@ export default function Dashboard() {
                     activeTab === "gigs" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6Zm0 9.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25v-2.25Zm9-9.75A2.25 2.25 0 0 1 15 3.75H17.25a2.25 2.25 0 0 1 2.25 2.25V6A2.25 2.25 0 0 1 17.25 8.25H15a2.25 2.25 0 0 1-2.25-2.25V6Zm0 9.75A2.25 2.25 0 0 1 15 13.5H17.25a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 17.25 20.25H15a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
-                  </svg>
+                  <Icons.GridView className="h-5 w-5" />
                   Overview
                 </button>
                 <button
@@ -1084,9 +1065,7 @@ export default function Dashboard() {
                     activeTab === "calendar" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                  </svg>
+                  <Icons.Calendar className="h-5 w-5" />
                   Calendar
                 </button>
                 <button
@@ -1095,9 +1074,7 @@ export default function Dashboard() {
                     activeTab === "all-gigs" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                  </svg>
+                  <Icons.ListView className="h-5 w-5" />
                   All Gigs
                 </button>
                 <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
@@ -1109,9 +1086,7 @@ export default function Dashboard() {
                     activeTab === "band-members" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                  </svg>
+                  <Icons.People className="h-5 w-5" />
                   Band Members
                 </button>
                 <button
@@ -1120,9 +1095,7 @@ export default function Dashboard() {
                     activeTab === "setlists" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-                  </svg>
+                  <Icons.Music className="h-5 w-5" />
                   Setlists
                 </button>
                 <button
@@ -1131,9 +1104,7 @@ export default function Dashboard() {
                     activeTab === "songs" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v10.5M19.5 8.25a3 3 0 11-3-3M6.75 6.75a3 3 0 11-3 3" />
-                  </svg>
+                  <Icons.Document className="h-5 w-5" />
                   Notities
                 </button>
                 <button
@@ -1142,9 +1113,7 @@ export default function Dashboard() {
                     activeTab === "shared-links" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3h5.25m4.173 6.951 1.202-.601a2.25 2.25 0 0 0 1.244-2.012V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v8.838a2.25 2.25 0 0 0 1.244 2.012l1.202.601a2.25 2.25 0 0 0 2.012 0l1.202-.601a2.25 2.25 0 0 1 2.012 0l1.202.601a2.25 2.25 0 0 0 2.012 0Z" />
-                  </svg>
+                  <Icons.Link className="h-5 w-5" />
                   Shared Links
                 </button>
                 <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
@@ -1156,9 +1125,7 @@ export default function Dashboard() {
                     activeTab === "analytics" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 6.75c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v13.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V6.75ZM16.5 6.75c0-.621.504-1.125 1.125-1.125h2.25C20.496 5.625 21 6.129 21 6.75v13.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V6.75Z" />
-                  </svg>
+                  <Icons.Analytics className="h-5 w-5" />
                   Insights
                 </button>
                 <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
@@ -1170,9 +1137,7 @@ export default function Dashboard() {
                     activeTab === "investments" ? "bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 3.07-.879 4.242 0M9.75 17.25c0 .552-.448 1-1 1H5.625c-.552 0-1-.448-1-1m12.621-4.47c.409-.34.659-.934.659-1.591v-2.64c0-1.228-.841-2.265-1.964-2.565A6.521 6.521 0 0 0 12 2.25c-1.466 0-2.869.36-4.095 1.001C6.041 3.476 5.2 4.513 5.2 5.74v2.637c0 .657.25 1.251.659 1.591m0 0c.409.34 1.227.855 2.966 1.694C9.75 15.75 11.565 16.5 12 16.5c.435 0 2.25-.75 3.175-1.32 1.738-.839 2.557-1.354 2.966-1.694" />
-                  </svg>
+                  <Icons.Wallet className="h-5 w-5" />
                   Investments
                 </button>
               </nav>
@@ -1210,14 +1175,9 @@ export default function Dashboard() {
                 title="Export all gigs as CSV"
               >
                 {exportingType === "gigs" ? (
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
+                  <Icons.Spinner className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 10.5 12 15m0 0 4.5-4.5M12 15V3" />
-                  </svg>
+                  <Icons.Download className="h-3.5 w-3.5" />
                 )}
                 <span className="hidden sm:inline">Export</span>
               </button>
@@ -1228,14 +1188,9 @@ export default function Dashboard() {
                 title="Export financial summary as CSV"
               >
                 {exportingType === "summary" ? (
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
+                  <Icons.Spinner className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7.5 14.25 10.5 11l2.25 2.25 4.5-5.25" />
-                  </svg>
+                  <Icons.ChartLine className="h-3.5 w-3.5" />
                 )}
                 <span className="hidden sm:inline">Summary</span>
               </button>
@@ -1246,14 +1201,9 @@ export default function Dashboard() {
                 title="Export financial report as JSON"
               >
                 {exportingType === "report" ? (
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
+                  <Icons.Spinner className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3h6.879a2.25 2.25 0 0 1 1.591.659l2.371 2.371A2.25 2.25 0 0 1 19 7.621V18.75A2.25 2.25 0 0 1 16.75 21H7.5A2.25 2.25 0 0 1 5.25 18.75V5.25A2.25 2.25 0 0 1 7.5 3Zm1.5 11.25h6m-6 3h6m-6-6h3" />
-                  </svg>
+                  <Icons.Document className="h-3.5 w-3.5" />
                 )}
                 <span className="hidden sm:inline">Report</span>
               </button>
@@ -1351,9 +1301,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-              </svg>
+              <Icons.People className="h-4 w-4" />
               <span className="hidden sm:inline">Band</span>
             </span>
           </button>
@@ -1367,9 +1315,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-              </svg>
+              <Icons.Music className="h-4 w-4" />
               <span className="hidden sm:inline">Setlists</span>
             </span>
           </button>
@@ -1386,9 +1332,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3h5.25m4.173 6.951 1.202-.601a2.25 2.25 0 0 0 1.244-2.012V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v8.838a2.25 2.25 0 0 0 1.244 2.012l1.202.601a2.25 2.25 0 0 0 2.012 0l1.202-.601a2.25 2.25 0 0 1 2.012 0l1.202.601a2.25 2.25 0 0 0 2.012 0Z" />
-              </svg>
+              <Icons.Link className="h-4 w-4" />
               <span className="hidden sm:inline">Shared Links</span>
             </span>
           </button>
@@ -1402,9 +1346,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 6.75c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v13.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V6.75ZM16.5 6.75c0-.621.504-1.125 1.125-1.125h2.25C20.496 5.625 21 6.129 21 6.75v13.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V6.75Z" />
-              </svg>
+              <Icons.Analytics className="h-4 w-4" />
               <span className="hidden sm:inline">Insights</span>
             </span>
           </button>
@@ -1418,10 +1360,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 9.75A3.75 3.75 0 0 1 6 6h12a3.75 3.75 0 0 1 3.75 3.75v5.25A3.75 3.75 0 0 1 18 18.75H6A3.75 3.75 0 0 1 2.25 15V9.75Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9h12M7.5 13.5h3" />
-              </svg>
+              <Icons.Wallet className="h-4 w-4" />
               <span className="hidden sm:inline">Invest</span>
             </span>
           </button>
@@ -1439,9 +1378,7 @@ export default function Dashboard() {
               </div>
             ) : filteredGigs.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 py-20 text-center">
-                <svg className="mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
-                </svg>
+                <Icons.Music2 className="mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" />
                 <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
                   {searchQuery ? "No matching performances" : "No performances yet"}
                 </h3>
