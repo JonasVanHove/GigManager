@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icons } from "./Icons";
 import type { Notification } from "@/lib/notifications";
 import { formatNotificationMessage } from "@/lib/notifications";
 import { formatDateTime } from "@/lib/preferences";
@@ -56,13 +57,7 @@ export default function NotificationCenter({
         className="relative inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
         title={copy.notifications}
       >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 002.689 6.072m0 0a23.9 23.9 0 0135.378-3.15M9.3 20.25H3.75a1.5 1.5 0 01-1.5-1.5V15m13.875 9h3.75a1.5 1.5 0 001.5-1.5V15"
-          />
-        </svg>
+        <Icons.Phone className="h-4 w-4" />
         <span className="text-xs">{copy.alerts}</span>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
@@ -88,9 +83,7 @@ export default function NotificationCenter({
           <div className="overflow-y-auto flex-1">
             {visibleNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <svg className="mb-3 h-8 w-8 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 012.689 6.072m0 0a23.9 23.9 0 0135.378-3.15" />
-                </svg>
+                <Icons.Phone className="mb-3 h-8 w-8 text-slate-300 dark:text-slate-600" />
                 <p className="text-sm text-slate-500 dark:text-slate-400">{copy.noNotificationsYet}</p>
               </div>
             ) : (
@@ -134,9 +127,7 @@ export default function NotificationCenter({
                           className="rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition"
                           title={copy.markAsRead}
                         >
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                          </svg>
+                          <Icons.Check className="h-4 w-4" />
                         </button>
                       )}
                       {onDismiss && (
@@ -145,9 +136,7 @@ export default function NotificationCenter({
                           className="rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition"
                           title={copy.dismiss}
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <Icons.Close className="h-4 w-4" />
                         </button>
                       )}
                     </div>

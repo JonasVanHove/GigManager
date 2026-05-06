@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { Icons } from "./Icons";
 import type { Gig, GigFormData } from "@/types";
 import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
 import { useAuth } from "./AuthProvider";
@@ -1296,25 +1297,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50"
               >
               {loading && (
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
+                <Icons.Spinner className="h-4 w-4" />
               )}
               {gig ? "Save Changes" : "Add Performance"}
               </button>
@@ -1340,9 +1323,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
               onClick={() => setShowNotesEditor(false)}
               className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <Icons.Close className="h-6 w-6" />
             </button>
           </div>
           <div className="max-h-[75vh] overflow-y-auto px-6 py-5">

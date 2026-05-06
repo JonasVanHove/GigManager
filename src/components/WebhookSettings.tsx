@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icons } from "./Icons";
 import type { Webhook } from "@/lib/webhooks";
 import { useSettings } from "./SettingsProvider";
 
@@ -148,9 +149,7 @@ export default function WebhookSettings({
           onClick={() => setShowForm(!showForm)}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
+          <Icons.Plus className="h-4 w-4" />
           {copy.addWebhook}
         </button>
       </div>
@@ -270,9 +269,7 @@ export default function WebhookSettings({
       {/* Webhooks List */}
       {webhooks.length === 0 ? (
         <div className="rounded-lg border-2 border-dashed border-slate-300 py-12 text-center dark:border-slate-600">
-          <svg className="mx-auto mb-3 h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <Icons.Document className="mx-auto mb-3 h-8 w-8 text-slate-400" />
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {copy.noWebhooks}
           </p>
@@ -330,13 +327,11 @@ export default function WebhookSettings({
                       title={webhook.enabled ? "Disable" : "Enable"}
                       className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        {webhook.enabled ? (
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        ) : (
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        )}
-                      </svg>
+                      {webhook.enabled ? (
+                        <Icons.Check className="h-4 w-4" />
+                      ) : (
+                        <Icons.Close className="h-4 w-4" />
+                      )}
                     </button>
                   )}
                   {onDeleteWebhook && (
@@ -345,9 +340,7 @@ export default function WebhookSettings({
                       title="Delete"
                       className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <Icons.Trash className="h-4 w-4" />
                     </button>
                   )}
                 </div>
