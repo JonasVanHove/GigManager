@@ -1,0 +1,2 @@
+-- Share links migration (placeholder)
+-- This migration tracks the initial ShareLink and ShareLinkGig models

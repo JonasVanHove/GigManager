@@ -43,6 +43,7 @@ const emptyForm: GigFormData = {
   advanceToMusicians: 0,
   paymentReceived: false,
   paymentReceivedDate: "",
+  managerInstantPayment: false,
   bandPaid: false,
   bandPaidDate: "",
   bookingDate: new Date().toISOString().split("T")[0],
@@ -76,6 +77,7 @@ function gigToFormData(gig: Gig): GigFormData {
     paymentReceivedDate: gig.paymentReceivedDate
       ? gig.paymentReceivedDate.split("T")[0]
       : "",
+    managerInstantPayment: gig.managerInstantPayment ?? false,
     bandPaid: gig.bandPaid,
     bandPaidDate: gig.bandPaidDate ? gig.bandPaidDate.split("T")[0] : "",
     bookingDate: gig.bookingDate ? gig.bookingDate.split("T")[0] : "",
@@ -1137,6 +1139,21 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                     />
                   </div>
                 )}
+              </div>
+
+              {/* Instant payment */}
+              <div className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 p-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400"
+                    checked={form.managerInstantPayment}
+                    onChange={(e) => set("managerInstantPayment", e.target.checked)}
+                  />
+                  <span className="text-sm font-medium text-amber-900 dark:text-amber-300">
+                    Instant payment (handled immediately)
+                  </span>
+                </label>
               </div>
 
               {/* Manager handles distribution */}

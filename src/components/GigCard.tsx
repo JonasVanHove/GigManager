@@ -101,7 +101,9 @@ const GigCard = memo(function GigCard({
 
   return (
     <div className={`group overflow-hidden rounded-xl border shadow-sm transition hover:shadow-md ${
-      isSelected
+      gig.managerInstantPayment
+        ? 'opacity-60 border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-800'
+        : isSelected
         ? 'border-blue-400 bg-blue-50 shadow-md dark:bg-blue-950/20 dark:border-blue-400'
         : isClientPaymentOverdue
           ? 'border-red-300 bg-red-50/70 shadow-red-100 dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-red-950/20'

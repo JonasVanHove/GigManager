@@ -23,6 +23,7 @@ export interface Gig {
   managerHandlesDistribution: boolean; // whether manager handles payment split to band members
   paymentReceived: boolean;
   paymentReceivedDate: string | null;
+  managerInstantPayment: boolean; // manager pays/handles payment immediately
   bandPaid: boolean;
   bandPaidDate: string | null;
   advanceReceivedByManager: number; // Advance amount you received from client
@@ -86,6 +87,7 @@ export interface GigFormData {
   advanceToMusicians: number; // Advance amount you paid to musicians
   paymentReceived: boolean;
   paymentReceivedDate: string; // "" or "YYYY-MM-DD"
+  managerInstantPayment: boolean; // manager pays/handles payment immediately
   bandPaid: boolean;
   bandPaidDate: string; // "" or "YYYY-MM-DD"
   notes: string;

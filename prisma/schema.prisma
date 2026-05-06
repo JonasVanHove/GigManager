@@ -53,6 +53,7 @@ model Gig {
   // ── Payment tracking ───────────────────────────────────
   paymentReceived     Boolean   @default(false)
   paymentReceivedDate DateTime?
+  managerInstantPayment Boolean @default(false) // whether manager pays/handles payment immediately (instant)
   bandPaid            Boolean   @default(false)
   bandPaidDate        DateTime?
 

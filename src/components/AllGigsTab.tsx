@@ -13,7 +13,7 @@ interface AllGigsTabProps {
   loading: boolean;
 }
 
-type SortOption = "date-asc" | "date-desc" | "band-asc" | "band-desc" | "fee-high" | "fee-low" | "payment-status";
+type SortOption = "date-asc" | "date-desc" | "band-asc" | "band-desc" | "fee-high" | "fee-low" | "payment-status" | "chronology";
 
 export default function AllGigsTab({
   gigs,
@@ -39,6 +39,7 @@ export default function AllGigsTab({
         highestFee: "Hoogste vergoeding",
         lowestFee: "Laagste vergoeding",
         paymentStatus: "Betaalstatus",
+        chronology: "Chronologie (voorbije onderaan)",
         filterByArtist: "Filter op artiest",
         clearAll: "Alles wissen",
         performances: "optredens",
@@ -56,6 +57,7 @@ export default function AllGigsTab({
         highestFee: "Highest Fee",
         lowestFee: "Lowest Fee",
         paymentStatus: "Payment Status",
+        chronology: "Chronology (past at bottom)",
         filterByArtist: "Filter by Artist",
         clearAll: "Clear all",
         performances: "performances",
@@ -117,6 +119,15 @@ export default function AllGigsTab({
           return bScore - aScore || new Date(b.date).getTime() - new Date(a.date).getTime();
         });
         break;
+      case "chronology": {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const future = sorted.filter((g) => new Date(g.date) >= today);
+        const past = sorted.filter((g) => new Date(g.date) < today);
+        future.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return [...future, ...past];
+      }
     }
 
     return sorted;
@@ -188,6 +199,7 @@ export default function AllGigsTab({
             <option value="fee-high">{copy.highestFee}</option>
             <option value="fee-low">{copy.lowestFee}</option>
             <option value="payment-status">{copy.paymentStatus}</option>
+            <option value="chronology">{copy.chronology}</option>
           </select>
         </div>
 
