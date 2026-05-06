@@ -138,7 +138,7 @@ const GigCard = memo(function GigCard({
               {gig.eventName}
             </h3>
             {gig.isCharity && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30">
+              <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30">
                 <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                   <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
                 </svg>
@@ -146,7 +146,7 @@ const GigCard = memo(function GigCard({
               </span>
             )}
             {gig.isTentative && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
+              <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
                 Tentative
               </span>
             )}
@@ -163,13 +163,14 @@ const GigCard = memo(function GigCard({
               }`}
             />
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tablet:text-sm text-slate-500 dark:text-slate-400">
             <span className="inline-flex items-center gap-1">
               <Icons.Calendar className="h-4 w-4 shrink-0" />
-              {formattedDate}
+              <span className="hidden tablet:inline">{formattedDate}</span>
+              <span className="tablet:hidden">{gig.date}</span>
             </span>
             <BandTag name={gig.performers} variant="soft" />
-            <span className="inline-flex items-center gap-1">
+            <span className="hidden tablet:inline-flex items-center gap-1">
               <Icons.People className="h-4 w-4 shrink-0" />
               {gig.numberOfMusicians} musician{gig.numberOfMusicians !== 1 ? "s" : ""}
             </span>
@@ -177,7 +178,7 @@ const GigCard = memo(function GigCard({
           </button>
         </div>
 
-        {/* Actions */}
+        {/* Actions - tablet+: show edit button, mobile: hidden */}
         <div className="ml-4 flex shrink-0 gap-1">
           <button
             onClick={() => onEdit(gig)}
