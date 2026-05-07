@@ -373,10 +373,11 @@ export default function Dashboard() {
           }
           toast.error("Session expired. Please sign out and sign in again.");
         } else {
-          const errorText = await res.text();
-          console.error("[fetchGigs] Error response:", errorText);
-          toast.error("Failed to load gigs.");
-        }
+            const errorText = await res.text();
+            console.error("[fetchGigs] Error response:", errorText);
+            const short = errorText ? String(errorText).slice(0, 200) : res.statusText || String(res.status);
+            toast.error(`Failed to load gigs (${res.status}): ${short}`);
+          }
         setGigs([]);
         setTotalGigCount(0);
       } else {
@@ -398,7 +399,8 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Fetch gigs error:", err);
-      toast.error("Failed to load gigs.");
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Failed to load gigs: ${msg}`);
     } finally {
       fetchGigsInFlightRef.current = false;
       setLoading(false);
