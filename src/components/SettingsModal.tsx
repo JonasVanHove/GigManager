@@ -6,6 +6,7 @@ import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
+import { useImmersiveMode } from "@/lib/use-immersive-mode";
 import type { AppLanguage } from "@/types";
 
 const CURRENCIES = [
@@ -31,6 +32,7 @@ interface SettingsModalProps {
 export default function SettingsModal({ onClose }: SettingsModalProps) {
   const { session } = useAuth();
   const { settings, updateSettings, language, setLanguage } = useSettings();
+  const { isFullscreen, canRequestFullscreen, toggleFullscreen } = useImmersiveMode();
   const [currency, setCurrency] = useState(settings.currency);
   const [claimPerf, setClaimPerf] = useState(settings.claimPerformanceFee);
   const [claimTech, setClaimTech] = useState(settings.claimTechnicalFee);
@@ -42,6 +44,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const githubRepoUrl = "https://github.com/JonasVanHove/GigManager";
 
   const hasSettingsChanges =
     currency !== settings.currency ||
@@ -230,6 +233,24 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </p>
           </div>
 
+          {/* -- Project / Repo link ---------------- */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Project</label>
+            <a
+              href={githubRepoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700"
+              title="Open GitHub repository"
+            >
+              <Icons.GitHub className="h-4 w-4" />
+              GitHub repository
+            </a>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Opens the repository you can use for version bumps, tags, and releases.
+            </p>
+          </div>
+
           {/* -- Currency -------------------------- */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -302,6 +323,43 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                 : "Always light mode"}
             </p>
           </div>
+
+          {/* -- Display/Interface Options ------- */}
+          {canRequestFullscreen && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                Display
+              </label>
+              <button
+                onClick={toggleFullscreen}
+                className={`w-full flex items-center justify-between rounded-lg border-2 px-4 py-3 transition ${
+                  isFullscreen
+                    ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                <span className={`text-sm font-medium ${
+                  isFullscreen
+                    ? "text-brand-700 dark:text-brand-300"
+                    : "text-slate-700 dark:text-slate-300"
+                }`}>
+                  Fullscreen Mode
+                </span>
+                <div className={`h-5 w-9 rounded-full transition ${
+                  isFullscreen
+                    ? "bg-brand-500 dark:bg-brand-600"
+                    : "bg-slate-300 dark:bg-slate-600"
+                }`}>
+                  <div className={`h-4 w-4 rounded-full bg-white transition transition-transform ${
+                    isFullscreen ? "translate-x-4" : "translate-x-0.5"
+                  }`} />
+                </div>
+              </button>
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                {isFullscreen ? "Fullscreen mode is active. Tap/click to exit." : "Toggle fullscreen to maximize your display space."}
+              </p>
+            </div>
+          )}
           <fieldset>
             <legend className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Fee components you claim

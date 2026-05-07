@@ -43,7 +43,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
     // Monthly breakdown tracks both management (client flow) and personal (my earnings) modes.
     const monthlyManagementData: Record<string, { count: number; total: number; received: number; pending: number; charity: number; paidGigs: number }> = {};
     const monthlyPersonalData: Record<string, { count: number; total: number; received: number; pending: number; charity: number; paidGigs: number }> = {};
-    const timeline: Array<{ date: Date; amount: number; eventName: string; received: boolean }> = [];
+    const timeline: Array<{ date: Date; amount: number; eventName: string; received: boolean; kind: "client" | "personal" }> = [];
 
     gigs.forEach((g) => {
       const calc = calculateGigFinancials(
@@ -81,6 +81,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
         externallyManagedForMePending += myPendingForGig;
       }
 
+      // Add client-level payment timeline entry when payment received
       if (g.paymentReceived) {
         if (calc.totalReceived > 0) {
           timeline.push({
@@ -88,8 +89,27 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
             amount: calc.totalReceived,
             eventName: g.eventName,
             received: true,
+            kind: "client",
           });
         }
+      }
+
+      // Add personal-level payment entry when the manager actually received earnings (or an advance)
+      if (myReceivedForGig > 0) {
+        // Prefer the paymentReceivedDate if present, otherwise use booking/advance date
+        const personalDate = g.paymentReceivedDate
+          ? new Date(g.paymentReceivedDate)
+          : (g.advanceReceivedByManager && g.advanceReceivedByManager > 0)
+            ? new Date(g.date)
+            : new Date(g.date);
+
+        timeline.push({
+          date: personalDate,
+          amount: myReceivedForGig,
+          eventName: `${g.eventName} — ${tr("My share", "Mijn aandeel")}`,
+          received: myReceivedForGig > 0,
+          kind: "personal",
+        });
       }
 
       const date = new Date(g.date);
@@ -194,6 +214,17 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
       quietestMonth: monthPatterns[monthPatterns.length - 1],
     };
   }, [gigs]);
+
+  // Timeline filter state: all / client / personal
+  const [timelineFilter, setTimelineFilter] = useState<"all" | "client" | "personal">("all");
+
+  const filteredTimeline = stats.timeline
+    .filter((t) => {
+      if (timelineFilter === "all") return true;
+      return t.kind === timelineFilter;
+    })
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 10);
 
   const monthlyMode = viewMode === "personal"
     ? {
@@ -393,6 +424,38 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
                     max={stats.totalGigs}
                     color="blue"
                   />
+                </div>
+                {/* Timeline filter + recent payments combined into status card */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{tr("Recent Payments", "Recente betalingen")}</span>
+                      <small className="text-xs text-slate-500 dark:text-slate-400">{tr("(click filter to switch view)", "(klik filter om te wisselen)")}</small>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FilterButton id="all" label={tr("All", "Alle")} onClick={() => setTimelineFilter("all")} active={timelineFilter === "all"} />
+                      <FilterButton id="client" label={tr("Management", "Management")} onClick={() => setTimelineFilter("client")} active={timelineFilter === "client"} />
+                      <FilterButton id="personal" label={tr("Personal", "Persoonlijk")} onClick={() => setTimelineFilter("personal")} active={timelineFilter === "personal"} />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {filteredTimeline.length === 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{tr("No recent payments for this view.", "Geen recente betalingen voor deze weergave.")}</p>
+                    )}
+                    {filteredTimeline.map((payment, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-sm"
+                      >
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{payment.eventName}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(payment.date.toISOString())} · {payment.kind === "client" ? tr("Client", "Klant") : tr("Personal", "Persoonlijk")}</p>
+                        </div>
+                        <p className="font-semibold text-brand-700 dark:text-brand-300">{fmtCurrency(payment.amount)}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -711,5 +774,16 @@ function ProgressBar({
         style={{ width: `${percentage}%` }}
       />
     </div>
+  );
+}
+
+function FilterButton({ id, label, onClick, active }: { id: string; label: string; onClick: () => void; active: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md px-2 py-1 text-xs font-medium transition ${active ? 'bg-slate-900 text-white' : 'bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/40'}`}
+    >
+      {label}
+    </button>
   );
 }

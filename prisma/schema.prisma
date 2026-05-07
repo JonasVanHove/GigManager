@@ -10,234 +10,132 @@ datasource db {
 }
 
 model Gig {
-  id String @id @default(cuid())
-
-  // ── Event details ──────────────────────────────────────
-  eventName       String
-  date            DateTime
-  performers      String // band name or comma-separated member names
-  numberOfMusicians Int
-  performanceLineup String? // optional names for this performance
-  managerPerforms Boolean @default(true) // whether the user performs in this gig
-  
-  // ── Band members for this gig ──────────────────────────
-  bandMembers     GigBandMember[]
-
-  // ── Optional setlist ───────────────────────────────────
-  setlistId String?
-  setlist   Setlist? @relation(fields: [setlistId], references: [id], onDelete: SetNull)
-
-  // ── Share links containing this gig ─────────────────────
-  shareLinks ShareLinkGig[]
-
-  // ── Financials ─────────────────────────────────────────
-  isCharity         Boolean @default(false) // whether this is a charity/pro bono performance
-  performanceFee    Float           // music fee — split among musicians
-  performanceFeeUnknown Boolean @default(false) // true when the fee is not known yet
-  technicalFee      Float  @default(0) // optional — belongs to manager, not split
-  managerBonusType  String @default("fixed") // "fixed" | "percentage"
-  managerBonusAmount Float @default(0) // bonus value ($ or %)
-
-  // ── Performance fee distribution ───────────────────────
-  performanceDistribution String @default("equal") // "equal" | "managerFixed" | "custom"
-  managerPerformanceAmount Float? // if managerFixed: amount manager claims from performance fee
-
-  // ── Fee claims — whether manager claims these fees for this gig ──
-  claimPerformanceFee Boolean @default(true)
-  claimTechnicalFee   Boolean @default(true)
-  technicalFeeClaimAmount Float? // amount of technical fee to claim (null = claim all)
-
-  // ── Payment handling ───────────────────────────────────
-  managerHandlesDistribution Boolean @default(true) // whether manager handles payment split to band members
-
-  // ── Payment tracking ───────────────────────────────────
-  paymentReceived     Boolean   @default(false)
-  paymentReceivedDate DateTime?
-  managerInstantPayment Boolean @default(false) // whether manager pays/handles payment immediately (instant)
-  bandPaid            Boolean   @default(false)
-  bandPaidDate        DateTime?
-
-  // ── Advance payments ────────────────────────────────────
-  advanceReceivedByManager Float @default(0) // Advance amount you received from client
-  advanceToMusicians Float @default(0)        // Advance amount you paid to musicians
-
-  // ── Meta ───────────────────────────────────────────────
-  isTentative Boolean @default(false) // true when booking is provisional / under reservation
-  bookingDate DateTime @default(now()) // when the booking was made (default: now, but editable)
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // ── User ownership — every gig belongs to one user ─────
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                         String          @id @default(cuid())
+  eventName                  String
+  date                       DateTime
+  performers                 String
+  numberOfMusicians          Int
+  performanceFee             Float
+  technicalFee               Float           @default(0)
+  managerBonusType           String          @default("fixed")
+  managerBonusAmount         Float           @default(0)
+  paymentReceived            Boolean         @default(false)
+  paymentReceivedDate        DateTime?
+  bandPaid                   Boolean         @default(false)
+  bandPaidDate               DateTime?
+  notes                      String?
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+  userId                     String
+  claimPerformanceFee        Boolean         @default(true)
+  claimTechnicalFee          Boolean         @default(true)
+  technicalFeeClaimAmount    Float?
+  managerHandlesDistribution Boolean         @default(true)
+  advanceReceivedByManager   Float           @default(0)
+  advanceToMusicians         Float           @default(0)
+  isCharity                  Boolean         @default(false)
+  bookingDate                DateTime        @default(now())
+  managerPerformanceAmount   Float?
+  performanceDistribution    String          @default("equal")
+  managerPerforms            Boolean         @default(true)
+  performanceLineup          String?
+  setlistId                  String?
+  isTentative                Boolean         @default(false)
+  performanceFeeUnknown      Boolean         @default(false)
+  setlist                    Setlist?        @relation(fields: [setlistId], references: [id])
+  user                       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bandMembers                GigBandMember[]
+  shareLinks                 ShareLinkGig[]
 
   @@index([userId])
   @@index([date])
   @@index([paymentReceived])
   @@index([bandPaid])
-  @@index([userId, date]) // composite index for common query: user's gigs sorted by date
-  @@index([userId, paymentReceived]) // for pending payments queries
+  @@index([userId, date])
+  @@index([userId, paymentReceived])
   @@index([setlistId])
 }
 
-// ── Setlists ─────────────────────────────────────────────
 model Setlist {
-  id String @id @default(cuid())
-
+  id          String        @id @default(cuid())
   title       String
   description String?
-
-  // Owner
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Linked gigs (optional)
-  gigs Gig[]
-
-  // Items
-  items SetlistItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId      String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  gigs        Gig[]
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       SetlistItem[]
 
   @@index([userId])
   @@index([createdAt])
 }
 
 model SetlistItem {
-  id String @id @default(cuid())
-
+  id        String   @id @default(cuid())
   setlistId String
-  setlist   Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
-
-  order Int
-  type  String // "song" | "note"
-
-  title  String?
-  notes  String?
-  chords String?
-  tuning String?
-
+  order     Int
+  type      String
+  title     String?
+  notes     String?
+  chords    String?
+  tuning    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  setlist   Setlist  @relation(fields: [setlistId], references: [id], onDelete: Cascade)
 
   @@index([setlistId, order])
 }
 
 model User {
-  id String @id @default(cuid())
-
-  // Supabase Auth UID (from auth.users table)
-  supabaseId String @unique
-
-  email String @unique
-  name  String?
-
-  // All gigs belonging to this user
-  gigs        Gig[]
-  settings    UserSettings?
-  investments Investment[]
-  bandMembers BandMember[]
-  songs       Song[]
-  setlists    Setlist[]
-
-  // Notifications and webhooks
-  notifications       Notification[] @relation("UserNotifications")
-  notificationPref    NotificationPreference? @relation("UserNotificationPreference")
-  webhooks            Webhook[] @relation("UserWebhooks")
-  shareLinks          ShareLink[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ── Songs / Notes (user-created songs with attachments like photos/drawings) ──
-model Song {
-  id String @id @default(cuid())
-
-  title String
-  notes String?
-  date  DateTime @default(now())
-
-  // Attachments (photos, drawings) stored in Supabase storage; saved as references
-  attachments SongAttachment[]
-
-  // Soft-delete timestamp (null = not deleted)
-  deletedAt DateTime?
-
-  // Owner
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([date])
-}
-
-model SongAttachment {
-  id String @id @default(cuid())
-
-  songId String
-  song   Song @relation(fields: [songId], references: [id], onDelete: Cascade)
-
-  // Storage path in Supabase storage (bucket/path), e.g. "songs/<userId>/<filename>"
-  storagePath String
-
-  // Public URL (cached at upload time) for quick display
-  publicUrl String
-
-  // Mime type (image/png, image/jpeg, image/webp)
-  contentType String
-
-  // Optional caption or description
-  caption String?
-
-  createdAt DateTime @default(now())
-
-  deletedAt DateTime?
-
-  @@index([songId])
+  id               String                  @id @default(cuid())
+  supabaseId       String                  @unique
+  email            String                  @unique
+  name             String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  bandMembers      BandMember[]
+  gigs             Gig[]
+  investments      Investment[]
+  notifications    Notification[]          @relation("UserNotifications")
+  notificationPref NotificationPreference? @relation("UserNotificationPreference")
+  setlists         Setlist[]
+  shareLinks       ShareLink[]
+  settings         UserSettings?
+  webhooks         Webhook[]               @relation("UserWebhooks")
+  songs            songs[]
 }
 
 model ShareLink {
-  id String @id @default(cuid())
-
-  token        String   @unique
-  title        String?
-  passwordHash String?
-  expiresAt    DateTime?
-  visibility   Json
-  selectionMode String @default("individual") // "all" | "artist" | "individual"
-  includeArtists String[] @default([]) // used when selectionMode is "artist"
-  autoIncludeNewGigs Boolean @default(false)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  gigs ShareLinkGig[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String         @id @default(cuid())
+  token              String         @unique
+  title              String?
+  passwordHash       String?
+  expiresAt          DateTime?
+  visibility         Json
+  userId             String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  selectionMode      String         @default("individual")
+  includeArtists     String[]       @default([])
+  autoIncludeNewGigs Boolean        @default(false)
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigs               ShareLinkGig[]
 
   @@index([userId])
   @@index([userId, createdAt])
   @@index([token])
   @@index([expiresAt])
+  @@index([userId, selectionMode])
 }
 
 model ShareLinkGig {
-  id String @id @default(cuid())
-
+  id          String    @id @default(cuid())
   shareLinkId String
+  gigId       String
+  createdAt   DateTime  @default(now())
+  gig         Gig       @relation(fields: [gigId], references: [id], onDelete: Cascade)
   shareLink   ShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
-
-  gigId String
-  gig   Gig    @relation(fields: [gigId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
 
   @@unique([shareLinkId, gigId])
   @@index([shareLinkId])
@@ -245,222 +143,282 @@ model ShareLinkGig {
 }
 
 model UserSettings {
-  id String @id @default(cuid())
-
-  // Which currency to display amounts in (ISO 4217 code)
-  currency String @default("EUR")
-
-  // Whether the user (manager) claims these fee components
-  claimPerformanceFee Boolean @default(true)
-  claimTechnicalFee   Boolean @default(true)
-
-  // Theme preference: "light" | "dark" | "system"
-  theme String @default("system")
-
-  // Owner
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  currency            String   @default("EUR")
+  claimPerformanceFee Boolean  @default(true)
+  claimTechnicalFee   Boolean  @default(true)
+  userId              String   @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  theme               String   @default("system")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Investment {
-  id String @id @default(cuid())
-
-  // Investment details
-  amount      Float
-  sharedWithMusician Boolean @default(false)
-  description String?
-  date        DateTime @default(now())
-
-  // Musicians who contribute to this investment
-  contributors InvestmentContributor[]
-
-  // Owner
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  amount             Float
+  description        String?
+  date               DateTime @default(now())
+  userId             String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  sharedWithMusician Boolean  @default(false)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([date])
 }
 
 model InvestmentContributor {
-  id String @id @default(cuid())
-
+  id           String   @id @default(cuid())
   investmentId String
-  investment   Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
-
   bandMemberId String
-  bandMember   BandMember @relation(fields: [bandMemberId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   @@unique([investmentId, bandMemberId])
   @@index([investmentId])
   @@index([bandMemberId])
 }
 
-// ── Band Members & Relationships ─────────────────────────────────
 model BandMember {
-  id String @id @default(cuid())
+  id        String          @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  notes     String?
+  userId    String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  bands     String[]        @default([])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigs      GigBandMember[]
 
-  // Member details
-  name  String
-  email String?
-  phone String?
-  notes String?
-  bands String[] @default([])
-
-  // Owner (the user who manages this band member)
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Gigs this member participated in
-  gigs GigBandMember[]
-
-  // Investments this member contributes to
-  investments InvestmentContributor[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, name]) // unique member name per user
+  @@unique([userId, name])
   @@index([userId])
 }
 
-// ── Junction table: which band members performed in which gigs ────
 model GigBandMember {
-  id String @id @default(cuid())
-
-  // The gig and band member
-  gigId String
-  gig   Gig    @relation(fields: [gigId], references: [id], onDelete: Cascade)
-
-  bandMemberId String
-  bandMember   BandMember @relation(fields: [bandMemberId], references: [id], onDelete: Cascade)
-
-  // How much did this member earn for this gig?
-  earnedAmount Float @default(0)
-  paidAmount   Float @default(0)  // how much has been paid to them already
-  
-  // Custom performance fee for this specific member (null = use equal split)
+  id                      String     @id @default(cuid())
+  gigId                   String
+  bandMemberId            String
+  earnedAmount            Float      @default(0)
+  paidAmount              Float      @default(0)
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
   customPerformanceAmount Float?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  bandMember              BandMember @relation(fields: [bandMemberId], references: [id], onDelete: Cascade)
+  gig                     Gig        @relation(fields: [gigId], references: [id], onDelete: Cascade)
 
   @@unique([gigId, bandMemberId])
   @@index([gigId])
   @@index([bandMemberId])
-  @@index([gigId, bandMemberId]) // composite for quick lookups
+  @@index([gigId, bandMemberId])
 }
 
-// ── Notifications ──────────────────────────────────────────────────
 model Notification {
-  id String @id @default(cuid())
-
-  // User who receives this notification
-  userId String
-  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
-
-  // Notification content
-  type          String   // payment_received, payment_overdue, upcoming_gig, band_paid, custom
-  title         String
-  message       String
-  icon          String?
-  actionUrl     String?
-  actionLabel   String?
-
-  // Status tracking
-  status        String   @default("unread") // unread, read, dismissed
-  createdAt     DateTime @default(now())
-  readAt        DateTime?
-  dismissedAt   DateTime?
+  id          String    @id @default(cuid())
+  userId      String
+  type        String
+  title       String
+  message     String
+  icon        String?
+  actionUrl   String?
+  actionLabel String?
+  status      String    @default("unread")
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+  dismissedAt DateTime?
+  user        User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([userId, createdAt])
 }
 
-// ── Notification Preferences ──────────────────────────────────────
 model NotificationPreference {
-  id String @id @default(cuid())
-
-  // User who owns these preferences
-  userId String @unique
-  user   User   @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
-
-  // Notification channels
-  emailNotifications    Boolean @default(true)
-  inAppNotifications    Boolean @default(true)
-
-  // Event types to notify about
-  paymentReminders      Boolean @default(true)
-  overdueAlerts         Boolean @default(true)
-  upcomingGigReminders  Boolean @default(true)
-  dailyDigest           Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  emailNotifications   Boolean  @default(true)
+  inAppNotifications   Boolean  @default(true)
+  paymentReminders     Boolean  @default(true)
+  overdueAlerts        Boolean  @default(true)
+  upcomingGigReminders Boolean  @default(true)
+  dailyDigest          Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ── Webhooks ───────────────────────────────────────────────────────
 model Webhook {
-  id String @id @default(cuid())
-
-  // User who owns this webhook
-  userId String
-  user   User   @relation("UserWebhooks", fields: [userId], references: [id], onDelete: Cascade)
-
-  // Webhook configuration
-  provider String   // discord, n8n, custom
-  url      String
-  events   String[] // payment_received, payment_overdue, band_paid, upcoming_gig, gig_completed
-  enabled  Boolean  @default(true)
-  name     String?
-  secret   String?
-
-  // Activity tracking
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              String       @id @default(cuid())
+  userId          String
+  provider        String
+  url             String
+  events          String[]
+  enabled         Boolean      @default(true)
+  name            String?
+  secret          String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
   lastTriggeredAt DateTime?
-
-  // Webhook logs
-  logs WebhookLog[]
+  user            User         @relation("UserWebhooks", fields: [userId], references: [id], onDelete: Cascade)
+  logs            WebhookLog[]
 
   @@index([userId, enabled])
   @@index([userId, createdAt])
 }
 
-// ── Webhook Delivery Logs ──────────────────────────────────────────
 model WebhookLog {
-  id String @id @default(cuid())
-
-  // Associated webhook
-  webhookId String
-  webhook   Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
-
-  // Event that triggered the webhook
-  event  String // payment_received, payment_overdue, etc.
-  data   String // JSON stringified data
-
-  // Delivery result
-  statusCode Int?    // HTTP status code
+  id         String   @id @default(cuid())
+  webhookId  String
+  event      String
+  data       String
+  statusCode Int?
   response   String?
   error      String?
-  success    Boolean @default(false)
-
-  createdAt DateTime @default(now())
+  success    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  webhook    Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId, createdAt])
   @@index([success])
 }
 
-// ── Update User model to include new relations ────────────────────
-// Note: User model above needs to be updated with these relations:
-// notifications    Notification[] @relation("UserNotifications")
-// notificationPref NotificationPreference? @relation("UserNotificationPreference")
-// webhooks         Webhook[] @relation("UserWebhooks")
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model al_positions {
+  id           String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId       String
+  ticker       String
+  name         String?
+  sector       String?
+  exchange     String?
+  strategyType String?  @default("long_term")
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([userId], map: "idx_al_positions_userid")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model al_settings {
+  id                 String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId             String   @unique(map: "al_settings_userid_unique")
+  theme              String   @default("dark")
+  cashPosition       Float    @default(10000)
+  defaultBrokerFee   Float    @default(5.00)
+  defaultTaxRate     Float    @default(0.35)
+  defaultCurrencyFee Float    @default(0)
+  momentumWeight     Int      @default(30)
+  fundamentalsWeight Int      @default(30)
+  sentimentWeight    Int      @default(20)
+  volatilityWeight   Int      @default(10)
+  regimeWeight       Int      @default(10)
+  notifBreakeven     Boolean  @default(true)
+  notifDropAlert     Boolean  @default(true)
+  notifAnalystChange Boolean  @default(true)
+  apiKeyPrimary      String?  @default("")
+  apiKeySecondary    String?  @default("")
+  createdAt          DateTime @default(now()) @db.Timestamp(6)
+  updatedAt          DateTime @default(now()) @db.Timestamp(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model al_strategy_preferences {
+  id           String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId       String
+  ticker       String
+  strategyType String   @default("long_term")
+  notes        String?
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([userId, ticker], map: "al_strategy_preferences_unique")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model al_transactions {
+  id             String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  positionId     String
+  type           String   @default("buy")
+  quantity       Float
+  pricePerShare  Float
+  brokerFee      Float    @default(0)
+  transactionTax Float    @default(0)
+  currencyFee    Float    @default(0)
+  date           DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  createdAt      DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([positionId], map: "idx_al_transactions_positionid")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model al_watchlist {
+  id       String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId   String
+  ticker   String
+  name     String?
+  exchange String?
+  sector   String?
+  addedAt  DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([userId, ticker], map: "al_watchlist_unique")
+  @@index([userId], map: "idx_al_watchlist_userid")
+}
+
+model bands {
+  id        String    @id
+  name      String
+  userId    String
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model song_attachments {
+  id           String    @id
+  songId       String
+  storage_path String
+  public_url   String
+  content_type String
+  caption      String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt    DateTime? @db.Timestamptz(6)
+  songs        songs     @relation(fields: [songId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "song_attachments_songid_fkey")
+
+  @@index([songId], map: "idx_song_attachments_songid")
+}
+
+model song_bands {
+  id        String    @id
+  songId    String
+  bandId    String
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model song_tags {
+  id        String    @id
+  songId    String
+  tagId     String
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model songs {
+  id               String             @id
+  title            String
+  notes            String?
+  date             DateTime           @default(now()) @db.Timestamptz(6)
+  userId           String
+  createdAt        DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @db.Timestamptz(6)
+  deletedAt        DateTime?          @db.Timestamptz(6)
+  song_attachments song_attachments[]
+  User             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "songs_userid_fkey")
+
+  @@index([date], map: "idx_songs_date")
+  @@index([userId], map: "idx_songs_userid")
+}
+
+model tags {
+  id        String    @id
+  name      String
+  userId    String
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+}

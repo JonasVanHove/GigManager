@@ -525,6 +525,18 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                   onBlur={(e) => handleBlur("date", e.target.value)}
                   required
                 />
+                {form.date && (
+                  <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
+                    <span className="text-slate-400 dark:text-slate-500">→</span>
+                    <span className="font-medium">
+                      {new Date(form.date).toLocaleDateString("nl-BE", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </p>
+                )}
                 {fieldErrors.date && (
                   <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                     {fieldErrors.date}
@@ -557,6 +569,18 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                   onChange={(e) => set("bookingDate", e.target.value)}
                   disabled={form.isTentative}
                 />
+                {form.bookingDate && !form.isTentative && (
+                  <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
+                    <span className="text-slate-400 dark:text-slate-500">→</span>
+                    <span className="font-medium">
+                      {new Date(form.bookingDate).toLocaleDateString("nl-BE", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {form.isTentative
                     ? "Booking date is not finalized yet for this performance."
@@ -1109,6 +1133,18 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                         set("paymentReceivedDate", e.target.value)
                       }
                     />
+                    {form.paymentReceivedDate && (
+                      <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
+                        <span className="text-slate-400 dark:text-slate-500">→</span>
+                        <span className="font-medium">
+                          {new Date(form.paymentReceivedDate).toLocaleDateString("nl-BE", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1138,6 +1174,18 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                       value={form.bandPaidDate}
                       onChange={(e) => set("bandPaidDate", e.target.value)}
                     />
+                    {form.bandPaidDate && (
+                      <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
+                        <span className="text-slate-400 dark:text-slate-500">→</span>
+                        <span className="font-medium">
+                          {new Date(form.bandPaidDate).toLocaleDateString("nl-BE", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1152,9 +1200,15 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                     onChange={(e) => set("managerInstantPayment", e.target.checked)}
                   />
                   <span className="text-sm font-medium text-amber-900 dark:text-amber-300">
-                    Instant payment (handled immediately)
+                    I will pay the band myself — I must arrange payment
                   </span>
                 </label>
+                <p className="mt-1.5 text-xs text-amber-900 dark:text-amber-200">
+                  ✓ Checked: You agree to pay band members directly. After you make the payment, mark "Band members paid" and record the date so the record reflects that the band has been paid.
+                </p>
+                <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
+                  ✗ Unchecked: Payment is expected from the client or handled later.
+                </p>
               </div>
 
               {/* Manager handles distribution */}

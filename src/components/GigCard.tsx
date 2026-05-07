@@ -156,6 +156,12 @@ const GigCard = memo(function GigCard({
                 Notities (pending)
               </span>
             )}
+            {gig.managerInstantPayment && (
+              <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
+                <Icons.Wallet className="h-3 w-3 shrink-0" />
+                Manager pays — arrange payment
+              </span>
+            )}
             {/* Expand/collapse chevron */}
             <Icons.ChevronDown
               className={`h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 ${
