@@ -427,12 +427,20 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
             </div>
 
             <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur p-6 shadow-md">
-              <h3 className="mb-6 text-lg font-semibold text-slate-900 dark:text-slate-100">{tr("Payment Status", "Betaalstatus")}</h3>
+              <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{tr("Payment Status", "Betaalstatus")}</h3>
+              <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">
+                {tr(
+                  "This shows the total group contract value first, then your own share received versus total.",
+                  "Dit toont eerst de totale groepswaarde, daarna jouw eigen aandeel ontvangen versus totaal."
+                )}
+              </p>
               <div className="space-y-6">
                 {/* Client Payments with financial breakdown */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{tr("From Clients", "Van klanten")}</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {tr("Group total contracted", "Totaal contract groepen")}
+                    </span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmtCurrency(stats.clientReceived)}</span>
                       <span className="text-xs font-medium text-slate-500 dark:text-slate-400">/ {fmtCurrency(stats.totalContracted)}</span>
@@ -452,7 +460,9 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
                 {/* Band Payments with financial breakdown */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{tr("To Band", "Naar band")}</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {tr("My share received", "Mijn aandeel ontvangen")}
+                    </span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{fmtCurrency(stats.myReceived)}</span>
                       <span className="text-xs font-medium text-slate-500 dark:text-slate-400">/ {fmtCurrency(stats.totalEarned)}</span>
@@ -464,7 +474,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
                     color="blue"
                   />
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>{Math.round((stats.myReceived / Math.max(1, stats.totalEarned)) * 100)}% {tr("distributed", "verdeeld")}</span>
+                    <span>{Math.round((stats.myReceived / Math.max(1, stats.totalEarned)) * 100)}% {tr("received", "ontvangen")}</span>
                     <span>{stats.myPending > 0 ? fmtCurrency(stats.myPending) + " " + tr("pending", "in behandeling") : tr("Fully paid", "Volledig betaald")}</span>
                   </div>
                 </div>
