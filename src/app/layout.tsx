@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     "Manage live music performances, track payments, and calculate musician earnings.",
   icons: {
     icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon-64x64.png", sizes: "64x64", type: "image/png" },
@@ -67,6 +68,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://supabase.co" />
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preload" href="/favicon.png" as="image" type="image/png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

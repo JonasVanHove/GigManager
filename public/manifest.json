@@ -1,12 +1,12 @@
 {
-  "name": "GigsManager - Track Your Performances",
-  "short_name": "GigsManager",
+  "name": "GigsManager",
+  "short_name": "Gigs",
   "description": "Manage live music performances, track payments, and calculate musician earnings.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#f59e0b",
+  "theme_color": "#0f172a",
   "background_color": "#ffffff",
   "categories": ["music", "business"],
   "icons": [

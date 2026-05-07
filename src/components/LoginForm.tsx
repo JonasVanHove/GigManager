@@ -63,14 +63,14 @@ export function LoginForm() {
   const busy = isLoading || submitting;
 
   return (
-    <div className="w-full max-w-md mx-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-900 dark:shadow-slate-950/40">
-      <h2 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-white">
+    <div className="w-full max-w-md mx-auto rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur p-8 shadow-xl dark:border-slate-700/50 dark:bg-slate-900/80 dark:backdrop-blur dark:shadow-2xl">
+      <h2 className="mb-8 text-center text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
         {isSignUp ? "Create Account" : "Sign In"}
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+          <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
             Email
           </label>
           <input
@@ -78,14 +78,14 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={busy}
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+            className="w-full rounded-lg border border-slate-300/50 bg-slate-50/50 backdrop-blur px-4 py-3 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-50 dark:border-slate-600/50 dark:bg-slate-800/50 dark:backdrop-blur dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-brand-400 dark:focus:ring-brand-400/30"
             placeholder="your@email.com"
             autoComplete="email"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+          <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
             Password
           </label>
           <div className="relative">
@@ -94,7 +94,7 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={busy}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 pr-12 text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+              className="w-full rounded-lg border border-slate-300/50 bg-slate-50/50 backdrop-blur px-4 py-3 pr-12 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-50 dark:border-slate-600/50 dark:bg-slate-800/50 dark:backdrop-blur dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400 dark:focus:ring-brand-400/30"
               placeholder={isSignUp ? "Min. 6 characters" : "••••••••"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
             />
@@ -125,13 +125,13 @@ export function LoginForm() {
         </div>
 
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+          <div className="rounded-lg border border-red-200/50 bg-red-50/50 backdrop-blur p-4 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:backdrop-blur dark:text-red-200">
             {error}
           </div>
         )}
 
         {successMsg && (
-          <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-200">
+          <div className="rounded-lg border border-green-200/50 bg-green-50/50 backdrop-blur p-4 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-950/30 dark:backdrop-blur dark:text-green-200">
             {successMsg}
           </div>
         )}
@@ -139,7 +139,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={busy}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-3 font-medium text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:from-brand-700 hover:to-brand-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none dark:from-brand-600 dark:to-brand-700"
         >
           {busy ? (
             <>
@@ -154,7 +154,7 @@ export function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-4 text-center">
+      <div className="mt-6 text-center">
         <button
           onClick={() => {
             setIsSignUp(!isSignUp);
@@ -162,7 +162,7 @@ export function LoginForm() {
             setSuccessMsg("");
           }}
           disabled={busy}
-          className="text-sm font-medium text-brand-600 transition hover:text-brand-700 disabled:opacity-50 dark:text-brand-400 dark:hover:text-brand-300"
+          className="text-sm font-medium transition-all duration-200 text-brand-600 hover:text-brand-700 hover:underline underline-offset-2 disabled:opacity-50 dark:text-brand-400 dark:hover:text-brand-300"
         >
           {isSignUp
             ? "Already have an account? Sign in"

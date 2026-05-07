@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Gig } from "@/types";
 import { formatCurrency, formatDate, calculateGigFinancials } from "@/lib/calculations";
 import { resolveLocale } from "@/lib/preferences";
@@ -14,7 +14,7 @@ interface AnalyticsPageProps {
 export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps) {
   const { language } = useSettings();
   const [viewMode, setViewMode] = useState<"personal" | "management">("personal");
-  const tr = (en: string, nl: string) => (language === "nl" ? nl : en);
+  const tr = useCallback((en: string, nl: string) => (language === "nl" ? nl : en), [language]);
   // -- Computed stats ----------------------------------------------------------
 
   const stats = useMemo(() => {
@@ -213,16 +213,10 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
       busiestMonth: monthPatterns[0],
       quietestMonth: monthPatterns[monthPatterns.length - 1],
     };
-  }, [gigs]);
-
-  // Timeline filter state: all / client / personal
-  const [timelineFilter, setTimelineFilter] = useState<"all" | "client" | "personal">("all");
+  }, [gigs, tr]);
 
   const filteredTimeline = stats.timeline
-    .filter((t) => {
-      if (timelineFilter === "all") return true;
-      return t.kind === timelineFilter;
-    })
+    .filter((t) => (viewMode === "personal" ? t.kind === "personal" : t.kind === "client"))
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 10);
 
@@ -242,30 +236,66 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
         label: tr("Management Cashflow", "Management cashflow"),
       };
 
+  const monthlyChartData = monthlyMode.months.map(([monthKey, data]) => {
+    const [year, month] = monthKey.split("-");
+    return {
+      monthKey,
+      monthName: new Date(parseInt(year), parseInt(month, 10) - 1).toLocaleString(resolveLocale(), {
+        month: "short",
+        year: "numeric",
+      }),
+      count: data.count,
+      total: data.total,
+      received: data.received,
+      pending: data.pending,
+      charity: data.charity,
+      paidGigs: data.paidGigs,
+    };
+  });
+
   return (
     <div className="space-y-6 pb-6">
-      {/* -- View Mode Toggle ------------------------------------------------- */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 p-2">
-        <button
-          onClick={() => setViewMode("personal")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-            viewMode === "personal"
-              ? "bg-brand-600 text-white"
-              : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          }`}
-        >
-          {tr("Personal", "Persoonlijk")}
-        </button>
-        <button
-          onClick={() => setViewMode("management")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-            viewMode === "management"
-              ? "bg-brand-600 text-white"
-              : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          }`}
-        >
-          {tr("Management", "Management")}
-        </button>
+      {/* -- Insights controls ----------------------------------------------- */}
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-4 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+              {tr("Insights filters", "Inzichten filters")}
+            </p>
+            <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">
+              {tr("Insights", "Inzichten")}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {tr(
+                "Choose one view here. Every panel below follows this selection.",
+                "Kies hier één weergave. Alle panelen hieronder volgen deze selectie."
+              )}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-nowrap">
+            <button
+              onClick={() => setViewMode("personal")}
+              className={`inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition ${
+                viewMode === "personal"
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              {tr("Personal", "Persoonlijk")}
+            </button>
+            <button
+              onClick={() => setViewMode("management")}
+              className={`inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition ${
+                viewMode === "management"
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              {tr("Management", "Management")}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* -- Key metrics ------------------------------------------------------ */}
@@ -340,7 +370,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
       <div className="grid gap-6 lg:grid-cols-2">
         {viewMode === "personal" ? (
           <>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur p-6 shadow-md">
               <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{tr("Income", "Inkomsten")}</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -396,46 +426,54 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{tr("Payment Status", "Betaalstatus")}</h3>
-              <div className="space-y-3">
+            <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur p-6 shadow-md">
+              <h3 className="mb-6 text-lg font-semibold text-slate-900 dark:text-slate-100">{tr("Payment Status", "Betaalstatus")}</h3>
+              <div className="space-y-6">
+                {/* Client Payments with financial breakdown */}
                 <div>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">{tr("Client Payments", "Klantbetalingen")}</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {stats.paidGigs} {tr("paid", "betaald")}, {stats.unpaidGigs} {tr("pending", "openstaand")}
-                    </span>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{tr("From Clients", "Van klanten")}</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmtCurrency(stats.clientReceived)}</span>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">/ {fmtCurrency(stats.totalContracted)}</span>
+                    </div>
                   </div>
                   <ProgressBar
-                    value={stats.paidGigs}
-                    max={stats.totalGigs}
+                    value={stats.clientReceived}
+                    max={stats.totalContracted}
                     color="emerald"
                   />
+                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>{stats.paidGigs} {tr("gigs paid", "optredens betaald")}</span>
+                    <span>{stats.clientPending > 0 ? fmtCurrency(stats.clientPending) + " " + tr("outstanding", "openstaand") : tr("All collected", "Alles ontvangen")}</span>
+                  </div>
                 </div>
+
+                {/* Band Payments with financial breakdown */}
                 <div>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">{tr("Band Payments", "Bandbetalingen")}</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {stats.bandPaidCount} {tr("paid", "betaald")}, {stats.bandUnpaidCount} {tr("pending", "openstaand")}
-                    </span>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{tr("To Band", "Naar band")}</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{fmtCurrency(stats.myReceived)}</span>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">/ {fmtCurrency(stats.totalEarned)}</span>
+                    </div>
                   </div>
                   <ProgressBar
-                    value={stats.bandPaidCount}
-                    max={stats.totalGigs}
+                    value={stats.myReceived}
+                    max={stats.totalEarned}
                     color="blue"
                   />
+                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>{Math.round((stats.myReceived / Math.max(1, stats.totalEarned)) * 100)}% {tr("distributed", "verdeeld")}</span>
+                    <span>{stats.myPending > 0 ? fmtCurrency(stats.myPending) + " " + tr("pending", "in behandeling") : tr("Fully paid", "Volledig betaald")}</span>
+                  </div>
                 </div>
-                {/* Timeline filter + recent payments combined into status card */}
+                {/* Recent payments follow the selected top-level analytics mode */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{tr("Recent Payments", "Recente betalingen")}</span>
-                      <small className="text-xs text-slate-500 dark:text-slate-400">{tr("(click filter to switch view)", "(klik filter om te wisselen)")}</small>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FilterButton id="all" label={tr("All", "Alle")} onClick={() => setTimelineFilter("all")} active={timelineFilter === "all"} />
-                      <FilterButton id="client" label={tr("Management", "Management")} onClick={() => setTimelineFilter("client")} active={timelineFilter === "client"} />
-                      <FilterButton id="personal" label={tr("Personal", "Persoonlijk")} onClick={() => setTimelineFilter("personal")} active={timelineFilter === "personal"} />
+                      <small className="text-xs text-slate-500 dark:text-slate-400">{viewMode === "personal" ? tr("Personal view", "Persoonlijke weergave") : tr("Management view", "Managementweergave")}</small>
                     </div>
                   </div>
 
@@ -462,7 +500,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
           </>
         ) : (
           <>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm lg:col-span-2">
+            <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur p-6 shadow-md lg:col-span-2">
               <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{tr("Total Revenue & Volume", "Totale omzet & volume")}</h3>
               <div className="grid gap-6 sm:grid-cols-3">
                 <div>
@@ -494,116 +532,22 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
 
       {/* -- Monthly trend ---------------------------------------------------- */}
       {monthlyMode.months.length > 0 && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Monthly Income (Last 12 Months)
-          </h3>
-          <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-            {monthlyMode.label}
-          </p>
-          <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-800/60 dark:bg-emerald-950/20">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{tr("Received", "Ontvangen")}</p>
-              <p className="mt-0.5 text-sm font-bold text-emerald-800 dark:text-emerald-200">{fmtCurrency(monthlyMode.received)}</p>
-            </div>
-            <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 dark:border-orange-800/60 dark:bg-orange-950/20">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">{tr("Pending", "Openstaand")}</p>
-              <p className="mt-0.5 text-sm font-bold text-orange-800 dark:text-orange-200">{fmtCurrency(monthlyMode.pending)}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/50">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">{tr("Completion", "Voltooiing")}</p>
-              <p className="mt-0.5 text-sm font-bold text-slate-900 dark:text-slate-100">
-                {monthlyMode.total > 0 ? `${Math.round((monthlyMode.received / monthlyMode.total) * 100)}%` : "0%"}
-              </p>
-            </div>
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 dark:border-rose-800/60 dark:bg-rose-950/20">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">{tr("Charity", "Charity")}</p>
-              <p className="mt-0.5 text-sm font-bold text-rose-800 dark:text-rose-200">{stats.charityCount} {tr("gigs", "optredens")}</p>
-            </div>
-          </div>
-
-          <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-            {tr("Each month shows total volume and split:", "Elke maand toont totaal volume en verdeling:")} <span className="font-semibold text-emerald-700 dark:text-emerald-300">{tr("received", "ontvangen")}</span> {tr("vs", "vs")} <span className="font-semibold text-orange-700 dark:text-orange-300">{tr("pending", "openstaand")}</span>.
-          </p>
-
-          <div className="space-y-3">
-            {monthlyMode.months.map(([month, data]) => {
-              const maxTotal = Math.max(...monthlyMode.months.map(([, d]) => d.total), 1);
-              const totalPercentage = maxTotal > 0 ? (data.total / maxTotal) * 100 : 0;
-              const receivedShare = data.total > 0 ? (data.received / data.total) * 100 : 0;
-              const pendingShare = data.total > 0 ? (data.pending / data.total) * 100 : 0;
-              const completion = data.total > 0 ? Math.round((data.received / data.total) * 100) : 0;
-              const [year, monthNum] = month.split("-");
-              const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleString(
-                resolveLocale(),
-                { month: "short", year: "numeric" }
-              );
-
-              return (
-                <div
-                  key={month}
-                  className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/30"
-                >
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">{monthName}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {data.count} {tr("gigs", "optredens")}
-                      </span>
-                      {data.charity > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
-                          {data.charity} {tr("charity", "charity")}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
-                        {completion}% {tr("complete", "voltooid")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mb-2 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">{fmtCurrency(data.total)} {tr("total", "totaal")}</span>
-                    <span className="text-slate-500 dark:text-slate-400">
-                      {data.charity > 0 ? tr(`including ${data.charity} charity`, `waarvan ${data.charity} charity`) : tr("no charity", "geen charity")}
-                    </span>
-                  </div>
-
-                  <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-700">
-                    <div
-                      className="h-full overflow-hidden rounded-full transition-all duration-300"
-                      style={{ width: `${totalPercentage}%` }}
-                    >
-                      <div className="flex h-full w-full">
-                        <div
-                          className="h-full bg-emerald-500 dark:bg-emerald-600"
-                          style={{ width: `${receivedShare}%` }}
-                        />
-                        <div
-                          className="h-full bg-orange-400 dark:bg-orange-500"
-                          style={{ width: `${pendingShare}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded bg-emerald-50 px-2 py-1 dark:bg-emerald-950/30">
-                      <span className="text-emerald-700 dark:text-emerald-300">{fmtCurrency(data.received)} {tr("received", "ontvangen")}</span>
-                    </div>
-                    <div className="rounded bg-orange-50 px-2 py-1 text-right dark:bg-orange-950/30">
-                      <span className="text-orange-700 dark:text-orange-300">{fmtCurrency(data.pending)} {tr("pending", "openstaand")}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <MonthlyIncomeChart
+          title={tr("Monthly Income (Last 12 Months)", "Maandelijks inkomen (laatste 12 maanden)")}
+          modeLabel={monthlyMode.label}
+          data={monthlyChartData}
+          totalReceived={monthlyMode.received}
+          totalPending={monthlyMode.pending}
+          totalVolume={monthlyMode.total}
+          charityCount={stats.charityCount}
+          fmtCurrency={fmtCurrency}
+          tr={tr}
+        />
       )}
 
       {/* -- Seasonal Insights ------------------------------------------------ */}
       {stats.monthPatterns.length > 0 && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur p-6 shadow-md">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
             Seasonal Insights & Recommendations
           </h3>
@@ -683,33 +627,6 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
         </div>
       )}
 
-      {/* -- Payment timeline ------------------------------------------------- */}
-      {stats.timeline.length > 0 && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Recent Payments
-          </h3>
-          <div className="space-y-2">
-            {stats.timeline.map((payment, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-sm"
-              >
-                <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">{payment.eventName}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {formatDate(payment.date.toISOString())}
-                  </p>
-                </div>
-                <p className="font-semibold text-brand-700 dark:text-brand-300">
-                  {fmtCurrency(payment.amount)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {gigs.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 py-12 text-center">
           <svg className="mx-auto mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
@@ -777,13 +694,172 @@ function ProgressBar({
   );
 }
 
-function FilterButton({ id, label, onClick, active }: { id: string; label: string; onClick: () => void; active: boolean }) {
+function MonthlyIncomeChart({
+  title,
+  modeLabel,
+  data,
+  totalReceived,
+  totalPending,
+  totalVolume,
+  charityCount,
+  fmtCurrency,
+  tr,
+}: {
+  title: string;
+  modeLabel: string;
+  data: Array<{
+    monthKey: string;
+    monthName: string;
+    count: number;
+    total: number;
+    received: number;
+    pending: number;
+    charity: number;
+    paidGigs: number;
+  }>;
+  totalReceived: number;
+  totalPending: number;
+  totalVolume: number;
+  charityCount: number;
+  fmtCurrency: (amount: number) => string;
+  tr: (en: string, nl: string) => string;
+}) {
+  const maxTotal = Math.max(...data.map((entry) => entry.total), 1);
+  const hasPending = data.some((entry) => entry.pending > 0);
+
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-md px-2 py-1 text-xs font-medium transition ${active ? 'bg-slate-900 text-white' : 'bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/40'}`}
-    >
-      {label}
-    </button>
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm lg:p-6">
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{modeLabel}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <MetricPill
+            label={tr("Received", "Ontvangen")}
+            value={fmtCurrency(totalReceived)}
+            tone="emerald"
+          />
+          <MetricPill
+            label={tr("Pending", "Openstaand")}
+            value={fmtCurrency(totalPending)}
+            tone="orange"
+          />
+          <MetricPill
+            label={tr("Completion", "Voltooiing")}
+            value={totalVolume > 0 ? `${Math.round((totalReceived / totalVolume) * 100)}%` : "0%"}
+            tone="slate"
+          />
+          <MetricPill
+            label={tr("Charity gigs", "Charity optredens")}
+            value={String(charityCount)}
+            tone="rose"
+          />
+        </div>
+      </div>
+
+      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+        {tr(
+          "Bars show the monthly total. Green is received, orange is still pending.",
+          "De balken tonen het maandtotaal. Groen is ontvangen, oranje is nog openstaand."
+        )}
+      </p>
+
+      <div className="overflow-x-auto pb-2">
+        <div className="min-w-[760px]">
+          <div className="relative h-80 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-4 pb-4 pt-6 shadow-inner dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-950/70">
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[linear-gradient(to_top,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[length:100%_20%] dark:bg-[linear-gradient(to_top,rgba(51,65,85,0.35)_1px,transparent_1px)]" />
+            <div className="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+              <span>{tr("Monthly volume", "Maandelijks volume")}</span>
+              <span>{tr("Hover for values", "Hover voor waarden")}</span>
+            </div>
+            <div className="relative flex h-full items-end gap-3 pt-6">
+            {data.map((entry) => {
+              const receivedHeight = Math.max(6, (entry.received / maxTotal) * 100);
+              const pendingHeight = Math.max(0, (entry.pending / maxTotal) * 100);
+              const completion = entry.total > 0 ? Math.round((entry.received / entry.total) * 100) : 0;
+
+              return (
+                <div key={entry.monthKey} className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-2 transition-transform duration-200 hover:-translate-y-1">
+                  <div className="relative flex w-full items-end justify-center">
+                    <div className="relative flex h-60 w-full flex-col justify-end overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-900/5 shadow-sm transition-shadow duration-200 group-hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
+                      <div
+                        className="w-full bg-orange-400/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] dark:bg-orange-500/85"
+                        style={{ height: hasPending ? `${pendingHeight}%` : "0%" }}
+                        title={`${entry.monthName}: ${fmtCurrency(entry.pending)} ${tr("pending", "openstaand")}`}
+                      />
+                      <div
+                        className="w-full rounded-b-2xl bg-gradient-to-t from-emerald-500 via-emerald-500 to-emerald-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] dark:from-emerald-600 dark:via-emerald-500 dark:to-emerald-400"
+                        style={{ height: `${receivedHeight}%` }}
+                        title={`${entry.monthName}: ${fmtCurrency(entry.received)} ${tr("received", "ontvangen")}`}
+                      />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-white/25 opacity-60 dark:from-slate-900/20 dark:via-transparent dark:to-white/5" />
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/30" />
+                    </div>
+                  </div>
+                  <div className="w-full rounded-xl border border-slate-200/60 bg-white/80 px-2 py-2 text-center shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{entry.monthName}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{entry.count} {tr("gigs", "optredens")}</p>
+                    <p className="mt-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">{fmtCurrency(entry.total)}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{completion}%</p>
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+        <div className="grid grid-cols-5 gap-2 bg-slate-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900/70 dark:text-slate-400">
+          <span>{tr("Month", "Maand")}</span>
+          <span>{tr("Gigs", "Optredens")}</span>
+          <span className="text-right">{tr("Received", "Ontvangen")}</span>
+          <span className="text-right">{tr("Pending", "Openstaand")}</span>
+          <span className="text-right">{tr("Complete", "Voltooid")}</span>
+        </div>
+        <div className="divide-y divide-slate-200 dark:divide-slate-700">
+          {data.map((entry) => {
+            const completion = entry.total > 0 ? Math.round((entry.received / entry.total) * 100) : 0;
+
+            return (
+              <div key={entry.monthKey} className="grid grid-cols-5 gap-2 px-3 py-3 text-sm text-slate-700 dark:text-slate-200">
+                <span className="font-medium text-slate-900 dark:text-slate-100">{entry.monthName}</span>
+                <span>{entry.count}</span>
+                <span className="text-right font-medium text-emerald-700 dark:text-emerald-300">{fmtCurrency(entry.received)}</span>
+                <span className="text-right font-medium text-orange-700 dark:text-orange-300">{fmtCurrency(entry.pending)}</span>
+                <span className="text-right font-medium">{completion}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
+
+function MetricPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "emerald" | "orange" | "slate" | "rose";
+}) {
+  const tones = {
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200",
+    orange: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/20 dark:text-orange-200",
+    slate: "border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-200",
+  } as const;
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${tones[tone]}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-75">{label}</p>
+      <p className="mt-1 text-sm font-bold leading-5">{value}</p>
+    </div>
+  );
+}
+

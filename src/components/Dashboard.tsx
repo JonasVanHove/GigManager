@@ -761,9 +761,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       {/* -- Navbar -------------------------------------------------------- */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-700/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md dark:backdrop-blur-lg transition-colors">
+      <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
         <div className={`mx-auto flex w-full items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 ${isWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
           {/* Left: Hamburger (mobile) + Logo */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
@@ -801,7 +801,7 @@ export default function Dashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search gigs..."
-                className="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:focus:bg-slate-900 dark:text-slate-100 transition"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50/50 backdrop-blur focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800/50 dark:backdrop-blur dark:focus:bg-slate-900 dark:text-slate-100 transition duration-200"
               />
               {searchQuery && (
                 <button
@@ -822,10 +822,10 @@ export default function Dashboard() {
             {/* Notes - visible on tablet+ with label, icon-only on mobile */}
             <button
               onClick={() => handleTabChange("songs")}
-              className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition ${
+              className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
                 activeTab === "songs"
-                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
+                  : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
               }`}
               title="Notities"
             >
@@ -836,10 +836,10 @@ export default function Dashboard() {
             {/* Layout toggle - visible on tablet+ with label, icon-only on mobile */}
             <button
               onClick={handleToggleWideView}
-              className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition ${
+              className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
                 isWideView
-                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
+                  : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
               }`}
               title={isWideView ? "Standard layout" : "Fullscreen layout"}
             >
@@ -855,7 +855,7 @@ export default function Dashboard() {
                 setEditGig(null);
                 setShowForm(true);
               }}
-              className="p-1.5 sm:p-0 sm:px-3 sm:py-2 rounded-lg bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 active:bg-brand-800 flex-shrink-0"
+              className="p-1.5 sm:p-0 sm:px-3 sm:py-2 rounded-lg bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-md hover:shadow-lg transition duration-200 hover:from-brand-700 hover:to-brand-800 active:shadow-inner flex-shrink-0"
               title="Add Performance"
             >
               <Icons.Plus className="h-4 w-4 sm:hidden shrink-0" />
@@ -870,7 +870,7 @@ export default function Dashboard() {
               <button
                 onClick={() => setShowProfileMenu((open) => !open)}
                 title="Profile & Settings"
-                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 flex-shrink-0"
+                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-md hover:shadow-lg transition duration-200 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 flex-shrink-0"
               >
                 {session.user?.user_metadata?.avatar_url ? (
                   <Image
@@ -885,7 +885,7 @@ export default function Dashboard() {
                 )}
               </button>
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200/50 bg-white/95 backdrop-blur text-sm shadow-xl dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur overflow-hidden">
                   {/* Profile info header */}
                   <div className="border-b border-slate-200 dark:border-slate-700 p-3">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">

@@ -109,9 +109,9 @@ export default function BulkEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-white dark:bg-slate-800 shadow-lg">
-        <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-800/95 backdrop-blur shadow-2xl">
+        <div className="border-b border-slate-200/50 dark:border-slate-700/50 px-6 py-5 bg-gradient-to-r from-slate-50/70 to-slate-100/40 dark:from-slate-800/40 dark:to-slate-800/10">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             Bulk Actions
           </h2>
@@ -120,9 +120,9 @@ export default function BulkEditor({
           </p>
         </div>
 
-        <div className="px-6 py-4">
+        <div className="px-6 py-5">
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 px-4 py-2 text-sm text-red-700 dark:text-red-400">
+            <div className="mb-4 rounded-lg border border-red-200/50 bg-red-50/70 backdrop-blur px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
               {error}
             </div>
           )}
@@ -131,7 +131,7 @@ export default function BulkEditor({
             <button
               onClick={handleBatchMarkPaid}
               disabled={loading}
-              className="w-full rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 text-sm font-medium text-white transition"
+              className="w-full rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 px-4 py-3 text-sm font-medium text-white shadow-md transition-all duration-200"
             >
               {loading ? "Updating..." : "✓ Mark as Payment Received"}
             </button>
@@ -139,7 +139,7 @@ export default function BulkEditor({
             <button
               onClick={handleBatchMarkBandPaid}
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 text-sm font-medium text-white transition"
+              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 px-4 py-3 text-sm font-medium text-white shadow-md transition-all duration-200"
             >
               {loading ? "Updating..." : "✓ Mark Band as Paid"}
             </button>
@@ -147,7 +147,7 @@ export default function BulkEditor({
             <button
               onClick={onClose}
               disabled={loading}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+              className="w-full rounded-lg border border-slate-300/50 dark:border-slate-600/50 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-slate-700/40 backdrop-blur hover:bg-slate-50/80 dark:hover:bg-slate-700/60 transition-all duration-200"
             >
               Cancel
             </button>

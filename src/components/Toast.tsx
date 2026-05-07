@@ -40,21 +40,21 @@ export default function Toast({ message, type, duration = 4000, onClose, action 
   };
 
   const styles = {
-    success: "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-800",
-    error: "bg-red-50 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-100 dark:border-red-800",
-    info: "bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950 dark:text-blue-100 dark:border-blue-800",
-    warning: "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-100 dark:border-amber-800",
+    success: "bg-emerald-50/90 backdrop-blur text-emerald-900 border-emerald-200/60 dark:bg-emerald-950/80 dark:backdrop-blur dark:text-emerald-100 dark:border-emerald-800/60 shadow-lg",
+    error: "bg-red-50/90 backdrop-blur text-red-900 border-red-200/60 dark:bg-red-950/80 dark:backdrop-blur dark:text-red-100 dark:border-red-800/60 shadow-lg",
+    info: "bg-blue-50/90 backdrop-blur text-blue-900 border-blue-200/60 dark:bg-blue-950/80 dark:backdrop-blur dark:text-blue-100 dark:border-blue-800/60 shadow-lg",
+    warning: "bg-amber-50/90 backdrop-blur text-amber-900 border-amber-200/60 dark:bg-amber-950/80 dark:backdrop-blur dark:text-amber-100 dark:border-amber-800/60 shadow-lg",
   };
 
   const progressStyles = {
-    success: "bg-emerald-500",
-    error: "bg-red-500",
-    info: "bg-blue-500",
-    warning: "bg-amber-500",
+    success: "bg-gradient-to-r from-emerald-400 to-emerald-500",
+    error: "bg-gradient-to-r from-red-400 to-red-500",
+    info: "bg-gradient-to-r from-blue-400 to-blue-500",
+    warning: "bg-gradient-to-r from-amber-400 to-amber-500",
   };
 
   return (
-    <div className={`pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border shadow-lg ${styles[type]}`}>
+    <div className={`pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border transition-all duration-300 ${styles[type]}`}>
       <div className="p-4">
         <div className="flex items-start">
           <div className="shrink-0">{icons[type]}</div>

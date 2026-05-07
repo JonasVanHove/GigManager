@@ -101,18 +101,18 @@ const GigCard = memo(function GigCard({
   const bandStyles = useMemo(() => getBandColorStyles(gig.performers), [gig.performers]);
 
   return (
-    <div className={`group overflow-hidden rounded-xl border shadow-sm transition hover:shadow-md ${
+    <div className={`group overflow-hidden rounded-xl border transition-all duration-300 ${
       gig.managerInstantPayment
-        ? 'opacity-60 border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-800'
+        ? 'opacity-60 border-slate-300/60 bg-slate-100/50 backdrop-blur shadow-sm dark:border-slate-600/60 dark:bg-slate-800/50 dark:backdrop-blur'
         : isSelected
-        ? 'border-blue-400 bg-blue-50 shadow-md dark:bg-blue-950/20 dark:border-blue-400'
+        ? 'border-blue-400/60 bg-blue-50/50 backdrop-blur shadow-lg dark:bg-blue-950/30 dark:border-blue-400/60 dark:backdrop-blur'
         : isClientPaymentOverdue
-          ? 'border-red-300 bg-red-50/70 shadow-red-100 dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-red-950/20'
-          : 'border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900'
+          ? 'border-red-300/60 bg-red-50/40 backdrop-blur shadow-md dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-lg dark:backdrop-blur'
+          : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
     }`}>
       <div className="h-1 w-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }} />
       {/* -- Header ------------------------------------------------------ */}
-      <div className={`flex items-start justify-between border-b ${isSelected ? 'border-blue-200 bg-blue-100/30 dark:border-blue-800/50 dark:bg-blue-900/20' : 'border-slate-100 bg-slate-50/50 dark:border-slate-700/50 dark:bg-slate-800/50'} px-5 py-4`}>
+      <div className={`flex items-start justify-between border-b transition-colors ${isSelected ? 'border-blue-200/60 bg-blue-100/20 dark:border-blue-800/40 dark:bg-blue-900/20' : 'border-slate-100/60 bg-slate-50/30 dark:border-slate-700/40 dark:bg-slate-800/30'} px-5 py-4`}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {onSelect && (
@@ -189,7 +189,7 @@ const GigCard = memo(function GigCard({
           <button
             onClick={() => onEdit(gig)}
             title="Edit"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/20"
+            className="rounded-lg p-2 text-slate-400 transition-all duration-200 hover:bg-brand-100/60 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:text-slate-300 dark:hover:text-brand-300"
           >
             <Icons.Edit className="h-4 w-4 shrink-0" />
           </button>
