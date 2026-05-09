@@ -6,6 +6,7 @@ import type { Gig, GigFormData } from "@/types";
 import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
 import { useAuth } from "./AuthProvider";
 import { PhotoAnnotationEditor } from "./PhotoAnnotationEditor";
+import { useSettings } from "./SettingsProvider";
 
 interface BandMemberOption {
   id: string;
@@ -88,6 +89,8 @@ function gigToFormData(gig: Gig): GigFormData {
 
 export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormProps) {
   const { getAccessToken, user } = useAuth();
+  const { locale } = useSettings();
+  const isDutch = locale.startsWith("nl");
   const [form, setForm] = useState<GigFormData>(
     gig ? gigToFormData(gig) : emptyForm
   );
@@ -1333,7 +1336,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 onClick={() => setShowNotesEditor(true)}
                 className="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/30 px-5 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 transition hover:bg-brand-100 dark:hover:bg-brand-900/50"
               >
-                📝 Open notities (optreden)
+                📝 {isDutch ? "Open notities (optreden)" : "Open notes (performance)"}
               </button>
             )}
             <div className="flex gap-3 ml-auto">
@@ -1367,10 +1370,10 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
           <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Notities voor "{gig.eventName}"
+                {isDutch ? `Notities voor "${gig.eventName}"` : `Notes for "${gig.eventName}"`}
               </h2>
               <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                Voeg foto's en aantekeningen toe voor deze optreden.
+                {isDutch ? "Voeg foto's en aantekeningen toe voor dit optreden." : "Add photos and notes for this performance."}
               </p>
             </div>
             <button

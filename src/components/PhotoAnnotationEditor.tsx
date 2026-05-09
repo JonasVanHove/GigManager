@@ -6,6 +6,8 @@ import { saveLocalNotes, getLocalNotes } from "@/lib/notes-store";
 import { syncPendingNotes } from "@/lib/notes-sync";
 import { useAuth } from "./AuthProvider";
 import { useToast } from "./ToastContainer";
+import { useSettings } from "./SettingsProvider";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 
 type PhotoNote = {
   id: string;
@@ -14,6 +16,13 @@ type PhotoNote = {
   y: number;
   width: number;
   height: number;
+};
+
+type Stroke = {
+  id: string;
+  points: Array<[number, number]>;
+  color: string;
+  width: number;
 };
 
 const PHOTO_EXPORT_WIDTH = 1400;
@@ -36,9 +45,16 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
   const [photoPos, setPhotoPos] = useState({ x: 24, y: 24 });
   const [photoScale, setPhotoScale] = useState(1);
   const [notes, setNotes] = useState<PhotoNote[]>([]);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const currentStroke = useRef<Stroke | null>(null);
+  const [drawMode, setDrawMode] = useState(false);
+  const [inkColor, setInkColor] = useState("#ff4500");
+  const [inkWidth, setInkWidth] = useState(3);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const { getAccessToken } = useAuth();
   const toast = useToast();
+  const { locale } = useSettings();
+  const isDutch = locale.startsWith("nl");
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
@@ -88,6 +104,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
         if (data.photoPos) setPhotoPos(data.photoPos);
         if (data.photoScale) setPhotoScale(data.photoScale);
         if (Array.isArray(data.notes)) setNotes(data.notes);
+        if (Array.isArray(data.strokes)) setStrokes(data.strokes);
       } catch (e) {
         console.debug("loadLocalNotes failed", e);
       }
@@ -116,6 +133,37 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
 
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
+  // Drawing (freehand ink) handlers
+  const startStroke = (e: any) => {
+    if (!drawMode) return;
+    const stage = stageRef.current?.getBoundingClientRect();
+    if (!stage) return;
+    const x = e.clientX - stage.left;
+    const y = e.clientY - stage.top;
+    const id = crypto.randomUUID();
+    const stroke: Stroke = { id, points: [[x, y]], color: inkColor, width: inkWidth };
+    currentStroke.current = stroke;
+    setStrokes((prev) => [...prev, stroke]);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const moveStroke = (e: any) => {
+    if (!drawMode || !currentStroke.current) return;
+    const stage = stageRef.current?.getBoundingClientRect();
+    if (!stage) return;
+    const x = e.clientX - stage.left;
+    const y = e.clientY - stage.top;
+    currentStroke.current.points.push([x, y]);
+    // update last stroke in state
+    setStrokes((prev) => prev.map((s, i, arr) => (s.id === currentStroke.current!.id ? { ...s, points: [...currentStroke.current!.points] } : s)));
+  };
+
+  const endStroke = (e: any) => {
+    if (!drawMode || !currentStroke.current) return;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    currentStroke.current = null;
+  };
+
   const updatePhotoFromPointer = (clientX: number, clientY: number) => {
     const drag = dragRef.current;
     const stage = stageRef.current?.getBoundingClientRect();
@@ -143,12 +191,60 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
 
   const handlePhotoFile = (file: File | null) => {
     if (!file) return;
-    if (photoUrl) URL.revokeObjectURL(photoUrl);
-    const nextUrl = URL.createObjectURL(file);
-    setPhotoUrl(nextUrl);
-    setPhotoName(file.name);
-    setNotes([]);
-    setSelectedNoteId(null);
+    const name = file.name || "import";
+    const extension = name.split(".").pop()?.toLowerCase() || "";
+    (async () => {
+      try {
+        if (extension === "pdf") {
+          // dynamic import of pdfjs to avoid bundling when unused
+          let pdfjs: any = null;
+          try {
+            pdfjs = await import("pdfjs-dist/legacy/build/pdf");
+          } catch (err) {
+            console.debug("pdfjs import failed", err);
+            toast?.error?.("PDF-annotatie niet beschikbaar (pdfjs ontbreekt)");
+            return;
+          }
+          // render first page to canvas and use as image
+          const array = await file.arrayBuffer();
+          const pdf = await pdfjs.getDocument({ data: array }).promise as PDFDocumentProxy;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 1 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const blob = await new Promise<Blob | null>((res) => canvas.toBlob((b) => res(b), "image/png"));
+          if (!blob) return;
+          if (photoUrl) URL.revokeObjectURL(photoUrl);
+          const nextUrl = URL.createObjectURL(blob);
+          setPhotoUrl(nextUrl);
+          setPhotoName(name + " (PDF)");
+          const img = document.createElement("img") as HTMLImageElement;
+          img.onload = () => {
+            setPhotoNatural({ width: img.naturalWidth, height: img.naturalHeight });
+            setPhotoScale(1);
+            setPhotoPos({ x: 24, y: 24 });
+            setNotes([]);
+            setStrokes([]);
+            setSelectedNoteId(null);
+          };
+          img.src = nextUrl;
+        } else {
+          if (photoUrl) URL.revokeObjectURL(photoUrl);
+          const nextUrl = URL.createObjectURL(file);
+          setPhotoUrl(nextUrl);
+          setPhotoName(file.name);
+          setNotes([]);
+          setStrokes([]);
+          setSelectedNoteId(null);
+        }
+      } catch (e) {
+        console.debug("import failed", e);
+      }
+    })();
   };
 
   const addNote = () => {
@@ -170,6 +266,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
     setPhotoPos({ x: 24, y: 24 });
     setPhotoScale(1);
     setNotes([]);
+    setStrokes([]);
     setSelectedNoteId(null);
   };
 
@@ -183,13 +280,14 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
       photoPos,
       photoScale,
       notes,
+      strokes,
     };
     try {
       saveLocalNotes(persistId, JSON.stringify(payload)).catch((e) => console.debug(e));
     } catch (e) {
       console.debug(e);
     }
-  }, [persistId, photoUrl, photoName, photoNatural, photoPos, photoScale, notes]);
+  }, [persistId, photoUrl, photoName, photoNatural, photoPos, photoScale, notes, strokes]);
 
   // Auto sync when back online
   useEffect(() => {
@@ -281,6 +379,23 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
       });
     }
 
+    // draw strokes on canvas
+    for (const stroke of strokes) {
+      if (!stroke.points.length) continue;
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.width * scaleY;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      stroke.points.forEach((pt, idx) => {
+        const x = pt[0] * scaleX;
+        const y = pt[1] * scaleY;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
     canvas.toBlob((blob) => {
       if (blob) onExport(blob);
     }, "image/webp", 0.92);
@@ -290,8 +405,8 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Foto annoteren</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Sleep, schaal en zet notities op de foto.</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{isDutch ? "Foto annoteren" : "Annotate photo"}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">{isDutch ? "Sleep, schaal en zet notities op de foto." : "Drag, scale, and place notes on the photo."}</div>
         </div>
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
@@ -299,8 +414,8 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
               <path d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5h10.5a4.5 4.5 0 0 0 4.5-4.5V9a4.5 4.5 0 0 0-4.5-4.5h-1.19a2.25 2.25 0 0 1-1.6-.66l-.84-.84A2.25 2.25 0 0 0 12 2.25H9.19a2.25 2.25 0 0 0-1.6.66l-.84.84a2.25 2.25 0 0 1-1.6.66H4.5A2.25 2.25 0 0 0 2.25 6.75V15Z" />
               <path d="M12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" />
             </svg>
-            <span>Foto kiezen</span>
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)} />
+            <span>{isDutch ? "Afbeelding / PDF" : "Image / PDF"}</span>
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)} />
           </label>
           <button
             type="button"
@@ -311,7 +426,40 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
             <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            Notitie toevoegen
+            {isDutch ? "Notitie toevoegen" : "Add note"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDrawMode((v) => !v)}
+            disabled={!photoUrl}
+            className={`rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 ${drawMode ? "bg-amber-50" : ""}`}
+          >
+            <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 22l4-4 10-10a4 4 0 0 0-5.66-5.66L6.34 12.34 2 22z" />
+            </svg>
+            {isDutch ? "Teken" : "Draw"}
+          </button>
+          <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium dark:border-slate-700">
+            <input type="color" value={inkColor} onChange={(e) => setInkColor(e.target.value)} className="h-6 w-10 p-0" />
+          </label>
+          <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium dark:border-slate-700">
+            <input type="range" min="1" max="12" value={inkWidth} onChange={(e) => setInkWidth(Number(e.target.value))} />
+          </label>
+          <button
+            type="button"
+            onClick={() => setStrokes((s) => s.slice(0, -1))}
+            disabled={!strokes.length}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
+          >
+            {isDutch ? "Ongedaan maken" : "Undo"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStrokes([])}
+            disabled={!strokes.length}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
+          >
+            {isDutch ? "Ink wissen" : "Clear ink"}
           </button>
           {persistId && (
             <button
@@ -329,7 +477,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
               }}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              {isSyncing ? "Syncing…" : "Sync"}
+              {isSyncing ? (isDutch ? "Synchroniseren…" : "Syncing…") : (isDutch ? "Synchroniseren" : "Sync")}
             </button>
           )}
           <button
@@ -340,7 +488,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
             <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4.5 6h15M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6m-7.5 0 .75 12A1.5 1.5 0 0 0 9.74 19.5h4.52a1.5 1.5 0 0 0 1.49-1.5L16.5 6M10 10.5v6M14 10.5v6" />
             </svg>
-            Wissen
+            {isDutch ? "Wissen" : "Clear"}
           </button>
         </div>
       </div>
@@ -349,7 +497,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950/40">
           <div className="min-w-0 flex-1 truncate text-slate-600 dark:text-slate-300">{photoName}</div>
           <label className="flex min-w-[220px] items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-            Vergroten/verkleinen
+            {isDutch ? "Vergroten/verkleinen" : "Scale up/down"}
             <input
               type="range"
               min="0.35"
@@ -369,7 +517,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
       >
         {!photoUrl ? (
           <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            Kies een foto om hem te verplaatsen, te schalen en er notities bovenop te zetten.
+            {isDutch ? "Kies een foto om hem te verplaatsen, te schalen en er notities bovenop te zetten." : "Choose a photo to move it, scale it, and add notes on top."}
           </div>
         ) : (
           <>
@@ -450,6 +598,27 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
                 />
               </div>
             ))}
+            {/* SVG overlay for strokes */}
+            <svg
+              className={`absolute inset-0 h-full w-full ${drawMode ? "pointer-events-auto" : "pointer-events-none"}`}
+              onPointerDown={startStroke}
+              onPointerMove={moveStroke}
+              onPointerUp={endStroke}
+              onPointerCancel={endStroke}
+            >
+              {strokes.map((s) => (
+                <path
+                  key={s.id}
+                  d={s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')}
+                  stroke={s.color}
+                  strokeWidth={s.width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  opacity={0.95}
+                />
+              ))}
+            </svg>
           </>
         )}
       </div>

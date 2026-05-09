@@ -81,7 +81,7 @@ export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
-  const { settings, fmtCurrency } = useSettings();
+  const { settings, fmtCurrency, locale } = useSettings();
   const toast = useToast();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [totalGigCount, setTotalGigCount] = useState(0);
@@ -108,6 +108,7 @@ export default function Dashboard() {
   const [isActiveSectionExpanded, setIsActiveSectionExpanded] = useState(true);
   const [isHandledSectionExpanded, setIsHandledSectionExpanded] = useState(false);
   const [isWideView, setIsWideView] = useState(false);
+  const isDutch = locale.startsWith("nl");
   const fetchGigsInFlightRef = useRef(false);
   const noSessionLoggedRef = useRef(false);
   const gigsRef = useRef<Gig[]>([]);
@@ -829,10 +830,10 @@ export default function Dashboard() {
                   ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
                   : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
               }`}
-              title="Notities"
+              title={isDutch ? "Notities" : "Notes"}
             >
               <Icons.Document className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
-              <span className="hidden md:inline whitespace-nowrap">Notities</span>
+              <span className="hidden md:inline whitespace-nowrap">{isDutch ? "Notities" : "Notes"}</span>
             </button>
 
             {/* Layout toggle - visible on tablet+ with label, icon-only on mobile */}
@@ -1027,10 +1028,10 @@ export default function Dashboard() {
                       ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   }`}
-                  title="Notities"
+                  title={isDutch ? "Notities" : "Notes"}
                 >
                   <Icons.Document className="h-4 w-4 shrink-0" />
-                  <span>Notities</span>
+                  <span>{isDutch ? "Notities" : "Notes"}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1139,7 +1140,7 @@ export default function Dashboard() {
                   }`}
                 >
                   <Icons.Document className="h-5 w-5 shrink-0" />
-                  <span>Notities</span>
+                  <span>{isDutch ? "Notities" : "Notes"}</span>
                 </button>
                 <button
                   onClick={() => {

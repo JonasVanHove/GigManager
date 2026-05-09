@@ -64,6 +64,19 @@ const nextConfig = {
   // Webpack optimization
   webpack: (config, { isServer }) => {
     config.optimization.minimize = true;
+    // Provide safe fallbacks for modules that are server-only (e.g., canvas)
+    // This prevents client-side bundling errors when packages like pdfjs-dist
+    // conditionally require native modules that aren't available in the browser.
+    if (!config.resolve) config.resolve = {};
+    if (!config.resolve.fallback) config.resolve.fallback = {};
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      canvas: false,
+      fs: false,
+      path: false,
+      os: false,
+    };
+
     return config;
   },
 

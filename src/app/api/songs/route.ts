@@ -160,24 +160,29 @@ export async function PATCH(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const existing = await prisma.$queryRaw<Array<any>>(Prisma.sql`
-      SELECT id FROM songs WHERE id = ${songId} AND "userId" = ${user.id} LIMIT 1
+      SELECT id, title, notes, date FROM songs WHERE id = ${songId} AND "userId" = ${user.id} LIMIT 1
     `);
     if (existing.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+    const currentSong = existing[0];
+    const nextTitle = typeof title === "string" && title.trim().length > 0 ? title : currentSong.title;
+    const nextNotes = notes === undefined ? currentSong.notes : (typeof notes === "string" && notes.trim().length > 0 ? notes : null);
+    const nextDate = date ? new Date(date) : currentSong.date;
+
     const updated = await prisma.$queryRaw<Array<any>>(Prisma.sql`
       UPDATE songs
-      SET title = ${title || existing[0].title}, notes = ${notes || null}, date = ${date ? new Date(date) : new Date()}, "updatedAt" = NOW()
+      SET title = ${nextTitle}, notes = ${nextNotes}, date = ${nextDate}, "updatedAt" = NOW()
       WHERE id = ${songId} AND "userId" = ${user.id}
       RETURNING id, title, notes, date, "userId", "createdAt", "updatedAt"
     `);
 
-    // Replace attachments: soft-delete existing then insert provided
-    await prisma.$executeRaw(Prisma.sql`
-      UPDATE song_attachments SET "deletedAt" = NOW() WHERE "songId" = ${songId}
-    `);
-
     const createdAttachments: any[] = [];
     if (Array.isArray(attachments) && attachments.length > 0) {
+      // Replace attachments only when a new attachment list is supplied.
+      await prisma.$executeRaw(Prisma.sql`
+        UPDATE song_attachments SET "deletedAt" = NOW() WHERE "songId" = ${songId}
+      `);
+
       for (const att of attachments) {
         const id = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`
@@ -188,10 +193,11 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Replace tags: remove old joins then insert new
-    await prisma.$executeRaw(Prisma.sql`DELETE FROM song_tags WHERE "songId" = ${songId}`);
     const createdTags: any[] = [];
     if (Array.isArray(incomingTags) && incomingTags.length > 0) {
+      // Replace tags only when a new tag list is supplied.
+      await prisma.$executeRaw(Prisma.sql`DELETE FROM song_tags WHERE "songId" = ${songId}`);
+
       for (const tagName of incomingTags) {
         const tagId = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`INSERT INTO tags (id, name, "userId", "createdAt") VALUES (${tagId}, ${tagName}, ${user.id}, NOW()) ON CONFLICT (id) DO NOTHING`);
@@ -201,10 +207,11 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Replace bands: remove old joins then insert new
-    await prisma.$executeRaw(Prisma.sql`DELETE FROM song_bands WHERE "songId" = ${songId}`);
     const createdBands: any[] = [];
     if (Array.isArray(bandIds) && bandIds.length > 0) {
+      // Replace bands only when a new band list is supplied.
+      await prisma.$executeRaw(Prisma.sql`DELETE FROM song_bands WHERE "songId" = ${songId}`);
+
       for (const bId of bandIds) {
         const sbId = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`INSERT INTO song_bands (id, "songId", "bandId", "createdAt") VALUES (${sbId}, ${songId}, ${bId}, NOW())`);
@@ -212,7 +219,12 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ...updated[0], attachments: createdAttachments, tags: createdTags, bands: createdBands });
+    return NextResponse.json({
+      ...updated[0],
+      ...(Array.isArray(attachments) ? { attachments: createdAttachments } : {}),
+      ...(Array.isArray(incomingTags) ? { tags: createdTags } : {}),
+      ...(Array.isArray(bandIds) ? { bands: createdBands } : {}),
+    });
   } catch (error) {
     console.error("PATCH /api/songs error:", error);
     return NextResponse.json({ error: "Failed to update song" }, { status: 500 });

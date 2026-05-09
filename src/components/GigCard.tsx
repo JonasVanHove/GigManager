@@ -10,6 +10,7 @@ import { getBandColorStyles } from "@/lib/preferences";
 import { getLocalNotes } from "@/lib/notes-store";
 import BandTag from "./BandTag";
 import { Icons } from "./Icons";
+import { useSettings } from "./SettingsProvider";
 
 function isPastGigDate(value: string) {
   const gigDay = new Date(value);
@@ -45,6 +46,8 @@ const GigCard = memo(function GigCard({
   // Charity gigs start collapsed, others start expanded, but can be overridden by global state
   const [isExpanded, setIsExpanded] = useState(!gig.isCharity);
   const [hasPendingNotes, setHasPendingNotes] = useState(false);
+  const { locale } = useSettings();
+  const isDutch = locale.startsWith("nl");
   
   useEffect(() => {
     let mounted = true;
@@ -138,29 +141,53 @@ const GigCard = memo(function GigCard({
               {gig.eventName}
             </h3>
             {gig.isCharity && (
-              <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30">
-                <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
-                </svg>
-                Charity
-              </span>
+              <>
+                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-pink-600 dark:text-pink-300" title="Charity">
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
+                  </svg>
+                </span>
+                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30">
+                  <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
+                  </svg>
+                  Charity
+                </span>
+              </>
             )}
             {gig.isTentative && (
-              <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
-                Tentative
-              </span>
+              <>
+                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-amber-700 dark:text-amber-300" title="Tentative">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 8v5l3 2" />
+                  </svg>
+                </span>
+                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
+                  <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 8v5l3 2" />
+                  </svg>
+                  Tentative
+                </span>
+              </>
             )}
             {hasPendingNotes && (
               <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30">
                 <Icons.Spinner className="h-3 w-3 shrink-0 animate-pulse" />
-                Notities (pending)
+                {isDutch ? "Notities (pending)" : "Notes (pending)"}
               </span>
             )}
             {gig.managerInstantPayment && (
-              <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
-                <Icons.Wallet className="h-3 w-3 shrink-0" />
-                Manager pays — arrange payment
-              </span>
+              <>
+                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-amber-700 dark:text-amber-300" title="Manager pays">
+                  <Icons.Wallet className="h-4 w-4" />
+                </span>
+                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
+                  <Icons.Wallet className="h-3 w-3 shrink-0" />
+                  Manager pays — arrange payment
+                </span>
+              </>
             )}
             {/* Expand/collapse chevron */}
             <Icons.ChevronDown
@@ -173,7 +200,7 @@ const GigCard = memo(function GigCard({
             <span className="inline-flex items-center gap-1">
               <Icons.Calendar className="h-4 w-4 shrink-0" />
               <span className="hidden tablet:inline">{formattedDate}</span>
-              <span className="tablet:hidden">{gig.date}</span>
+              <span className="tablet:hidden">{formattedDate}</span>
             </span>
             <BandTag name={gig.performers} variant="soft" />
             <span className="hidden tablet:inline-flex items-center gap-1">

@@ -45,6 +45,8 @@
     "react-signature-canvas": "^1.1.0-alpha.2",
     "resend": "^6.9.2",
     "svix": "^1.85.0"
+    ,
+    "pdfjs-dist": "^3.11.146"
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.7.0",
