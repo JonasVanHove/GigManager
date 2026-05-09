@@ -47,7 +47,10 @@ const nextConfig = {
 
   experimental: {
     outputFileTracingIncludes: {
-      "/api/**/*": ["./node_modules/.prisma/**/*"],
+      "/api/**/*": [
+        "./node_modules/.prisma/client/schema.prisma",
+        "./node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node",
+      ],
     },
     optimizePackageImports: ["lodash-es"],
     // Dynamic page size for better performance
