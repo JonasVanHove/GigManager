@@ -55,6 +55,7 @@ const nextConfig = {
     outputFileTracingExcludes: {
       "/api/**/*": [
         "./node_modules/pdfjs-dist/**/*",
+        "./node_modules/canvas/**/*",
         "./node_modules/.prisma/client/query_engine-*.tmp*",
         "./node_modules/.prisma/client/query_engine-*.dll.node*",
         "./node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node",
@@ -78,11 +79,11 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     config.optimization.minimize = true;
     
-    // Exclude large client-side libraries from server bundle
+    // Exclude large client-side libraries and native modules from server bundle
     if (isServer) {
       if (!config.externals) config.externals = [];
       if (Array.isArray(config.externals)) {
-        config.externals.push("pdfjs-dist");
+        config.externals.push("pdfjs-dist", "canvas");
       }
     }
     
