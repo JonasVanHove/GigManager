@@ -7,7 +7,6 @@ import { syncPendingNotes } from "@/lib/notes-sync";
 import { useAuth } from "./AuthProvider";
 import { useToast } from "./ToastContainer";
 import { useSettings } from "./SettingsProvider";
-import type { PDFDocumentProxy } from "pdfjs-dist";
 
 type PhotoNote = {
   id: string;
@@ -191,60 +190,20 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
 
   const handlePhotoFile = (file: File | null) => {
     if (!file) return;
-    const name = file.name || "import";
-    const extension = name.split(".").pop()?.toLowerCase() || "";
-    (async () => {
-      try {
-        if (extension === "pdf") {
-          // dynamic import of pdfjs to avoid bundling when unused
-          let pdfjs: any = null;
-          try {
-            pdfjs = await import("pdfjs-dist/legacy/build/pdf");
-          } catch (err) {
-            console.debug("pdfjs import failed", err);
-            toast?.error?.("PDF-annotatie niet beschikbaar (pdfjs ontbreekt)");
-            return;
-          }
-          // render first page to canvas and use as image
-          const array = await file.arrayBuffer();
-          const pdf = await pdfjs.getDocument({ data: array }).promise as PDFDocumentProxy;
-          const page = await pdf.getPage(1);
-          const viewport = page.getViewport({ scale: 1 });
-          const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
-          await page.render({ canvasContext: ctx, viewport }).promise;
-          const blob = await new Promise<Blob | null>((res) => canvas.toBlob((b) => res(b), "image/png"));
-          if (!blob) return;
-          if (photoUrl) URL.revokeObjectURL(photoUrl);
-          const nextUrl = URL.createObjectURL(blob);
-          setPhotoUrl(nextUrl);
-          setPhotoName(name + " (PDF)");
-          const img = document.createElement("img") as HTMLImageElement;
-          img.onload = () => {
-            setPhotoNatural({ width: img.naturalWidth, height: img.naturalHeight });
-            setPhotoScale(1);
-            setPhotoPos({ x: 24, y: 24 });
-            setNotes([]);
-            setStrokes([]);
-            setSelectedNoteId(null);
-          };
-          img.src = nextUrl;
-        } else {
-          if (photoUrl) URL.revokeObjectURL(photoUrl);
-          const nextUrl = URL.createObjectURL(file);
-          setPhotoUrl(nextUrl);
-          setPhotoName(file.name);
-          setNotes([]);
-          setStrokes([]);
-          setSelectedNoteId(null);
-        }
-      } catch (e) {
-        console.debug("import failed", e);
-      }
-    })();
+    const extension = file.name.split(".").pop()?.toLowerCase() || "";
+    // Only accept image files (no PDF support)
+    const validImageTypes = ["jpg", "jpeg", "png", "gif", "webp", "svg"];
+    if (!validImageTypes.includes(extension)) {
+      toast?.error?.("Alleen afbeeldingen worden ondersteund (JPG, PNG, GIF, WEBP)");
+      return;
+    }
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    const nextUrl = URL.createObjectURL(file);
+    setPhotoUrl(nextUrl);
+    setPhotoName(file.name);
+    setNotes([]);
+    setStrokes([]);
+    setSelectedNoteId(null);
   };
 
   const addNote = () => {
