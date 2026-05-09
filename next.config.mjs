@@ -2,6 +2,7 @@
 const nextConfig = {
   compress: true,
   poweredByHeader: false,
+  output: "standalone", // Reduces bundle size for serverless deployments
   
   // Headers for security and caching
   async headers() {
@@ -79,17 +80,7 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     config.optimization.minimize = true;
     
-    // Exclude large client-side libraries and native modules from server bundle
-    if (isServer) {
-      if (!config.externals) config.externals = [];
-      if (Array.isArray(config.externals)) {
-        config.externals.push("pdfjs-dist", "canvas");
-      }
-    }
-    
-    // Provide safe fallbacks for modules that are server-only (e.g., canvas)
-    // This prevents client-side bundling errors when packages like pdfjs-dist
-    // conditionally require native modules that aren't available in the browser.
+    // Provide safe fallbacks for modules that are server-only
     if (!config.resolve) config.resolve = {};
     if (!config.resolve.fallback) config.resolve.fallback = {};
     config.resolve.fallback = {
