@@ -52,16 +52,17 @@ const nextConfig = {
         "./node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node",
       ],
     },
+    outputFileTracingExcludes: {
+      "/api/**/*": [
+        "./node_modules/.prisma/client/query_engine-*.tmp*",
+        "./node_modules/.prisma/client/query_engine-*.dll.node*",
+        "./node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node",
+        "./node_modules/prisma/**/*",
+      ],
+    },
     optimizePackageImports: ["lodash-es"],
     // Dynamic page size for better performance
     ppr: false, // Partial prerendering (consider enabling for specific routes)
-  },
-
-  // Environment optimization
-  env: {
-    // Enable these to be used client-side if needed
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
 
   // Webpack optimization

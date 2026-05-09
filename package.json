@@ -39,16 +39,16 @@
     "docx": "^9.5.2",
     "moment": "^2.30.1",
     "next": "14.2.15",
+    "pdfjs-dist": "^3.11.146",
     "react": "^18.3.1",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^18.3.1",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "resend": "^6.9.2",
-    "svix": "^1.85.0",
-    "pdfjs-dist": "^3.11.146"
+    "svix": "^1.85.0"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.7.0",
+    "@netlify/plugin-nextjs": "^5.15.11",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
