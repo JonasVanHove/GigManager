@@ -54,6 +54,7 @@ const nextConfig = {
     },
     outputFileTracingExcludes: {
       "/api/**/*": [
+        "./node_modules/pdfjs-dist/**/*",
         "./node_modules/.prisma/client/query_engine-*.tmp*",
         "./node_modules/.prisma/client/query_engine-*.dll.node*",
         "./node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node",
@@ -76,6 +77,15 @@ const nextConfig = {
   // Webpack optimization
   webpack: (config, { isServer }) => {
     config.optimization.minimize = true;
+    
+    // Exclude large client-side libraries from server bundle
+    if (isServer) {
+      if (!config.externals) config.externals = [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push("pdfjs-dist");
+      }
+    }
+    
     // Provide safe fallbacks for modules that are server-only (e.g., canvas)
     // This prevents client-side bundling errors when packages like pdfjs-dist
     // conditionally require native modules that aren't available in the browser.
