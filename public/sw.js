@@ -1,7 +1,7 @@
 // Service Worker for GigsManager
 // Provides offline support and intelligent caching strategies
 
-const CACHE_NAME = 'gigs-manager-v1.10.3';
+const CACHE_NAME = 'gigs-manager-v1.10.4';
 const STATIC_CACHE = 'gigs-manager-static-v1';
 const DYNAMIC_CACHE = 'gigs-manager-dynamic-v1';
 const LONG_TERM_CACHE = 'gigs-manager-longterm-v1';
@@ -125,7 +125,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Strategy 3: API calls - network first with cache fallback
+  // Skip API interception on local dev hosts: SW fetch failures surface as false
+  // "Offline - cached data unavailable" while Next.js dev / DB are actually up.
   if (url.includes('/api/')) {
+    try {
+      const u = new URL(url);
+      if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+        return;
+      }
+    } catch {
+      return;
+    }
     event.respondWith(
       fetch(request)
         .then((response) => {

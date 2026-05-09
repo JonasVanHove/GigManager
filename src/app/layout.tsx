@@ -69,7 +69,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://supabase.co" />
           <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="preload" href="/favicon.png" as="image" type="image/png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="GigsManager" />
         <meta name="msapplication-TileColor" content="#0f172a" />
@@ -89,14 +89,23 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `
+            __html:
+              process.env.NODE_ENV === "production"
+                ? `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then((reg) => {
+                  navigator.serviceWorker.register('/sw.js').then(() => {
                     console.log('Service Worker registered');
                   }).catch((err) => {
                     console.log('Service Worker registration failed:', err);
                   });
+                });
+              }
+            `
+                : `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then((regs) => {
+                  regs.forEach((reg) => reg.unregister());
                 });
               }
             `,
