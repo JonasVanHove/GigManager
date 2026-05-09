@@ -2,7 +2,6 @@
 const nextConfig = {
   compress: true,
   poweredByHeader: false,
-  output: "standalone", // Reduces bundle size for serverless deployments
   
   // Headers for security and caching
   async headers() {
