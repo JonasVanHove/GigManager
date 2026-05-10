@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserIdFromHeader, getOrCreateUser } from "@/lib/auth-helpers";
+import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 // -- Auth helper (same pattern as gigs routes) ---------------------------------
@@ -39,7 +39,7 @@ async function requireAuth(request: NextRequest) {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[Settings Auth] Exception:", errorMsg);
-    return { error: NextResponse.json({ error: "Auth error", details: errorMsg }, { status: 500 }) };
+    return { error: NextResponse.json({ error: "Unauthorized", details: errorMsg }, { status: 401 }) };
   }
 }
 

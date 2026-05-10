@@ -32,7 +32,40 @@ function createPrismaClient() {
   }
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function createFailingPrismaClient(error: unknown): PrismaClient {
+  const reason = error instanceof Error ? error.message : String(error);
+
+  const throwUnavailable = () => {
+    throw new Error(`Prisma client unavailable: ${reason}`);
+  };
+
+  return new Proxy(
+    {},
+    {
+      get() {
+        return throwUnavailable;
+      },
+      apply() {
+        throwUnavailable();
+      },
+    }
+  ) as PrismaClient;
+}
+
+let prismaClient: PrismaClient;
+
+if (globalForPrisma.prisma) {
+  prismaClient = globalForPrisma.prisma;
+} else {
+  try {
+    prismaClient = createPrismaClient();
+  } catch (err) {
+    console.error("[Prisma] Falling back to unavailable client:", err);
+    prismaClient = createFailingPrismaClient(err);
+  }
+}
+
+export const prisma = prismaClient;
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
