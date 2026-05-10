@@ -93,6 +93,9 @@ export function getSupabaseAdmin(): ReturnType<typeof createClient> {
       throw err;
     }
   }
+  if (!client) {
+    throw new Error("Supabase admin client is not initialized");
+  }
   return client;
 }
 
