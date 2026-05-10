@@ -2,6 +2,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromHeader } from "@/lib/auth-helpers";
+import { getErrorStatusCode, formatErrorResponse } from "@/lib/error-detection";
 
 function uniqueContributorIds(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -104,10 +105,9 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("GET /api/investments error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch investments" },
-      { status: 500 }
-    );
+    const statusCode = getErrorStatusCode(error);
+    const errorResponse = formatErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }
 
@@ -214,10 +214,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("POST /api/investments error:", error);
-    return NextResponse.json(
-      { error: "Failed to create investment" },
-      { status: 500 }
-    );
+    const statusCode = getErrorStatusCode(error);
+    const errorResponse = formatErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }
 
@@ -332,10 +331,9 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error("PATCH /api/investments error:", error);
-    return NextResponse.json(
-      { error: "Failed to update investment" },
-      { status: 500 }
-    );
+    const statusCode = getErrorStatusCode(error);
+    const errorResponse = formatErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }
 
@@ -388,9 +386,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("DELETE /api/investments error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete investment" },
-      { status: 500 }
-    );
+    const statusCode = getErrorStatusCode(error);
+    const errorResponse = formatErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }

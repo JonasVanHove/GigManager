@@ -5,6 +5,7 @@ import { getUserIdFromHeader, getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getCacheEntry, setCacheEntry, invalidateCache, getCacheKey, getApiCacheHeaders } from "@/lib/cache";
 import { measureAsync, recordMetric } from "@/lib/performance-metrics";
+import { isDbConnectionError, getErrorStatusCode, formatErrorResponse } from "@/lib/error-detection";
 
 type AuthCacheEntry = {
   user: Awaited<ReturnType<typeof getOrCreateUser>>;
@@ -192,16 +193,30 @@ async function requireAuth(request: NextRequest) {
     logDebug("[API Auth] Token valid for user:", data.user.id);
     
     // Get or create user record
-    const user = await getOrCreateUser(
-      data.user.id,
-      data.user.email || "",
-      data.user.user_metadata?.name
-    );
+    try {
+      const user = await getOrCreateUser(
+        data.user.id,
+        data.user.email || "",
+        data.user.user_metadata?.name
+      );
 
-    setAuthCache(token, user);
-    
-    logDebug("[API Auth] DB user ready:", user.id);
-    return { user };
+      setAuthCache(token, user);
+      
+      logDebug("[API Auth] DB user ready:", user.id);
+      return { user };
+    } catch (dbErr) {
+      const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      
+      console.error("[API Auth] Database error during user creation:", {
+        message: dbErrMsg,
+        error: dbErr,
+      });
+      
+      const statusCode = getErrorStatusCode(dbErr);
+      const errorResponse = formatErrorResponse(dbErr);
+      
+      return NextResponse.json(errorResponse, { status: statusCode });
+    }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[API Auth] Exception during token validation:", {
@@ -261,16 +276,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(payload, { headers: getApiCacheHeaders(15, "MISS") });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    
     console.error("[GET /api/gigs] Exception:", errorMsg, error);
+    
+    const statusCode = getErrorStatusCode(error);
+    const errorResponse = formatErrorResponse(error);
+    
     recordMetric("GET /api/gigs [ERROR]", 0, {
       endpoint: "/api/gigs",
       userId: user.id,
-      status: 500,
+      status: statusCode,
+      metadata: { isConnectionError: isDbConnectionError(error) },
     });
-    return NextResponse.json(
-      { error: "Failed to fetch gigs", details: errorMsg },
-      { status: 500 }
-    );
+    
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }
 

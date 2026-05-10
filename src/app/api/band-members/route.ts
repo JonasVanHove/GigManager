@@ -5,6 +5,7 @@ import { calculateGigFinancials } from "@/lib/calculations";
 import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getCacheEntry, setCacheEntry, invalidateCache, getCacheKey, getApiCacheHeaders } from "@/lib/cache";
+import { isDbConnectionError, getErrorStatusCode, formatErrorResponse } from "@/lib/error-detection";
 
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
@@ -19,13 +20,19 @@ async function requireAuth(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await getOrCreateUser(
-    data.user.id,
-    data.user.email || "",
-    data.user.user_metadata?.name
-  );
+  try {
+    const user = await getOrCreateUser(
+      data.user.id,
+      data.user.email || "",
+      data.user.user_metadata?.name
+    );
 
-  return { user };
+    return { user };
+  } catch (dbErr) {
+    const statusCode = getErrorStatusCode(dbErr);
+    const errorResponse = formatErrorResponse(dbErr);
+    return NextResponse.json(errorResponse, { status: statusCode });
+  }
 }
 
 // GET /api/band-members - List all band members for current user
@@ -176,10 +183,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(bandMembersWithTotals, { headers: getApiCacheHeaders(30, "MISS") });
   } catch (error) {
     console.error("GET /api/band-members error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch band members" },
-      { status: 500 }
-    );
+    const statusCode = getErrorStatusCode(error);
+    const errorResponse = formatErrorResponse(error);
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }
 
