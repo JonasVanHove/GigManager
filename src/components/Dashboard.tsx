@@ -128,6 +128,9 @@ export default function Dashboard() {
   const [isActiveSectionExpanded, setIsActiveSectionExpanded] = useState(true);
   const [isHandledSectionExpanded, setIsHandledSectionExpanded] = useState(false);
   const [isWideView, setIsWideView] = useState(false);
+  /** Fullscreen layout only applies from lg; mobile is always standard width */
+  const [supportsWideLayout, setSupportsWideLayout] = useState(false);
+  const effectiveWideView = isWideView && supportsWideLayout;
   const isDutch = locale.startsWith("nl");
   const fetchGigsInFlightRef = useRef(false);
   const noSessionLoggedRef = useRef(false);
@@ -228,6 +231,15 @@ export default function Dashboard() {
     } catch (e) {
       console.error("Failed to load wide view preference:", e);
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setSupportsWideLayout(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
   }, []);
 
   // Save overview expanded preference to localStorage
@@ -861,7 +873,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       {/* -- Navbar -------------------------------------------------------- */}
       <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
-        <div className={`mx-auto flex w-full items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 ${isWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
+        <div className={`mx-auto flex w-full items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
           {/* Left: Hamburger (mobile) + Logo */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
             {/* Mobile hamburger */}
@@ -930,10 +942,11 @@ export default function Dashboard() {
               <span className="hidden md:inline whitespace-nowrap">{isDutch ? "Notities" : "Notes"}</span>
             </button>
 
-            {/* Layout toggle - visible on tablet+ with label, icon-only on mobile */}
+            {/* Layout toggle — desktop only (lg+); no effect on mobile */}
             <button
+              type="button"
               onClick={handleToggleWideView}
-              className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
+              className={`hidden lg:inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
                 isWideView
                   ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
                   : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
@@ -1049,7 +1062,7 @@ export default function Dashboard() {
               </div>
 
               {/* Action buttons - grid on small, flex on tablet */}
-              <div className="mb-4 grid grid-cols-2 tablet:grid-cols-3 gap-2">
+              <div className="mb-4 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
@@ -1061,20 +1074,6 @@ export default function Dashboard() {
                   <Icons.Plus className="h-4 w-4 shrink-0" />
                   <span className="hidden tablet:inline">Add gig</span>
                   <span className="tablet:hidden">Add</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleToggleWideView();
-                  }}
-                  className={`inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg border px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium transition ${
-                    isWideView
-                      ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  <Icons.Expand className="h-4 w-4 shrink-0" />
-                  <span className="hidden tablet:inline">{isWideView ? "Normal" : "XL"}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1110,14 +1109,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Quick toggles */}
-              <div className="mb-4 flex gap-2">
+              {/* Quick toggles (mobile menu — no fullscreen; desktop uses header toggle) */}
+              <div className="mb-4">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowMobileMenu(false);
                     handleTabChange("songs");
                   }}
-                  className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
+                  className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
                     activeTab === "songs"
                       ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
@@ -1126,21 +1126,6 @@ export default function Dashboard() {
                 >
                   <Icons.Document className="h-4 w-4 shrink-0" />
                   <span>{isDutch ? "Notities" : "Notes"}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleToggleWideView();
-                  }}
-                  className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                    isWideView
-                      ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-                  }`}
-                  title={isWideView ? "Standard layout" : "Fullscreen layout"}
-                >
-                  <Icons.Expand className="h-4 w-4 shrink-0" />
-                  <span>{isWideView ? "Normal" : "Full"}</span>
                 </button>
               </div>
 
@@ -1292,7 +1277,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 min-h-screen transition-colors ${isWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
+      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 min-h-screen transition-colors ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
         {/* Search results indicator */}
         {searchQuery && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-brand-50 px-4 py-2 text-sm dark:bg-brand-950/30">
@@ -1551,7 +1536,7 @@ export default function Dashboard() {
                 )}
               </div>
             ) : (
-              <div className={isWideView ? "grid gap-6 xl:grid-cols-2 2xl:gap-8" : "space-y-6"}>
+              <div className={effectiveWideView ? "grid gap-6 xl:grid-cols-2 2xl:gap-8" : "space-y-6"}>
                 {/* Active Gigs Section */}
                 {activeGigs.length > 0 && (
                   <div className="min-w-0">
@@ -1635,7 +1620,7 @@ export default function Dashboard() {
                             )}
                           </div>
                           {isActiveSectionExpanded && (
-                            <div className={isWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
+                            <div className={effectiveWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
                               {activeGigs.map((gig) => (
                                 <GigCard
                                   key={gig.id}
@@ -1705,7 +1690,7 @@ export default function Dashboard() {
                             )}
                           </div>
                           {isHandledSectionExpanded && (
-                            <div className={isWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
+                            <div className={effectiveWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
                               {handledGigs.map((gig) => (
                                 <GigCard
                                   key={gig.id}
