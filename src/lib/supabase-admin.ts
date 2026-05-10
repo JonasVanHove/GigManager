@@ -63,14 +63,21 @@ async function getUserWithCache(token: string): Promise<CachedAuthUserResult> {
 export function getSupabaseAdmin() {
   if (!client) {
     if (!supabaseUrl) {
+      console.error("[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL");
       throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
     }
     if (!supabaseServiceKey) {
+      console.error("[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY");
       throw new Error(
         "Missing SUPABASE_SERVICE_ROLE_KEY. Set this in your .env file or Netlify environment variables."
       );
     }
-    client = createClient(supabaseUrl, supabaseServiceKey);
+    try {
+      client = createClient(supabaseUrl, supabaseServiceKey);
+    } catch (err) {
+      console.error("[Supabase] Failed to create client:", err);
+      throw err;
+    }
   }
   return client;
 }

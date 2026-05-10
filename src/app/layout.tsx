@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "GigsManager - Track Your Performances",
   description:
     "Manage live music performances, track payments, and calculate musician earnings.",
-    icons: {
+  icons: {
     icon: [
       { url: "/favicon.png", type: "image/png" },
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -31,15 +31,8 @@ export const metadata: Metadata = {
       },
     ],
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "GigsManager",
-  },
-  formatDetection: {
-    telephone: false,
-  },
 };
+
 
 export const viewport: Viewport = {
   colorScheme: "light dark",
