@@ -60,7 +60,7 @@ async function getUserWithCache(token: string): Promise<CachedAuthUserResult> {
   return result;
 }
 
-export function getSupabaseAdmin() {
+export function getSupabaseAdmin(): ReturnType<typeof createClient> {
   if (!client) {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.warn(
