@@ -139,7 +139,15 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       const response = await fetch("/api/gigs?take=200&skip=0", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch");
+      if (!response.ok) {
+        // Retry on 503 Service Unavailable
+        if (response.status === 503) {
+          console.warn("[BandMembers] Got 503, retrying in 2 seconds...");
+          setTimeout(() => fetchAllGigs(), 2000);
+          return;
+        }
+        throw new Error(`Failed to fetch (${response.status})`);
+      }
       const data = await response.json();
       const gigsArray = Array.isArray(data) ? data : (data.data ?? []);
       const sorted = [...gigsArray].sort(
@@ -147,7 +155,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       );
       setAllGigs(sorted);
     } catch (error) {
-      toast.error("Failed to load gigs");
+      const msg = error instanceof Error ? error.message : "Failed to load gigs";
+      toast.error(msg);
     } finally {
       setGigsLoading(false);
     }

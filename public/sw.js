@@ -1,10 +1,10 @@
 // Service Worker for GigsManager
 // Provides offline support and intelligent caching strategies
 
-const CACHE_NAME = 'gigs-manager-v1.10.4';
-const STATIC_CACHE = 'gigs-manager-static-v1';
-const DYNAMIC_CACHE = 'gigs-manager-dynamic-v1';
-const LONG_TERM_CACHE = 'gigs-manager-longterm-v1';
+const CACHE_NAME = 'gigs-manager-v1.11.14';
+const STATIC_CACHE = 'gigs-manager-static-v2';
+const DYNAMIC_CACHE = 'gigs-manager-dynamic-v2';
+const LONG_TERM_CACHE = 'gigs-manager-longterm-v2';
 
 // Static assets that should be cached on install
 const STATIC_ASSETS = [
@@ -124,7 +124,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 3: API calls - network first with cache fallback
+  // Strategy 3: API calls - network first with intelligent fallback
   // Skip API interception on local dev hosts: SW fetch failures surface as false
   // "Offline - cached data unavailable" while Next.js dev / DB are actually up.
   if (url.includes('/api/')) {
@@ -139,22 +139,25 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (!response || response.status !== 200) {
-            return response;
+          // Cache successful responses
+          if (response && response.status === 200) {
+            const cloned = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, cloned);
+            });
           }
-          const cloned = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, cloned);
-          });
           return response;
         })
         .catch(() => {
+          // Network error - try cached response first
           return caches.match(request).then((cachedResponse) => {
             if (cachedResponse) {
               return cachedResponse;
             }
+            // No cache available - return appropriate error
+            const errorMsg = 'Unable to load data. Please check your connection and try again.';
             return new Response(
-              JSON.stringify({ error: 'Offline - cached data unavailable' }),
+              JSON.stringify({ error: errorMsg }),
               {
                 status: 503,
                 headers: new Headers({

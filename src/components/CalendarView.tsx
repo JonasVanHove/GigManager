@@ -90,7 +90,15 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
       const response = await fetch("/api/gigs", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch");
+      if (!response.ok) {
+        // Retry on 503 Service Unavailable
+        if (response.status === 503) {
+          console.warn("[CalendarView] Got 503, retrying in 2 seconds...");
+          setTimeout(() => fetchGigs(), 2000);
+          return;
+        }
+        throw new Error(`Failed to fetch (${response.status})`);
+      }
       const data = await response.json();
       // Handle both array and object response
       const gigsArray = Array.isArray(data) ? data : (data.data ?? []);

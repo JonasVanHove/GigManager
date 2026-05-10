@@ -373,6 +373,16 @@ export default function Dashboard() {
             }
           }
           toast.error("Session expired. Please sign out and sign in again.");
+        } else if (res.status === 503) {
+          // Service unavailable - retry with exponential backoff
+          console.warn("[fetchGigs] Got 503, will retry in 2 seconds...");
+          setGigs([]);
+          setTotalGigCount(0);
+          const errorText = await res.text();
+          const errorObj = (() => { try { return JSON.parse(errorText); } catch { return { error: errorText || 'Service temporarily unavailable' }; } })();
+          toast.error(`${errorObj.error || 'Service temporarily unavailable'}. Retrying...`);
+          setTimeout(fetchGigs, 2000);
+          return;
         } else {
             const errorText = await res.text();
             console.error("[fetchGigs] Error response:", errorText);
