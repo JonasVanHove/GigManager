@@ -1,11 +1,11 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateGigFinancials } from "@/lib/calculations";
-import { getUserIdFromHeader, getOrCreateUser } from "@/lib/auth-helpers";
+import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getCacheEntry, setCacheEntry, invalidateCache, getCacheKey, getApiCacheHeaders } from "@/lib/cache";
 import { measureAsync, recordMetric } from "@/lib/performance-metrics";
-import { isDbConnectionError, getErrorStatusCode, formatErrorResponse } from "@/lib/error-detection";
+import { isDbConnectionError } from "@/lib/error-detection";
 
 type AuthCacheEntry = {
   user: Awaited<ReturnType<typeof getOrCreateUser>>;
@@ -14,6 +14,14 @@ type AuthCacheEntry = {
 
 const authCache = new Map<string, AuthCacheEntry>();
 const AUTH_CACHE_TTL_MS = 2 * 60 * 1000;
+
+function getBearerToken(request: NextRequest): string | null {
+  const auth =
+    request.headers.get("Authorization") ??
+    request.headers.get("authorization");
+  if (!auth?.startsWith("Bearer ")) return null;
+  return auth.slice(7);
+}
 
 function getAuthCache(token: string) {
   const entry = authCache.get(token);
@@ -133,13 +141,18 @@ function toGigData(body: Record<string, unknown>, userId: string) {
 // Optional query params: ?take=50&skip=0 (pagination-ready)
 // Requires: Authorization: Bearer <token>
 
-async function requireAuth(request: NextRequest) {
+type GigsAuthResult =
+  | NextResponse
+  | { user: Awaited<ReturnType<typeof getOrCreateUser>> }
+  | { degraded: true };
+
+async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
   const isDev = process.env.NODE_ENV !== "production";
   const logDebug = (...args: unknown[]) => {
     if (isDev) console.log(...args);
   };
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
+  const token = getBearerToken(request);
+  if (!token) {
     logDebug("[API Auth] Missing Authorization header");
     return NextResponse.json(
       { error: "Unauthorized: missing token" },
@@ -147,7 +160,6 @@ async function requireAuth(request: NextRequest) {
     );
   }
 
-  const token = authHeader.slice(7);
   const cachedUser = getAuthCache(token);
   if (cachedUser) {
     return { user: cachedUser };
@@ -163,7 +175,8 @@ async function requireAuth(request: NextRequest) {
   try {
     logDebug("[API Auth] Calling supabaseAdmin.auth.getUser...");
     const { data, error } = await supabaseAdmin.auth.getUser(token);
-    
+    const supabaseUser = data?.user ?? null;
+
     if (error) {
       console.error("[API Auth] Supabase error:", {
         message: error.message,
@@ -182,7 +195,7 @@ async function requireAuth(request: NextRequest) {
       );
     }
     
-    if (!data.user) {
+    if (!supabaseUser) {
       console.error("[API Auth] No user in response");
       return NextResponse.json(
         { error: "Unauthorized: no user data" },
@@ -190,14 +203,14 @@ async function requireAuth(request: NextRequest) {
       );
     }
     
-    logDebug("[API Auth] Token valid for user:", data.user.id);
+    logDebug("[API Auth] Token valid for user:", supabaseUser.id);
     
     // Get or create user record
     try {
       const user = await getOrCreateUser(
-        data.user.id,
-        data.user.email || "",
-        data.user.user_metadata?.name
+        supabaseUser.id,
+        supabaseUser.email || "",
+        supabaseUser.user_metadata?.name
       );
 
       setAuthCache(token, user);
@@ -211,11 +224,8 @@ async function requireAuth(request: NextRequest) {
         message: dbErrMsg,
         error: dbErr,
       });
-      
-      const statusCode = getErrorStatusCode(dbErr);
-      const errorResponse = formatErrorResponse(dbErr);
-      
-      return NextResponse.json(errorResponse, { status: statusCode });
+      // Valid JWT but app DB unreachable — let GET return empty list; POST returns 503
+      return { degraded: true };
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -234,13 +244,32 @@ async function requireAuth(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) return authResult;
-  const { user } = authResult as { user: any };
+
+  const { searchParams } = new URL(request.url);
+  const take = Math.min(Number(searchParams.get("take")) || 100, 200);
+  const skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
+
+  if ("degraded" in authResult && authResult.degraded) {
+    return NextResponse.json(
+      {
+        data: [],
+        total: 0,
+        take,
+        skip,
+        degraded: true,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-store",
+          Vary: "Authorization",
+        },
+      }
+    );
+  }
+
+  const { user } = authResult as { user: { id: string } };
 
   try {
-    const { searchParams } = new URL(request.url);
-    const take = Math.min(Number(searchParams.get("take")) || 100, 200);
-    const skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
-
     const cacheKey = getCacheKey(user.id, "gigs", { take, skip });
     const cached = getCacheEntry<{ data: unknown; total: number; take: number; skip: number }>(cacheKey);
     if (cached) {
@@ -279,17 +308,28 @@ export async function GET(request: NextRequest) {
     
     console.error("[GET /api/gigs] Exception:", errorMsg, error);
     
-    const statusCode = getErrorStatusCode(error);
-    const errorResponse = formatErrorResponse(error);
-    
     recordMetric("GET /api/gigs [ERROR]", 0, {
       endpoint: "/api/gigs",
       userId: user.id,
-      status: statusCode,
-      metadata: { isConnectionError: isDbConnectionError(error) },
+      status: 200,
+      metadata: { isConnectionError: isDbConnectionError(error), degraded: true },
     });
     
-    return NextResponse.json(errorResponse, { status: statusCode });
+    return NextResponse.json(
+      {
+        data: [],
+        total: 0,
+        take,
+        skip,
+        degraded: true,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-store",
+          Vary: "Authorization",
+        },
+      }
+    );
   }
 }
 
@@ -298,7 +338,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) return authResult;
-  const { user } = authResult as { user: any };
+  if ("degraded" in authResult && authResult.degraded) {
+    return NextResponse.json(
+      {
+        error: "Database temporarily unavailable. Please try again in a moment.",
+      },
+      { status: 503 }
+    );
+  }
+  const { user } = authResult as { user: { id: string } };
 
   try {
     const body = await request.json();

@@ -1,28 +1,49 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/auth-helpers";
-import { isDbConnectionError } from "@/lib/error-detection";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// -- Auth helper (same pattern as gigs routes) ---------------------------------
+const DEFAULT_SETTINGS_BODY = {
+  currency: "EUR",
+  claimPerformanceFee: true,
+  claimTechnicalFee: true,
+  theme: "system",
+} as const;
 
-async function requireAuth(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
+function getBearerToken(request: NextRequest): string | null {
+  const auth =
+    request.headers.get("authorization") ??
+    request.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) return null;
+  return auth.slice(7);
+}
+
+// -- Auth: never throw; on app-DB failure we still allow read of default settings --
+
+type SettingsAuthOk =
+  | { user: Awaited<ReturnType<typeof getOrCreateUser>> }
+  | { useDefaultsOnly: true };
+
+type SettingsAuthResult = { error: NextResponse } | SettingsAuthOk;
+
+async function requireAuth(request: NextRequest): Promise<SettingsAuthResult> {
+  const token = getBearerToken(request);
+  if (!token) {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  const token = authHeader.slice(7);
-
   try {
-    const {
-      data: { user: supabaseUser },
-      error,
-    } = await supabaseAdmin.auth.getUser(token);
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    const supabaseUser = data?.user ?? null;
 
     if (error) {
       console.error("[Settings Auth] Invalid token:", error.message);
-      return { error: NextResponse.json({ error: "Invalid token", details: error.message }, { status: 401 }) };
+      return {
+        error: NextResponse.json(
+          { error: "Invalid token", details: error.message },
+          { status: 401 }
+        ),
+      };
     }
 
     if (!supabaseUser) {
@@ -36,65 +57,59 @@ async function requireAuth(request: NextRequest) {
         supabaseUser.email || "",
         supabaseUser.user_metadata?.name
       );
-
       return { user };
     } catch (dbErr) {
       const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-      console.error("[Settings Auth] Failed to load/create user:", dbErrMsg);
-
-      // Degrade gracefully when DB is temporarily unavailable:
-      // settings endpoints already return safe defaults in their catch blocks.
-      if (isDbConnectionError(dbErr)) {
-        return { user: { id: supabaseUser.id } };
-      }
-
-      return { error: NextResponse.json({ error: "Unauthorized", details: dbErrMsg }, { status: 401 }) };
+      console.error("[Settings Auth] DB unavailable or user sync failed:", dbErrMsg);
+      return { useDefaultsOnly: true };
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[Settings Auth] Exception:", errorMsg);
-    return { error: NextResponse.json({ error: "Unauthorized", details: errorMsg }, { status: 401 }) };
+    return {
+      error: NextResponse.json(
+        { error: "Unauthorized", details: errorMsg },
+        { status: 401 }
+      ),
+    };
   }
 }
 
 // -- GET /api/settings — return user settings (or defaults) --------------------
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if ("error" in auth) return auth.error;
-
   try {
-    let settings = await prisma.userSettings.findUnique({
-      where: { userId: auth.user.id },
-    });
-
-    if (!settings) {
-      // Return defaults without persisting yet
-      return NextResponse.json({
-        currency: "EUR",
-        claimPerformanceFee: true,
-        claimTechnicalFee: true,
-        theme: "system",
-      });
+    const auth = await requireAuth(request);
+    if ("error" in auth) return auth.error;
+    if ("useDefaultsOnly" in auth && auth.useDefaultsOnly) {
+      return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
     }
 
-    return NextResponse.json({
-      currency: settings.currency,
-      claimPerformanceFee: settings.claimPerformanceFee,
-      claimTechnicalFee: settings.claimTechnicalFee,
-      theme: settings.theme || "system",
-    });
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[GET /api/settings] error:", errorMsg);
-    // Return defaults on error instead of 500
-    // This handles cases where UserSettings table doesn't exist yet
-    return NextResponse.json({
-      currency: "EUR",
-      claimPerformanceFee: true,
-      claimTechnicalFee: true,
-      theme: "system",
-    });
+    const { user } = auth as { user: Awaited<ReturnType<typeof getOrCreateUser>> };
+
+    try {
+      let settings = await prisma.userSettings.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!settings) {
+        return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
+      }
+
+      return NextResponse.json({
+        currency: settings.currency,
+        claimPerformanceFee: settings.claimPerformanceFee,
+        claimTechnicalFee: settings.claimTechnicalFee,
+        theme: settings.theme || "system",
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("[GET /api/settings] error:", errorMsg);
+      return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
+    }
+  } catch (e) {
+    console.error("[GET /api/settings] fatal:", e);
+    return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
   }
 }
 
@@ -106,15 +121,15 @@ const SUPPORTED_CURRENCIES = [
 ];
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if ("error" in auth) return auth.error;
-
   let currency: string | undefined;
   let claimPerformanceFee: boolean | undefined;
   let claimTechnicalFee: boolean | undefined;
   let theme: string | undefined;
 
   try {
+    const auth = await requireAuth(request);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
 
     currency =
@@ -133,40 +148,63 @@ export async function PUT(request: NextRequest) {
         ? body.theme
         : undefined;
 
-    const data: Record<string, any> = {};
+    if ("useDefaultsOnly" in auth && auth.useDefaultsOnly) {
+      return NextResponse.json({
+        currency: currency ?? DEFAULT_SETTINGS_BODY.currency,
+        claimPerformanceFee: claimPerformanceFee ?? DEFAULT_SETTINGS_BODY.claimPerformanceFee,
+        claimTechnicalFee: claimTechnicalFee ?? DEFAULT_SETTINGS_BODY.claimTechnicalFee,
+        theme: theme ?? DEFAULT_SETTINGS_BODY.theme,
+        degraded: true,
+      });
+    }
+
+    const { user } = auth as { user: Awaited<ReturnType<typeof getOrCreateUser>> };
+
+    const data: Record<string, unknown> = {};
     if (currency !== undefined) data.currency = currency;
     if (claimPerformanceFee !== undefined) data.claimPerformanceFee = claimPerformanceFee;
     if (claimTechnicalFee !== undefined) data.claimTechnicalFee = claimTechnicalFee;
     if (theme !== undefined) data.theme = theme;
 
-    const settings = await prisma.userSettings.upsert({
-      where: { userId: auth.user.id },
-      update: data,
-      create: {
-        userId: auth.user.id,
-        currency: currency ?? "EUR",
+    try {
+      const settings = await prisma.userSettings.upsert({
+        where: { userId: user.id },
+        update: data,
+        create: {
+          userId: user.id,
+          currency: currency ?? "EUR",
+          claimPerformanceFee: claimPerformanceFee ?? true,
+          claimTechnicalFee: claimTechnicalFee ?? true,
+          theme: theme ?? "system",
+        },
+      });
+
+      return NextResponse.json({
+        currency: settings.currency,
+        claimPerformanceFee: settings.claimPerformanceFee,
+        claimTechnicalFee: settings.claimTechnicalFee,
+        theme: settings.theme || "system",
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("[PUT /api/settings] error:", errorMsg);
+      return NextResponse.json({
+        currency: currency || "EUR",
         claimPerformanceFee: claimPerformanceFee ?? true,
         claimTechnicalFee: claimTechnicalFee ?? true,
-        theme: theme ?? "system",
-      },
-    });
-
-    return NextResponse.json({
-      currency: settings.currency,
-      claimPerformanceFee: settings.claimPerformanceFee,
-      claimTechnicalFee: settings.claimTechnicalFee,
-      theme: settings.theme || "system",
-    });
+        theme: theme || "system",
+        degraded: true,
+      });
+    }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[PUT /api/settings] error:", errorMsg);
-    // If table doesn't exist or other issue, return the data we received at least
-    // This handles cases where UserSettings table doesn't exist yet
+    console.error("[PUT /api/settings] fatal:", errorMsg);
     return NextResponse.json({
       currency: currency || "EUR",
       claimPerformanceFee: claimPerformanceFee ?? true,
       claimTechnicalFee: claimTechnicalFee ?? true,
       theme: theme || "system",
+      degraded: true,
     });
   }
 }
