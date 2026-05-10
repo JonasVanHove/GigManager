@@ -61,7 +61,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://supabase.co" />
           <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="preload" href="/favicon.png" as="image" type="image/png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="GigsManager" />
@@ -87,6 +86,17 @@ export default function RootLayout({
                 ? `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
+                  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                  if (isLocalhost) {
+                    navigator.serviceWorker.getRegistrations().then((regs) => {
+                      regs.forEach((reg) => reg.unregister());
+                    });
+                    if ('caches' in window) {
+                      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+                    }
+                    return;
+                  }
+
                   navigator.serviceWorker
                     .register('/sw.js', { updateViaCache: 'none' })
                     .then((registration) => {
@@ -124,6 +134,9 @@ export default function RootLayout({
                 navigator.serviceWorker.getRegistrations().then((regs) => {
                   regs.forEach((reg) => reg.unregister());
                 });
+                if ('caches' in window) {
+                  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+                }
               }
             `,
           }}

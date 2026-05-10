@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense, lazy, useDeferredValue, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -112,6 +112,9 @@ export default function Dashboard() {
   const fetchGigsInFlightRef = useRef(false);
   const noSessionLoggedRef = useRef(false);
   const gigsRef = useRef<Gig[]>([]);
+  const fetchRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchRetryAttemptRef = useRef(0);
+  const swRecoveryAttemptedRef = useRef(false);
   const gigsCacheKey = useMemo(
     () => (session?.user?.id ? `gigs-cache:${session.user.id}` : null),
     [session?.user?.id]
@@ -120,6 +123,14 @@ export default function Dashboard() {
   useEffect(() => {
     gigsRef.current = gigs;
   }, [gigs]);
+
+  useEffect(() => {
+    return () => {
+      if (fetchRetryTimeoutRef.current) {
+        clearTimeout(fetchRetryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Track Web Vitals on mount
   useEffect(() => {
@@ -369,25 +380,69 @@ export default function Dashboard() {
                 }
               }
               console.log("[fetchGigs] Success after retry:", (json.data ?? json).length, "gigs");
+              fetchRetryAttemptRef.current = 0;
               return;
             }
           }
           toast.error("Session expired. Please sign out and sign in again.");
         } else if (res.status === 503) {
-          // Service unavailable - retry with exponential backoff
-          console.warn("[fetchGigs] Got 503, will retry in 2 seconds...");
-          setGigs([]);
-          setTotalGigCount(0);
+          // Service unavailable - retry with exponential backoff and cap attempts
+          console.warn("[fetchGigs] Got 503, handling temporary service outage...");
           const errorText = await res.text();
           const errorObj = (() => { try { return JSON.parse(errorText); } catch { return { error: errorText || 'Service temporarily unavailable' }; } })();
-          toast.error(`${errorObj.error || 'Service temporarily unavailable'}. Retrying...`);
-          setTimeout(fetchGigs, 2000);
+          
+          if (errorObj.error === "Offline - cached data unavailable") {
+            if (!swRecoveryAttemptedRef.current) {
+              swRecoveryAttemptedRef.current = true;
+              console.warn("[fetchGigs] Old Service Worker detected. Unregistering and reloading once...");
+              if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                  await reg.unregister();
+                }
+              }
+              window.location.reload();
+              return;
+            }
+          }
+
+          fetchRetryAttemptRef.current += 1;
+          const attempt = fetchRetryAttemptRef.current;
+          const maxRetries = 5;
+          const retryDelayMs = Math.min(1000 * 2 ** (attempt - 1), 30000);
+          const hasCachedData = gigsRef.current.length > 0;
+
+          if (attempt > maxRetries) {
+            toast.error(errorObj.error || "Service tijdelijk niet beschikbaar.");
+            return;
+          }
+
+          toast.error(
+            hasCachedData
+              ? `${errorObj.error || "Service tijdelijk niet beschikbaar"}. We tonen je laatst geladen data en proberen opnieuw...`
+              : `${errorObj.error || "Service tijdelijk niet beschikbaar"}. Opnieuw proberen (${attempt}/${maxRetries})...`
+          );
+
+          if (fetchRetryTimeoutRef.current) {
+            clearTimeout(fetchRetryTimeoutRef.current);
+          }
+          fetchRetryTimeoutRef.current = setTimeout(() => {
+            fetchGigs();
+          }, retryDelayMs);
           return;
         } else {
             const errorText = await res.text();
             console.error("[fetchGigs] Error response:", errorText);
             const short = errorText ? String(errorText).slice(0, 200) : res.statusText || String(res.status);
-            toast.error(`Failed to load gigs (${res.status}): ${short}`);
+            const containsOfflineCacheMessage =
+              short.includes("Offline - cached data unavailable") ||
+              short.includes("Unable to load data. Please check your connection and try again.");
+
+            if (containsOfflineCacheMessage) {
+              toast.error("Service tijdelijk niet beschikbaar. Probeer het zo opnieuw.");
+            } else {
+              toast.error(`Failed to load gigs (${res.status}): ${short}`);
+            }
           }
         setGigs([]);
         setTotalGigCount(0);
@@ -397,6 +452,7 @@ export default function Dashboard() {
         const nextData = json.data ?? json;
         setGigs(nextData);
         setTotalGigCount(json.total ?? nextData.length);
+        fetchRetryAttemptRef.current = 0;
         if (gigsCacheKey) {
           try {
             localStorage.setItem(gigsCacheKey, JSON.stringify({
