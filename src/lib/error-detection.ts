@@ -14,11 +14,19 @@ export function isDbConnectionError(error: unknown): boolean {
   // Check string patterns
   if (
     errorStr.includes("connection") ||
+    errorStr.includes("database connection unavailable") ||
+    errorStr.includes("prisma init failed") ||
+    errorStr.includes("prisma client unavailable") ||
     errorStr.includes("timeout") ||
     errorStr.includes("pool") ||
     errorStr.includes("econnrefused") ||
     errorStr.includes("service unavailable") ||
+    errorStr.includes("missing database_url") ||
     errorMsg.includes("connection") ||
+    errorMsg.includes("database connection unavailable") ||
+    errorMsg.includes("prisma init failed") ||
+    errorMsg.includes("prisma client unavailable") ||
+    errorMsg.includes("missing database_url") ||
     errorMsg.includes("timeout")
   ) {
     return true;

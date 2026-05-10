@@ -36,20 +36,23 @@ function createFailingPrismaClient(error: unknown): PrismaClient {
   const reason = error instanceof Error ? error.message : String(error);
 
   const throwUnavailable = () => {
-    throw new Error(`Prisma client unavailable: ${reason}`);
+    throw new Error(`Database connection unavailable (Prisma init failed): ${reason}`);
   };
 
-  return new Proxy(
-    {},
-    {
-      get() {
-        return throwUnavailable;
-      },
-      apply() {
-        throwUnavailable();
-      },
-    }
-  ) as PrismaClient;
+  const nestedThrowingProxy = new Proxy(throwUnavailable, {
+    get() {
+      throwUnavailable();
+    },
+    apply() {
+      throwUnavailable();
+    },
+  });
+
+  return new Proxy({} as PrismaClient, {
+    get() {
+      return nestedThrowingProxy;
+    },
+  });
 }
 
 let prismaClient: PrismaClient;

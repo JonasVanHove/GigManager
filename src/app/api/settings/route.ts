@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/auth-helpers";
+import { isDbConnectionError } from "@/lib/error-detection";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 // -- Auth helper (same pattern as gigs routes) ---------------------------------
@@ -29,13 +30,26 @@ async function requireAuth(request: NextRequest) {
       return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
     }
 
-    const user = await getOrCreateUser(
-      supabaseUser.id,
-      supabaseUser.email || "",
-      supabaseUser.user_metadata?.name
-    );
+    try {
+      const user = await getOrCreateUser(
+        supabaseUser.id,
+        supabaseUser.email || "",
+        supabaseUser.user_metadata?.name
+      );
 
-    return { user };
+      return { user };
+    } catch (dbErr) {
+      const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      console.error("[Settings Auth] Failed to load/create user:", dbErrMsg);
+
+      // Degrade gracefully when DB is temporarily unavailable:
+      // settings endpoints already return safe defaults in their catch blocks.
+      if (isDbConnectionError(dbErr)) {
+        return { user: { id: supabaseUser.id } };
+      }
+
+      return { error: NextResponse.json({ error: "Unauthorized", details: dbErrMsg }, { status: 401 }) };
+    }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[Settings Auth] Exception:", errorMsg);
