@@ -70,6 +70,13 @@
     Cache-Control = "public, max-age=604800"
     Content-Type  = "application/xml"
 
+# Service worker should always revalidate to avoid stale SW logic on clients
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, no-cache, no-store, must-revalidate"
+    Content-Type  = "application/javascript"
+
 # API routes with shorter caching
 [[headers]]
   for = "/api/*"

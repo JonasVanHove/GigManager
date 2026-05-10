@@ -87,10 +87,34 @@ export default function RootLayout({
                 ? `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then(() => {
-                    console.log('Service Worker registered');
-                  }).catch((err) => {
-                    console.log('Service Worker registration failed:', err);
+                  navigator.serviceWorker
+                    .register('/sw.js', { updateViaCache: 'none' })
+                    .then((registration) => {
+                      console.log('Service Worker registered');
+                      registration.update();
+
+                      if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                      }
+
+                      registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (!newWorker) return;
+                        newWorker.addEventListener('statechange', () => {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                          }
+                        });
+                      });
+                    })
+                    .catch((err) => {
+                      console.log('Service Worker registration failed:', err);
+                    });
+
+                  navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (window.__swRefreshing) return;
+                    window.__swRefreshing = true;
+                    window.location.reload();
                   });
                 });
               }
