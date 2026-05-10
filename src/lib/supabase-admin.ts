@@ -68,7 +68,7 @@ export function getSupabaseAdmin(): ReturnType<typeof createClient> {
       );
 
       // Return a stub client that simulates the auth.getUser behaviour
-      client = {
+      const stubClient = {
         auth: {
           getUser: async (_token: string) => {
             return {
@@ -82,8 +82,9 @@ export function getSupabaseAdmin(): ReturnType<typeof createClient> {
             } as any;
           },
         },
-      } as any;
-      return client;
+      } as ReturnType<typeof createClient>;
+      client = stubClient;
+      return stubClient;
     }
 
     try {
