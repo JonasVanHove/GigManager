@@ -74,7 +74,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         }
 
         const res = await fetch("/api/settings", {
-          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
         });
 
         if (res.ok && !cancelled) {
@@ -128,7 +132,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           const token = await getAccessToken();
           if (token) {
             const res = await fetch("/api/settings", {
-              headers: { Authorization: `Bearer ${token}` },
+              cache: "no-store",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+              },
             });
             if (res.ok) setSettings(await res.json());
           }

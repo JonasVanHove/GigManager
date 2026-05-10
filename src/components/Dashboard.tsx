@@ -76,6 +76,26 @@ const TabLoader = () => (
   <LoadingSpinner size="lg" message="Loading section..." />
 );
 
+async function parseApiError(res: Response): Promise<string> {
+  const bodyText = await res.text();
+  const contentType = res.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      const parsed = JSON.parse(bodyText) as { error?: string; details?: string };
+      return parsed.error || parsed.details || `HTTP ${res.status}`;
+    } catch {
+      return bodyText || `HTTP ${res.status}`;
+    }
+  }
+
+  if (contentType.includes("text/html") || bodyText.includes("<!DOCTYPE html")) {
+    return "Server error while loading data. Please refresh and try again.";
+  }
+
+  return bodyText || `HTTP ${res.status}`;
+}
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -349,7 +369,11 @@ export default function Dashboard() {
 
       console.log("[fetchGigs] Got token, fetching gigs...");
       const res = await fetch("/api/gigs", {
-        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
 
       console.log("[fetchGigs] Response status:", res.status);
@@ -362,7 +386,11 @@ export default function Dashboard() {
           if (newToken && newToken !== token) {
             console.log("[fetchGigs] Got new token after refresh, retrying...");
             const retryRes = await fetch("/api/gigs", {
-              headers: { Authorization: `Bearer ${newToken}` },
+              cache: "no-store",
+              headers: {
+                Authorization: `Bearer ${newToken}`,
+                Accept: "application/json",
+              },
             });
             if (retryRes.ok) {
               const json = await retryRes.json();
@@ -431,7 +459,7 @@ export default function Dashboard() {
           }, retryDelayMs);
           return;
         } else {
-            const errorText = await res.text();
+            const errorText = await parseApiError(res);
             console.error("[fetchGigs] Error response:", errorText);
             const short = errorText ? String(errorText).slice(0, 200) : res.statusText || String(res.status);
             const containsOfflineCacheMessage =

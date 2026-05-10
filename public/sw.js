@@ -1,7 +1,7 @@
 // Service Worker for GigsManager
 // Provides offline support and intelligent caching strategies
 
-const CACHE_NAME = 'gigs-manager-v1.11.14';
+const CACHE_NAME = 'gigs-manager-v1.11.15';
 const STATIC_CACHE = 'gigs-manager-static-v2';
 const DYNAMIC_CACHE = 'gigs-manager-dynamic-v2';
 const LONG_TERM_CACHE = 'gigs-manager-longterm-v2';
@@ -139,6 +139,27 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          const contentType = response.headers.get('content-type') || '';
+          const isHtmlResponse = contentType.includes('text/html');
+
+          // API routes should not return HTML error pages to app fetchers.
+          // Convert them into JSON so the client can handle gracefully.
+          if (isHtmlResponse) {
+            return new Response(
+              JSON.stringify({
+                error: 'Service temporarily unavailable',
+                type: 'unexpected_html_response',
+              }),
+              {
+                status: response.status >= 400 ? response.status : 503,
+                headers: new Headers({
+                  'Content-Type': 'application/json',
+                  'Cache-Control': 'no-store',
+                }),
+              }
+            );
+          }
+
           // Cache successful responses
           if (response && response.status === 200) {
             const cloned = response.clone();
