@@ -311,6 +311,15 @@ export async function GET(request: NextRequest) {
   let take = 100;
   let skip = 0;
 
+  // Top-level error boundary
+  if (!prisma) {
+    console.error("[GET /api/gigs] FATAL: Prisma client not initialized");
+    return NextResponse.json(
+      { error: "Service initialization failed", degraded: true },
+      { status: 503 }
+    );
+  }
+
   try {
     console.log("[GET /api/gigs] Starting");
     const authResult = await requireAuth(request);
@@ -385,9 +394,10 @@ export async function GET(request: NextRequest) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : "no stack";
     
-    console.error("[GET /api/gigs] Exception:", errorMsg);
+    console.error("[GET /api/gigs] CAUGHT EXCEPTION:", errorMsg);
+    console.error("[GET /api/gigs] Error name:", error instanceof Error ? error.name : "unknown");
     console.error("[GET /api/gigs] Stack:", errorStack);
-    console.error("[GET /api/gigs] Full error:", error);
+    console.error("[GET /api/gigs] Full error object:", JSON.stringify(error, null, 2).slice(0, 500));
     
     recordMetric("GET /api/gigs [ERROR]", 0, {
       endpoint: "/api/gigs",

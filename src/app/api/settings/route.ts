@@ -118,6 +118,15 @@ async function requireAuth(request: NextRequest): Promise<SettingsAuthResult> {
 // -- GET /api/settings — return user settings (or defaults) --------------------
 
 export async function GET(request: NextRequest) {
+  // Top-level error boundary
+  if (!prisma) {
+    console.error("[GET /api/settings] FATAL: Prisma client not initialized");
+    return NextResponse.json(
+      { error: "Service initialization failed", degraded: true },
+      { status: 503 }
+    );
+  }
+
   try {
     console.log("[GET /api/settings] Starting");
     const auth = await requireAuth(request);
@@ -162,9 +171,10 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e);
     const errorStack = e instanceof Error ? e.stack : "no stack";
-    console.error("[GET /api/settings] fatal:", errorMsg);
+    console.error("[GET /api/settings] CAUGHT EXCEPTION:", errorMsg);
+    console.error("[GET /api/settings] Error name:", e instanceof Error ? e.name : "unknown");
     console.error("[GET /api/settings] Stack:", errorStack);
-    console.error("[GET /api/settings] Full error:", e);
+    console.error("[GET /api/settings] Full error object:", JSON.stringify(e, null, 2).slice(0, 500));
     return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
   }
 }

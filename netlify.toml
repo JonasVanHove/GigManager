@@ -8,12 +8,22 @@
 
 [build.environment]
   NODE_VERSION        = "20"
+  NODE_ENV            = "production"
   # Git clone settings
   GIT_LFS_ENABLED = "false"
   # Prisma needs the engine for the Lambda runtime
   PRISMA_CLI_QUERY_ENGINE_TYPE = "library"
   # Suppress false positive: NEXT_PUBLIC_* vars are intentionally public
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_APP_URL"
+
+# ⚠️  RUNTIME ENVIRONMENT VARIABLES (set in Netlify Dashboard UI)
+# These MUST be configured in Site Settings → Build & Deploy → Environment:
+# - DATABASE_URL: PostgreSQL connection string (e.g., "postgresql://...")
+# - DIRECT_URL: Supabase direct connection for migrations (e.g., "postgresql://...")
+# - NEXT_PUBLIC_SUPABASE_URL: Supabase project URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY: Supabase anonymous key
+# - SUPABASE_SERVICE_ROLE_KEY: Supabase service role (for API auth)
+# Without these, API routes will return 500 errors.
 
 # ─── Next.js Runtime Plugin ──────────────────────────────────────────────────
 
