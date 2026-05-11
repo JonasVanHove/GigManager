@@ -10,6 +10,20 @@ import { isDbConnectionError } from "@/lib/error-detection";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+function summarizeError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    };
+  }
+
+  return {
+    message: String(error),
+  };
+}
+
 type AuthCacheEntry = {
   user: Awaited<ReturnType<typeof getOrCreateUser>>;
   expiresAt: number;
@@ -185,7 +199,7 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
         message: error.message,
         status: (error as any).status,
         code: (error as any).code,
-        fullError: JSON.stringify(error),
+        fullError: summarizeError(error),
       });
       return NextResponse.json(
         { 
@@ -234,8 +248,7 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[API Auth] Exception during token validation:", {
       message: errorMsg,
-      error: err,
-      errorString: JSON.stringify(err),
+      error: summarizeError(err),
     });
     return NextResponse.json(
       { error: "Unauthorized: token validation failed", details: errorMsg, hasServiceKey },
