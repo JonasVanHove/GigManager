@@ -36,6 +36,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>("system");
   const settingsFetchBlockedRef = useRef(false);
   const blockedSettingsUserIdRef = useRef<string | null>(null);
+  const lastSettingsFetchTimeRef = useRef(0); // Minimum 500ms between fetches
+  const SETTINGS_FETCH_THROTTLE_MS = 500;
 
   const locale = resolveLocale(language);
 
@@ -62,6 +64,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (settingsFetchBlockedRef.current) {
       return () => { cancelled = true; };
     }
+
+    // Throttle: prevent fetches within 500ms
+    const now = Date.now();
+    if (now - lastSettingsFetchTimeRef.current < SETTINGS_FETCH_THROTTLE_MS) {
+      return () => { cancelled = true; };
+    }
+    lastSettingsFetchTimeRef.current = now;
 
     try {
       const storedLanguage = localStorage.getItem("gig-manager-language") as AppLanguage | null;

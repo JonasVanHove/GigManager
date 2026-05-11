@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getCacheEntry, setCacheEntry, invalidateCache, getCacheKey, getApiCacheHeaders } from "@/lib/cache";
 import { measureAsync, recordMetric } from "@/lib/performance-metrics";
 import { isDbConnectionError } from "@/lib/error-detection";
+import { getBearerToken, validateTokenAndGetUser, type AuthResult } from "@/lib/api-auth-helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,14 +32,6 @@ type AuthCacheEntry = {
 
 const authCache = new Map<string, AuthCacheEntry>();
 const AUTH_CACHE_TTL_MS = 2 * 60 * 1000;
-
-function getBearerToken(request: NextRequest): string | null {
-  const auth =
-    request.headers.get("Authorization") ??
-    request.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  return auth.slice(7);
-}
 
 function getAuthCache(token: string) {
   const entry = authCache.get(token);

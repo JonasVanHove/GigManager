@@ -140,6 +140,8 @@ export default function Dashboard() {
   const swRecoveryAttemptedRef = useRef(false);
   const serverErrorBlockedRef = useRef(false);
   const lastBlockedUserIdRef = useRef<string | null>(null);
+  const lastFetchTimeRef = useRef(0); // Minimum 500ms between fetches
+  const FETCH_THROTTLE_MS = 500;
   const gigsCacheKey = useMemo(
     () => (session?.user?.id ? `gigs-cache:${session.user.id}` : null),
     [session?.user?.id]
@@ -365,6 +367,13 @@ export default function Dashboard() {
     if (fetchGigsInFlightRef.current) {
       return;
     }
+
+    // Throttle: prevent fetches within 500ms
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < FETCH_THROTTLE_MS) {
+      return;
+    }
+    lastFetchTimeRef.current = now;
 
     // Wait until auth bootstrap completes to avoid noisy initial no-session calls.
     if (authLoading) {

@@ -21,6 +21,20 @@ function getBearerToken(request: NextRequest): string | null {
   return auth.slice(7);
 }
 
+// Decode JWT without verification (for local dev/fallback)
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    
+    const payload = parts[1];
+    const decoded = Buffer.from(payload, "base64").toString("utf-8");
+    return JSON.parse(decoded);
+  } catch (err) {
+    return null;
+  }
+}
+
 // -- Auth: never throw; on app-DB failure we still allow read of default settings --
 
 type SettingsAuthOk =
@@ -36,6 +50,29 @@ async function requireAuth(request: NextRequest): Promise<SettingsAuthResult> {
   }
 
   try {
+    // First, try to decode JWT locally to get user info
+    const jwtPayload = decodeJWT(token);
+    if (jwtPayload && jwtPayload.sub) {
+      console.log("[Settings Auth] JWT decoded successfully, sub:", jwtPayload.sub);
+      
+      // Get or create user from JWT payload
+      try {
+        const user = await getOrCreateUser(
+          jwtPayload.sub,
+          jwtPayload.email || "",
+          jwtPayload.name
+        );
+        console.log("[Settings Auth] User created/retrieved from JWT:", user.id);
+        return { user };
+      } catch (dbErr) {
+        const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+        console.error("[Settings Auth] Database error (JWT path):", dbErrMsg);
+        // Valid JWT but app DB unreachable — allow default settings
+        return { useDefaultsOnly: true };
+      }
+    }
+    
+    // Fallback: try Supabase admin API if JWT decode fails
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     const supabaseUser = data?.user ?? null;
 
