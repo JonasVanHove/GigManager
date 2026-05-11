@@ -7,6 +7,9 @@ import { getCacheEntry, setCacheEntry, invalidateCache, getCacheKey, getApiCache
 import { measureAsync, recordMetric } from "@/lib/performance-metrics";
 import { isDbConnectionError } from "@/lib/error-detection";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 type AuthCacheEntry = {
   user: Awaited<ReturnType<typeof getOrCreateUser>>;
   expiresAt: number;
@@ -242,34 +245,37 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
 }
 
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
-
-  const { searchParams } = new URL(request.url);
-  const take = Math.min(Number(searchParams.get("take")) || 100, 200);
-  const skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
-
-  if ("degraded" in authResult && authResult.degraded) {
-    return NextResponse.json(
-      {
-        data: [],
-        total: 0,
-        take,
-        skip,
-        degraded: true,
-      },
-      {
-        headers: {
-          "Cache-Control": "private, no-store",
-          Vary: "Authorization",
-        },
-      }
-    );
-  }
-
-  const { user } = authResult as { user: { id: string } };
+  let take = 100;
+  let skip = 0;
 
   try {
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) return authResult;
+
+    const { searchParams } = new URL(request.url);
+    take = Math.min(Number(searchParams.get("take")) || 100, 200);
+    skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
+
+    if ("degraded" in authResult && authResult.degraded) {
+      return NextResponse.json(
+        {
+          data: [],
+          total: 0,
+          take,
+          skip,
+          degraded: true,
+        },
+        {
+          headers: {
+            "Cache-Control": "private, no-store",
+            Vary: "Authorization",
+          },
+        }
+      );
+    }
+
+    const { user } = authResult as { user: { id: string } };
+
     const cacheKey = getCacheKey(user.id, "gigs", { take, skip });
     const cached = getCacheEntry<{ data: unknown; total: number; take: number; skip: number }>(cacheKey);
     if (cached) {
@@ -310,7 +316,7 @@ export async function GET(request: NextRequest) {
     
     recordMetric("GET /api/gigs [ERROR]", 0, {
       endpoint: "/api/gigs",
-      userId: user.id,
+      userId: "unknown",
       status: 200,
       metadata: { isConnectionError: isDbConnectionError(error), degraded: true },
     });

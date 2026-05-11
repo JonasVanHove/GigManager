@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const DEFAULT_SETTINGS_BODY = {
   currency: "EUR",
   claimPerformanceFee: true,
@@ -88,7 +91,7 @@ export async function GET(request: NextRequest) {
     const { user } = auth as { user: Awaited<ReturnType<typeof getOrCreateUser>> };
 
     try {
-      let settings = await prisma.userSettings.findUnique({
+      const settings = await prisma.userSettings.findUnique({
         where: { userId: user.id },
       });
 
@@ -108,7 +111,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
     }
   } catch (e) {
-    console.error("[GET /api/settings] fatal:", e);
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error("[GET /api/settings] fatal:", errorMsg);
     return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
   }
 }
