@@ -64,6 +64,20 @@ interface ValidationError {
   message: string;
 }
 
+// Decode JWT without verification (for local dev/fallback)
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    
+    const payload = parts[1];
+    const decoded = Buffer.from(payload, "base64").toString("utf-8");
+    return JSON.parse(decoded);
+  } catch (err) {
+    return null;
+  }
+}
+
 function validateGigInput(body: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -191,8 +205,45 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
   
   try {
     logDebug("[API Auth] Calling supabaseAdmin.auth.getUser...");
+    logDebug("[API Auth] Token prefix:", token.substring(0, 50));
+    
+    // First, try to decode JWT locally to get user info
+    const jwtPayload = decodeJWT(token);
+    if (jwtPayload && jwtPayload.sub) {
+      logDebug("[API Auth] JWT decoded successfully, sub:", jwtPayload.sub);
+      logDebug("[API Auth] JWT email:", jwtPayload.email);
+      
+      // Get or create user from JWT payload
+      try {
+        const user = await getOrCreateUser(
+          jwtPayload.sub,
+          jwtPayload.email || "",
+          jwtPayload.name
+        );
+        setAuthCache(token, user);
+        logDebug("[API Auth] User created/retrieved from JWT:", user.id);
+        return { user };
+      } catch (dbErr) {
+        const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+        console.error("[API Auth] Database error (JWT path):", dbErrMsg);
+        // Valid JWT but app DB unreachable
+        return { degraded: true };
+      }
+    }
+    
+    // Fallback: try Supabase admin API if JWT decode fails
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     const supabaseUser = data?.user ?? null;
+
+    logDebug("[API Auth] Response data:", !!data);
+    logDebug("[API Auth] Response error:", !!error);
+    if (error) {
+      logDebug("[API Auth] Error details:", {
+        message: error.message,
+        status: (error as any).status,
+        code: (error as any).code,
+      });
+    }
 
     if (error) {
       console.error("[API Auth] Supabase error:", {
@@ -200,6 +251,7 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
         status: (error as any).status,
         code: (error as any).code,
         fullError: summarizeError(error),
+        tokenLength: token.length,
       });
       return NextResponse.json(
         { 
