@@ -1,10 +1,10 @@
 // Service Worker for GigsManager
 // Provides offline support and intelligent caching strategies
 
-const CACHE_NAME = 'gigs-manager-v1.11.15';
-const STATIC_CACHE = 'gigs-manager-static-v2';
-const DYNAMIC_CACHE = 'gigs-manager-dynamic-v2';
-const LONG_TERM_CACHE = 'gigs-manager-longterm-v2';
+const CACHE_NAME = 'gigs-manager-v1.11.16';
+const STATIC_CACHE = 'gigs-manager-static-v3';
+const DYNAMIC_CACHE = 'gigs-manager-dynamic-v3';
+const LONG_TERM_CACHE = 'gigs-manager-longterm-v3';
 
 // Static assets that should be cached on install
 const STATIC_ASSETS = [
@@ -60,6 +60,17 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome extensions and non-http protocols
   if (!url.startsWith('http')) {
+    return;
+  }
+
+  // Never intercept Next.js build assets or app documents.
+  // Caching these is what causes stale chunk URLs and MIME/404 failures after deploys.
+  if (
+    destination === 'document' ||
+    destination === 'script' ||
+    destination === 'style' ||
+    url.includes('/_next/')
+  ) {
     return;
   }
 
@@ -192,7 +203,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 4: HTML/JS/CSS - network first with cache fallback
+  // Strategy 4: Other assets - network first with cache fallback
   event.respondWith(
     fetch(request)
       .then((response) => {
