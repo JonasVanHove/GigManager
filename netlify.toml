@@ -3,7 +3,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [build]
-  command   = "git fetch --unshallow --tags 2>/dev/null || git fetch --tags 2>/dev/null || true && npm install && npx prisma generate && npm run build"
+  command   = "git fetch --unshallow --tags 2>/dev/null || git fetch --tags 2>/dev/null || true && npm ci --include=dev && npx prisma generate && npm run build"
   publish   = ".next"
 
 [build.environment]
