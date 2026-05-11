@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "prisma generate",
     "build": "node scripts/getVersion.js && next build",
     "start": "next start",
     "lint": "next lint",
