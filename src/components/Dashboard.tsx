@@ -138,6 +138,8 @@ export default function Dashboard() {
   const fetchRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchRetryAttemptRef = useRef(0);
   const swRecoveryAttemptedRef = useRef(false);
+  const serverErrorBlockedRef = useRef(false);
+  const lastBlockedUserIdRef = useRef<string | null>(null);
   const gigsCacheKey = useMemo(
     () => (session?.user?.id ? `gigs-cache:${session.user.id}` : null),
     [session?.user?.id]
@@ -146,6 +148,19 @@ export default function Dashboard() {
   useEffect(() => {
     gigsRef.current = gigs;
   }, [gigs]);
+
+  useEffect(() => {
+    const currentUserId = session?.user?.id ?? null;
+    if (currentUserId !== lastBlockedUserIdRef.current) {
+      serverErrorBlockedRef.current = false;
+      lastBlockedUserIdRef.current = currentUserId;
+      fetchRetryAttemptRef.current = 0;
+      if (fetchRetryTimeoutRef.current) {
+        clearTimeout(fetchRetryTimeoutRef.current);
+        fetchRetryTimeoutRef.current = null;
+      }
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     return () => {
@@ -343,6 +358,10 @@ export default function Dashboard() {
   // -- Data fetching ----------------------------------------------------------
 
   const fetchGigs = useCallback(async () => {
+    if (serverErrorBlockedRef.current) {
+      return;
+    }
+
     if (fetchGigsInFlightRef.current) {
       return;
     }
@@ -425,6 +444,19 @@ export default function Dashboard() {
             }
           }
           toast.error("Session expired. Please sign out and sign in again.");
+        } else if (res.status >= 500 && res.status !== 503) {
+          serverErrorBlockedRef.current = true;
+          fetchRetryAttemptRef.current = 0;
+          if (fetchRetryTimeoutRef.current) {
+            clearTimeout(fetchRetryTimeoutRef.current);
+            fetchRetryTimeoutRef.current = null;
+          }
+          const errorText = await parseApiError(res);
+          console.error("[fetchGigs] Server error response:", errorText);
+          toast.error("Server error while loading gigs. Refresh after the backend is healthy.");
+          setGigs(gigsRef.current);
+          setTotalGigCount(gigsRef.current.length);
+          return;
         } else if (res.status === 503) {
           // Service unavailable - retry with exponential backoff and cap attempts
           console.warn("[fetchGigs] Got 503, handling temporary service outage...");
@@ -507,6 +539,9 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Fetch gigs error:", err);
       const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("500") || msg.toLowerCase().includes("internal server error")) {
+        serverErrorBlockedRef.current = true;
+      }
       toast.error(`Failed to load gigs: ${msg}`);
     } finally {
       fetchGigsInFlightRef.current = false;

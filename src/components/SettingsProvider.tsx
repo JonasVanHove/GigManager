@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useRef } from "react";
 import type { UserSettingsData } from "@/types";
 import { DEFAULT_SETTINGS } from "@/types";
 import { useAuth } from "./AuthProvider";
@@ -33,6 +34,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<UserSettingsData>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [language, setLanguageState] = useState<AppLanguage>("system");
+  const settingsFetchBlockedRef = useRef(false);
+  const blockedSettingsUserIdRef = useRef<string | null>(null);
 
   const locale = resolveLocale(language);
 
@@ -49,6 +52,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const currentUserId = session?.user?.id ?? null;
+
+    if (currentUserId !== blockedSettingsUserIdRef.current) {
+      settingsFetchBlockedRef.current = false;
+      blockedSettingsUserIdRef.current = currentUserId;
+    }
+
+    if (settingsFetchBlockedRef.current) {
+      return () => { cancelled = true; };
+    }
 
     try {
       const storedLanguage = localStorage.getItem("gig-manager-language") as AppLanguage | null;
@@ -84,9 +97,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (res.ok && !cancelled) {
           const data: UserSettingsData = await res.json();
           setSettings(data);
+        } else if (res.status >= 500) {
+          settingsFetchBlockedRef.current = true;
+          if (!cancelled) {
+            setSettings(DEFAULT_SETTINGS);
+          }
         }
       } catch (err) {
         console.error("Failed to load settings:", err);
+        settingsFetchBlockedRef.current = true;
       } finally {
         if (!cancelled) setLoading(false);
       }
