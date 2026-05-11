@@ -175,63 +175,67 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
   const logDebug = (...args: unknown[]) => {
     if (isDev) console.log(...args);
   };
-  const token = getBearerToken(request);
-  if (!token) {
-    logDebug("[API Auth] Missing Authorization header");
-    return NextResponse.json(
-      { error: "Unauthorized: missing token" },
-      { status: 401 }
-    );
-  }
-
-  const cachedUser = getAuthCache(token);
-  if (cachedUser) {
-    return { user: cachedUser };
-  }
-
-  logDebug("[API Auth] Token received, length:", token.length);
-  logDebug("[API Auth] Token starts with:", token.substring(0, 20));
-  
-  // Check environment
-  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-  logDebug("[API Auth] SUPABASE_SERVICE_ROLE_KEY set:", hasServiceKey);
   
   try {
-    logDebug("[API Auth] Calling supabaseAdmin.auth.getUser...");
-    logDebug("[API Auth] Token prefix:", token.substring(0, 50));
+    console.log("[requireAuth/gigs] Start");
+    const token = getBearerToken(request);
+    if (!token) {
+      logDebug("[requireAuth/gigs] Missing Authorization header");
+      return NextResponse.json(
+        { error: "Unauthorized: missing token" },
+        { status: 401 }
+      );
+    }
+
+    console.log("[requireAuth/gigs] Token found, length:", token.length);
+    const cachedUser = getAuthCache(token);
+    if (cachedUser) {
+      console.log("[requireAuth/gigs] Using cached user");
+      return { user: cachedUser };
+    }
+
+    logDebug("[requireAuth/gigs] Token received, length:", token.length);
+    logDebug("[requireAuth/gigs] Token starts with:", token.substring(0, 20));
     
+    // Check environment
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    logDebug("[requireAuth/gigs] SUPABASE_SERVICE_ROLE_KEY set:", hasServiceKey);
+    
+    console.log("[requireAuth/gigs] Attempting JWT decode...");
     // First, try to decode JWT locally to get user info
     const jwtPayload = decodeJWT(token);
     if (jwtPayload && jwtPayload.sub) {
-      logDebug("[API Auth] JWT decoded successfully, sub:", jwtPayload.sub);
-      logDebug("[API Auth] JWT email:", jwtPayload.email);
+      console.log("[requireAuth/gigs] JWT decoded successfully, sub:", jwtPayload.sub);
+      logDebug("[requireAuth/gigs] JWT email:", jwtPayload.email);
       
       // Get or create user from JWT payload
       try {
+        console.log("[requireAuth/gigs] Getting/creating user from JWT...");
         const user = await getOrCreateUser(
           jwtPayload.sub,
           jwtPayload.email || "",
           jwtPayload.name
         );
         setAuthCache(token, user);
-        logDebug("[API Auth] User created/retrieved from JWT:", user.id);
+        console.log("[requireAuth/gigs] User ready from JWT:", user.id);
         return { user };
       } catch (dbErr) {
         const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-        console.error("[API Auth] Database error (JWT path):", dbErrMsg);
+        console.error("[requireAuth/gigs] Database error (JWT path):", dbErrMsg);
         // Valid JWT but app DB unreachable
         return { degraded: true };
       }
     }
     
+    console.log("[requireAuth/gigs] JWT decode failed, trying admin API...");
     // Fallback: try Supabase admin API if JWT decode fails
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     const supabaseUser = data?.user ?? null;
 
-    logDebug("[API Auth] Response data:", !!data);
-    logDebug("[API Auth] Response error:", !!error);
+    logDebug("[requireAuth/gigs] Response data:", !!data);
+    logDebug("[requireAuth/gigs] Response error:", !!error);
     if (error) {
-      logDebug("[API Auth] Error details:", {
+      logDebug("[requireAuth/gigs] Error details:", {
         message: error.message,
         status: (error as any).status,
         code: (error as any).code,
@@ -239,12 +243,11 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
     }
 
     if (error) {
-      console.error("[API Auth] Supabase error:", {
+      console.error("[requireAuth/gigs] Supabase error:", {
         message: error.message,
         status: (error as any).status,
         code: (error as any).code,
-        fullError: summarizeError(error),
-        tokenLength: token.length,
+        hasServiceKey,
       });
       return NextResponse.json(
         { 
@@ -258,17 +261,18 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
     }
     
     if (!supabaseUser) {
-      console.error("[API Auth] No user in response");
+      console.error("[requireAuth/gigs] No user in response");
       return NextResponse.json(
         { error: "Unauthorized: no user data" },
         { status: 401 }
       );
     }
     
-    logDebug("[API Auth] Token valid for user:", supabaseUser.id);
+    console.log("[requireAuth/gigs] Token valid for user:", supabaseUser.id);
     
     // Get or create user record
     try {
+      console.log("[requireAuth/gigs] Getting/creating user from Supabase...");
       const user = await getOrCreateUser(
         supabaseUser.id,
         supabaseUser.email || "",
@@ -277,26 +281,27 @@ async function requireAuth(request: NextRequest): Promise<GigsAuthResult> {
 
       setAuthCache(token, user);
       
-      logDebug("[API Auth] DB user ready:", user.id);
+      logDebug("[requireAuth/gigs] DB user ready:", user.id);
+      console.log("[requireAuth/gigs] User ready from Supabase:", user.id);
       return { user };
     } catch (dbErr) {
       const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
       
-      console.error("[API Auth] Database error during user creation:", {
+      console.error("[requireAuth/gigs] Database error during user creation:", {
         message: dbErrMsg,
-        error: dbErr,
       });
       // Valid JWT but app DB unreachable — let GET return empty list; POST returns 503
       return { degraded: true };
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[API Auth] Exception during token validation:", {
+    const errorStack = err instanceof Error ? err.stack : "no stack";
+    console.error("[requireAuth/gigs] Exception during token validation:", {
       message: errorMsg,
-      error: summarizeError(err),
+      stack: errorStack,
     });
     return NextResponse.json(
-      { error: "Unauthorized: token validation failed", details: errorMsg, hasServiceKey },
+      { error: "Unauthorized: token validation failed", details: errorMsg },
       { status: 401 }
     );
   }
@@ -307,14 +312,19 @@ export async function GET(request: NextRequest) {
   let skip = 0;
 
   try {
+    console.log("[GET /api/gigs] Starting");
     const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) return authResult;
+    if (authResult instanceof NextResponse) {
+      console.log("[GET /api/gigs] Auth returned NextResponse");
+      return authResult;
+    }
 
     const { searchParams } = new URL(request.url);
     take = Math.min(Number(searchParams.get("take")) || 100, 200);
     skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
 
     if ("degraded" in authResult && authResult.degraded) {
+      console.log("[GET /api/gigs] Auth degraded, returning defaults");
       return NextResponse.json(
         {
           data: [],
@@ -333,10 +343,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { user } = authResult as { user: { id: string } };
+    console.log("[GET /api/gigs] User authenticated:", user.id);
 
     const cacheKey = getCacheKey(user.id, "gigs", { take, skip });
     const cached = getCacheEntry<{ data: unknown; total: number; take: number; skip: number }>(cacheKey);
     if (cached) {
+      console.log("[GET /api/gigs] Cache hit");
       recordMetric("GET /api/gigs [CACHE HIT]", 0, {
         endpoint: "/api/gigs",
         userId: user.id,
@@ -346,6 +358,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached, { headers: getApiCacheHeaders(15, "HIT") });
     }
     
+    console.log("[GET /api/gigs] Querying database");
     const [gigs, total] = await measureAsync(
       "GET /api/gigs [DB QUERY]",
       () => Promise.all([
@@ -364,13 +377,17 @@ export async function GET(request: NextRequest) {
       }
     );
 
+    console.log("[GET /api/gigs] Query successful, found", gigs.length, "gigs");
     const payload = { data: gigs, total, take, skip };
     setCacheEntry(cacheKey, payload, 15);
     return NextResponse.json(payload, { headers: getApiCacheHeaders(15, "MISS") });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : "no stack";
     
-    console.error("[GET /api/gigs] Exception:", errorMsg, error);
+    console.error("[GET /api/gigs] Exception:", errorMsg);
+    console.error("[GET /api/gigs] Stack:", errorStack);
+    console.error("[GET /api/gigs] Full error:", error);
     
     recordMetric("GET /api/gigs [ERROR]", 0, {
       endpoint: "/api/gigs",
@@ -386,6 +403,7 @@ export async function GET(request: NextRequest) {
         take,
         skip,
         degraded: true,
+        error: errorMsg,
       },
       {
         headers: {

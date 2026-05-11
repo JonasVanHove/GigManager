@@ -119,23 +119,32 @@ async function requireAuth(request: NextRequest): Promise<SettingsAuthResult> {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[GET /api/settings] Starting");
     const auth = await requireAuth(request);
-    if ("error" in auth) return auth.error;
+    if ("error" in auth) {
+      console.log("[GET /api/settings] Auth error");
+      return auth.error;
+    }
     if ("useDefaultsOnly" in auth && auth.useDefaultsOnly) {
+      console.log("[GET /api/settings] Auth degraded, returning defaults");
       return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
     }
 
     const { user } = auth as { user: Awaited<ReturnType<typeof getOrCreateUser>> };
+    console.log("[GET /api/settings] User authenticated:", user.id);
 
     try {
+      console.log("[GET /api/settings] Querying database");
       const settings = await prisma.userSettings.findUnique({
         where: { userId: user.id },
       });
 
       if (!settings) {
+        console.log("[GET /api/settings] No settings found, returning defaults");
         return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
       }
 
+      console.log("[GET /api/settings] Settings found");
       return NextResponse.json({
         currency: settings.currency,
         claimPerformanceFee: settings.claimPerformanceFee,
@@ -144,12 +153,18 @@ export async function GET(request: NextRequest) {
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error("[GET /api/settings] error:", errorMsg);
+      const errorStack = err instanceof Error ? err.stack : "no stack";
+      console.error("[GET /api/settings] DB error:", errorMsg);
+      console.error("[GET /api/settings] Stack:", errorStack);
+      console.error("[GET /api/settings] Full error:", err);
       return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
     }
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e);
+    const errorStack = e instanceof Error ? e.stack : "no stack";
     console.error("[GET /api/settings] fatal:", errorMsg);
+    console.error("[GET /api/settings] Stack:", errorStack);
+    console.error("[GET /api/settings] Full error:", e);
     return NextResponse.json({ ...DEFAULT_SETTINGS_BODY });
   }
 }
