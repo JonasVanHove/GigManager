@@ -24,9 +24,10 @@ export default function AllGigsTab({
 }: AllGigsTabProps) {
   const { language } = useSettings();
   const PAGE_SIZE = 24;
-  const [sortBy, setSortBy] = useState<SortOption>("date-desc");
+  const [sortBy, setSortBy] = useState<SortOption>("chronology");
   const [selectedArtists, setSelectedArtists] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [hidePastGigs, setHidePastGigs] = useState(false);
   const deferredGigs = useDeferredValue(gigs);
 
   const copy = language === "nl"
@@ -47,6 +48,7 @@ export default function AllGigsTab({
         noMatches: "Geen optredens komen overeen met je filters",
         loadMore: "Meer laden",
         left: "over",
+        hidePastGigs: "Verbergen voorbije optredens",
       }
     : {
         noPerformancesYet: "No performances yet",
@@ -65,6 +67,7 @@ export default function AllGigsTab({
         noMatches: "No performances match your filters",
         loadMore: "Load more",
         left: "left",
+        hidePastGigs: "Hide past performances",
       };
 
   // Get all unique artists
@@ -76,11 +79,24 @@ export default function AllGigsTab({
     return Array.from(unique).sort();
   }, [deferredGigs]);
 
-  // Filter by selected artists
+  // Filter by selected artists and hide past gigs
   const filteredGigs = useMemo(() => {
-    if (selectedArtists.size === 0) return deferredGigs;
-    return deferredGigs.filter((gig) => selectedArtists.has(gig.performers));
-  }, [deferredGigs, selectedArtists]);
+    let filtered = deferredGigs;
+
+    // Filter by artists
+    if (selectedArtists.size > 0) {
+      filtered = filtered.filter((gig) => selectedArtists.has(gig.performers));
+    }
+
+    // Filter past gigs if toggle is enabled
+    if (hidePastGigs) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((gig) => new Date(gig.date) >= today);
+    }
+
+    return filtered;
+  }, [deferredGigs, selectedArtists, hidePastGigs]);
 
   // Sort
   const sortedGigs = useMemo(() => {
@@ -136,7 +152,7 @@ export default function AllGigsTab({
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [sortBy, selectedArtists, deferredGigs.length]);
+  }, [sortBy, selectedArtists, hidePastGigs, deferredGigs.length]);
 
   const visibleGigs = useMemo(
     () => sortedGigs.slice(0, visibleCount),
@@ -199,6 +215,21 @@ export default function AllGigsTab({
           </select>
         </div>
 
+        {/* Hide past gigs toggle */}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hidePastGigs}
+              onChange={(e) => setHidePastGigs(e.target.checked)}
+              className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
+            />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {copy.hidePastGigs}
+            </span>
+          </label>
+        </div>
+
         {/* Artist filter buttons */}
         {artists.length > 0 && (
           <div>
@@ -220,7 +251,7 @@ export default function AllGigsTab({
                 <button
                   key={artist}
                   onClick={() => toggleArtist(artist)}
-                  className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                  className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition ${selectedArtists.has(artist) ? "badge-enter" : ""} ${
                     selectedArtists.has(artist)
                       ? "bg-brand-600 text-white dark:bg-brand-500"
                       : "border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 bg-white dark:bg-slate-800"
@@ -254,15 +285,16 @@ export default function AllGigsTab({
       ) : (
         <>
           <div className="grid gap-5">
-          {visibleGigs.map((gig) => (
-            <GigCard
-              key={gig.id}
-              gig={gig}
-              onEdit={onEdit}
-              fmtCurrency={fmtCurrency}
-              claimPerformanceFee={gig.claimPerformanceFee}
-              claimTechnicalFee={gig.claimTechnicalFee}
-            />
+          {visibleGigs.map((gig, idx) => (
+            <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
+              <GigCard
+                gig={gig}
+                onEdit={onEdit}
+                fmtCurrency={fmtCurrency}
+                claimPerformanceFee={gig.claimPerformanceFee}
+                claimTechnicalFee={gig.claimTechnicalFee}
+              />
+            </div>
           ))}
           </div>
 

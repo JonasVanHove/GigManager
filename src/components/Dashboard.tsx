@@ -228,6 +228,11 @@ export default function Dashboard() {
     }
   }, [searchParams, activeTab]);
 
+  // Scroll to top when tab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeTab]);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("overview-expanded");
@@ -1039,7 +1044,7 @@ export default function Dashboard() {
                 )}
               </button>
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200/50 bg-white/95 backdrop-blur text-sm shadow-xl dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200/50 bg-white/95 backdrop-blur text-sm shadow-xl dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur overflow-hidden menu-enter">
                   {/* Profile info header */}
                   <div className="border-b border-slate-200 dark:border-slate-700 p-3">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">
@@ -1058,7 +1063,7 @@ export default function Dashboard() {
                       }}
                       className="w-full px-3 py-2 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      Settings
+                      ⚙️ Settings
                     </button>
                     <button
                       onClick={() => {
@@ -1067,7 +1072,7 @@ export default function Dashboard() {
                       }}
                       className="w-full px-3 py-2 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      Keyboard shortcuts
+                      ⌨️ Keyboard shortcuts
                     </button>
                     <div className="border-t border-slate-200 dark:border-slate-700 mt-2 pt-2">
                       <button
@@ -1091,9 +1096,9 @@ export default function Dashboard() {
       {/* Mobile menu overlay - OUTSIDE header for full viewport coverage */}
       {showMobileMenu && (
         <>
-          <div className="lg:hidden fixed inset-0 z-[100] bg-black/50" onClick={() => setShowMobileMenu(false)} />
+          <div className="lg:hidden fixed inset-0 z-[100] bg-black/50 mobile-menu-backdrop" onClick={() => setShowMobileMenu(false)} />
           {/* Responsive menu width: phone (84vw) → tablet (60vw) → large tablet (50vw) */}
-          <div className="lg:hidden fixed left-0 top-0 bottom-0 z-[101] w-[84vw] max-w-[19rem] tablet:w-[60vw] tablet:max-w-[30rem] tablet-lg:w-[50vw] tablet-lg:max-w-[40rem] bg-white dark:bg-slate-900 shadow-xl overflow-y-auto">
+          <div className="lg:hidden fixed left-0 top-0 bottom-0 z-[101] w-[84vw] max-w-[19rem] tablet:w-[60vw] tablet:max-w-[30rem] tablet-lg:w-[50vw] tablet-lg:max-w-[40rem] bg-white dark:bg-slate-900 shadow-xl overflow-y-auto mobile-menu-enter">
             <div className="p-4 tablet:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Menu</h2>
@@ -1665,18 +1670,19 @@ export default function Dashboard() {
                           </div>
                           {isActiveSectionExpanded && (
                             <div className={effectiveWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
-                              {activeGigs.map((gig) => (
-                                <GigCard
-                                  key={gig.id}
-                                  gig={gig}
-                                  onEdit={handleEditGig}
-                                  fmtCurrency={fmtCurrency}
-                                  claimPerformanceFee={gig.claimPerformanceFee}
-                                  claimTechnicalFee={gig.claimTechnicalFee}
-                                  isExpandedGlobal={globalExpandState}
-                                  isSelected={selectedGigIds.has(gig.id)}
-                                  onSelect={handleToggleGigSelection}
-                                />
+                              {activeGigs.map((gig, idx) => (
+                                <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
+                                  <GigCard
+                                    gig={gig}
+                                    onEdit={handleEditGig}
+                                    fmtCurrency={fmtCurrency}
+                                    claimPerformanceFee={gig.claimPerformanceFee}
+                                    claimTechnicalFee={gig.claimTechnicalFee}
+                                    isExpandedGlobal={globalExpandState}
+                                    isSelected={selectedGigIds.has(gig.id)}
+                                    onSelect={handleToggleGigSelection}
+                                  />
+                                </div>
                               ))}
                             </div>
                           )}
@@ -1735,18 +1741,19 @@ export default function Dashboard() {
                           </div>
                           {isHandledSectionExpanded && (
                             <div className={effectiveWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
-                              {handledGigs.map((gig) => (
-                                <GigCard
-                                  key={gig.id}
-                                  gig={gig}
-                                  onEdit={handleEditGig}
-                                  fmtCurrency={fmtCurrency}
-                                  claimPerformanceFee={gig.claimPerformanceFee}
-                                  claimTechnicalFee={gig.claimTechnicalFee}
-                                  isExpandedGlobal={globalExpandState}
-                                  isSelected={selectedGigIds.has(gig.id)}
-                                  onSelect={handleToggleGigSelection}
-                                />
+                              {handledGigs.map((gig, idx) => (
+                                <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
+                                  <GigCard
+                                    gig={gig}
+                                    onEdit={handleEditGig}
+                                    fmtCurrency={fmtCurrency}
+                                    claimPerformanceFee={gig.claimPerformanceFee}
+                                    claimTechnicalFee={gig.claimTechnicalFee}
+                                    isExpandedGlobal={globalExpandState}
+                                    isSelected={selectedGigIds.has(gig.id)}
+                                    onSelect={handleToggleGigSelection}
+                                  />
+                                </div>
                               ))}
                             </div>
                           )}

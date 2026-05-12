@@ -54,7 +54,7 @@ export default function Toast({ message, type, duration = 4000, onClose, action 
   };
 
   return (
-    <div className={`pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border transition-all duration-300 ${styles[type]}`}>
+    <div className={`pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border transition-all duration-300 animate-slide-in-up ${styles[type]}`}>
       <div className="p-4">
         <div className="flex items-start">
           <div className="shrink-0">{icons[type]}</div>

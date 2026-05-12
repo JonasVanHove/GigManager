@@ -109,8 +109,8 @@ export default function BulkEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-800/95 backdrop-blur shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md modal-backdrop-enter">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-800/95 backdrop-blur shadow-2xl modal-content-enter">
         <div className="border-b border-slate-200/50 dark:border-slate-700/50 px-6 py-5 bg-gradient-to-r from-slate-50/70 to-slate-100/40 dark:from-slate-800/40 dark:to-slate-800/10">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             Bulk Actions

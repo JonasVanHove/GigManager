@@ -78,7 +78,7 @@ export default function Tooltip({ content, children, position = "top", delay = 3
         <div
           ref={tooltipRef}
           role="tooltip"
-          className={`absolute z-50 animate-in fade-in-0 zoom-in-95 ${positionClasses[actualPosition]}`}
+          className={`absolute z-50 tooltip-enter ${positionClasses[actualPosition]}`}
         >
           <div className="max-w-xs rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-slate-700">
             {content}

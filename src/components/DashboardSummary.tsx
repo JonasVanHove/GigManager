@@ -189,7 +189,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
 
           {/* Expanded performances breakdown */}
           {expandedCard === "performances" && (
-            <div className="mt-2 sm:mt-3 space-y-2 rounded-lg border border-purple-200 bg-white p-2 sm:p-3 dark:border-purple-800 dark:bg-slate-800">
+            <div className="mt-2 sm:mt-3 space-y-2 rounded-lg border border-purple-200 bg-white p-2 sm:p-3 dark:border-purple-800 dark:bg-slate-800 accordion-enter">
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded bg-purple-50 dark:bg-purple-900/20 p-2">
                   <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Total</p>

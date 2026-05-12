@@ -452,8 +452,8 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
-        <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm modal-backdrop-enter">
+        <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl modal-content-enter">
         {/* Header */}
         <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">

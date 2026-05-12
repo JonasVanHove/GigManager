@@ -60,8 +60,8 @@ export default function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md modal-backdrop-enter">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl modal-content-enter" role="dialog" aria-modal="true">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className="shrink-0">{icons[icon]}</div>

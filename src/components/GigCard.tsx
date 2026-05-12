@@ -104,7 +104,7 @@ const GigCard = memo(function GigCard({
   const bandStyles = useMemo(() => getBandColorStyles(gig.performers), [gig.performers]);
 
   return (
-    <div className={`group overflow-hidden rounded-xl border transition-all duration-300 ${
+    <div className={`group overflow-hidden rounded-xl border animate-fade-in transition-all duration-300 ${
       gig.managerInstantPayment
         ? 'opacity-60 border-slate-300/60 bg-slate-100/50 backdrop-blur shadow-sm dark:border-slate-600/60 dark:bg-slate-800/50 dark:backdrop-blur'
         : isSelected
@@ -142,50 +142,50 @@ const GigCard = memo(function GigCard({
             </h3>
             {gig.isCharity && (
               <>
-                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-pink-600 dark:text-pink-300" title="Charity">
+                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-pink-600 dark:text-pink-300 badge-enter" title="Charity">
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
                   </svg>
                 </span>
-                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30">
+                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-pink-50 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-700 dark:text-pink-300 ring-1 ring-pink-600/20 dark:ring-pink-500/30 badge-enter">
                   <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
                   </svg>
-                  Charity
+                  💕 Charity
                 </span>
               </>
             )}
             {gig.isTentative && (
               <>
-                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-amber-700 dark:text-amber-300" title="Tentative">
+                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-amber-700 dark:text-amber-300 badge-enter" title="Tentative">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="8" />
                     <path d="M12 8v5l3 2" />
                   </svg>
                 </span>
-                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
+                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30 badge-enter">
                   <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="8" />
                     <path d="M12 8v5l3 2" />
                   </svg>
-                  Tentative
+                  ⏳ Tentative
                 </span>
               </>
             )}
             {hasPendingNotes && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30 badge-enter">
                 <Icons.Spinner className="h-3 w-3 shrink-0 animate-pulse" />
                 {isDutch ? "Notities (pending)" : "Notes (pending)"}
               </span>
             )}
             {gig.managerInstantPayment && (
               <>
-                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-amber-700 dark:text-amber-300" title="Manager pays">
+                <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-amber-700 dark:text-amber-300 badge-enter" title="Manager pays">
                   <Icons.Wallet className="h-4 w-4" />
                 </span>
-                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30">
+                <span className="hidden tablet:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30 badge-enter">
                   <Icons.Wallet className="h-3 w-3 shrink-0" />
-                  Manager pays — arrange payment
+                  💰 Manager pays — arrange payment
                 </span>
               </>
             )}
@@ -225,9 +225,9 @@ const GigCard = memo(function GigCard({
 
       {/* Collapsible content */}
       {effectiveIsExpanded && (
-        <>
+        <div className="animate-expand">
           {/* -- Financial breakdown ------------------------------------------ */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-5 py-4 text-sm sm:grid-cols-4 border-b border-slate-100 dark:border-slate-700/50">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-5 py-4 text-sm sm:grid-cols-4 border-b border-slate-100 dark:border-slate-700/50 animate-fade-in">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Performance
@@ -416,14 +416,14 @@ const GigCard = memo(function GigCard({
       <div className="flex flex-wrap gap-2 border-t border-slate-100 dark:border-slate-700/50 px-5 py-3">
         {/* Context badge when band handles their own payment */}
         {!gig.managerHandlesDistribution && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-400">
-            Band payment direct
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-400 badge-enter">
+            👥 Band payment direct
           </span>
         )}
 
         {/* Client payment status - shown for ALL gigs */}
         <span
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium badge-enter ${
             gig.paymentReceived
               ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-600/20 dark:ring-emerald-500/30"
               : isClientPaymentOverdue
@@ -433,21 +433,14 @@ const GigCard = memo(function GigCard({
         >
           {gig.paymentReceived ? (
             <>
-              <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path
-                  fillRule="evenodd"
-                  d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Client Paid
+              ✅ Client Paid
               {gig.paymentReceivedDate &&
                 ` · ${formatDate(gig.paymentReceivedDate)}`}
             </>
           ) : (
             <>
               <Icons.AlertCircle className="h-3 w-3 shrink-0" />
-              {isClientPaymentOverdue ? "Payment overdue" : "Awaiting Payment"}
+              {isClientPaymentOverdue ? "⚠️ Payment overdue" : "⏳ Awaiting Payment"}
             </>
           )}
         </span>
@@ -455,7 +448,7 @@ const GigCard = memo(function GigCard({
         {/* Band payment status - only shown when manager handles distribution */}
         {gig.managerHandlesDistribution && (
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium badge-enter ${
               gig.bandPaid
                 ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-600/20 dark:ring-emerald-500/30"
                 : "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30"
@@ -463,13 +456,12 @@ const GigCard = memo(function GigCard({
           >
             {gig.bandPaid ? (
               <>
-                <Icons.Check className="h-3 w-3 shrink-0" />
-                Band Paid{gig.bandPaidDate && ` · ${formatDate(gig.bandPaidDate)}`}
+                ✅ Band Paid{gig.bandPaidDate && ` · ${formatDate(gig.bandPaidDate)}`}
               </>
             ) : (
               <>
                 <Icons.AlertCircle className="h-3 w-3 shrink-0" />
-                Band Unpaid
+                🎵 Band Unpaid
               </>
             )}
           </span>
@@ -486,7 +478,7 @@ const GigCard = memo(function GigCard({
           </span>
         )}
       </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -117,26 +117,26 @@ export default function LandingPage() {
         </div>
 
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-36">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-gold-50 dark:bg-gold-950 px-4 py-1.5 text-sm font-medium text-gold-700 dark:text-gold-300 ring-1 ring-gold-200 dark:ring-gold-800">
+          <div className="mx-auto max-w-3xl text-center space-y-6 animate-fade-in">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-gold-50 dark:bg-gold-950 px-4 py-1.5 text-sm font-medium text-gold-700 dark:text-gold-300 ring-1 ring-gold-200 dark:ring-gold-800 animate-scale-in">
               <MusicIcon className="h-4 w-4" />
               Built for live music professionals
             </div>
 
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl animate-slide-in-down">
               Manage your gigs,{" "}
               <span className="bg-gradient-to-r from-brand-600 to-orange-500 dark:from-brand-400 dark:to-orange-400 bg-clip-text text-transparent">
                 not spreadsheets
               </span>
             </h1>
 
-            <p className="mt-6 text-lg leading-relaxed text-slate-600 dark:text-slate-400 sm:text-xl">
+            <p className="mt-6 text-lg leading-relaxed text-slate-600 dark:text-slate-400 sm:text-xl animate-fade-in" style={{ animationDelay: "0.2s" }}>
               GigsManager helps musicians and band managers track performances,
               split fees, and manage payments — all in one simple dashboard.
               Stop juggling spreadsheets and start focusing on the music.
             </p>
 
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center animate-fade-in" style={{ animationDelay: "0.4s" }}>
               <button
                 onClick={() => {
                   setShowAuth(true);

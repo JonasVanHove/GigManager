@@ -93,3 +93,454 @@ html.dark ::selection {
   color: #0a0a0f;
 }
 
+/* ── Advanced Animation Utilities ───────────────────────────────────── */
+
+@layer components {
+  /* Stagger animations for list items */
+  .animate-stagger-1 { animation-delay: 0.05s; }
+  .animate-stagger-2 { animation-delay: 0.1s; }
+  .animate-stagger-3 { animation-delay: 0.15s; }
+  .animate-stagger-4 { animation-delay: 0.2s; }
+  .animate-stagger-5 { animation-delay: 0.25s; }
+  .animate-stagger-6 { animation-delay: 0.3s; }
+  .animate-stagger-7 { animation-delay: 0.35s; }
+  .animate-stagger-8 { animation-delay: 0.4s; }
+  .animate-stagger-9 { animation-delay: 0.45s; }
+  .animate-stagger-10 { animation-delay: 0.5s; }
+  
+  /* Smooth state transitions */
+  .transition-smooth {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  .transition-smooth-300 {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+  
+  .transition-smooth-500 {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 500ms;
+  }
+  
+  /* Expand/collapse with smooth animation */
+  @keyframes expandHeight {
+    from {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+    }
+    to {
+      opacity: 1;
+      max-height: 100%;
+      overflow: visible;
+    }
+  }
+  
+  @keyframes collapseHeight {
+    from {
+      opacity: 1;
+      max-height: 100%;
+      overflow: hidden;
+    }
+    to {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+    }
+  }
+  
+  .animate-expand {
+    animation: expandHeight 0.3s ease-out forwards;
+  }
+  
+  .animate-collapse {
+    animation: collapseHeight 0.3s ease-out forwards;
+  }
+}
+
+/* ── Menu & Dropdown Animations ──────────────────────────────────── */
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes slideInLeftMenu {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeftMenu {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideDownDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0);
+  }
+}
+
+@keyframes slideUpDropdown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+/* Menu animations */
+.menu-enter {
+  animation: slideDownDropdown 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.menu-exit {
+  animation: slideUpDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Mobile menu */
+.mobile-menu-enter {
+  animation: slideInLeftMenu 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.mobile-menu-exit {
+  animation: slideOutLeftMenu 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-menu-backdrop {
+  animation: fadeInBackdrop 0.2s ease-out forwards;
+}
+
+/* ── Enhanced transitions for common elements ─────────────────────────── */
+
+button, a, input[type="checkbox"], input[type="radio"] {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Checkbox animation */
+@keyframes checkboxCheck {
+  0% {
+    transform: scale(0.7);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+input[type="checkbox"]:checked {
+  animation: checkboxCheck 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Radio button animation */
+@keyframes radioPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+input[type="radio"]:checked {
+  animation: radioPulse 0.4s ease-out;
+}
+
+/* Modal/Backdrop animations */
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-backdrop-enter {
+  animation: fadeInBackdrop 0.2s ease-out;
+}
+
+.modal-content-enter {
+  animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading shimmer effect */
+@keyframes shimmerLoad {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer-load {
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 1000px 100%;
+  animation: shimmerLoad 2s infinite;
+}
+
+/* Tooltip animations */
+@keyframes tooltipFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-enter {
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+/* ── Tab Switch Animations ───────────────────────────────────────────── */
+
+@keyframes tabSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tabSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+.tab-content-enter {
+  animation: tabSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-content-exit {
+  animation: tabSlideOut 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Badge & Chip Animations ─────────────────────────────────────────── */
+
+@keyframes badgeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes badgeRemove {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.85) translateY(-4px);
+  }
+}
+
+.badge-enter {
+  animation: badgeAppear 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.badge-exit {
+  animation: badgeRemove 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Form Input Animations ───────────────────────────────────────────── */
+
+@keyframes inputFocus {
+  from {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.1);
+  }
+  to {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+}
+
+input:focus, textarea:focus, select:focus {
+  animation: inputFocus 0.3s ease-out forwards;
+}
+
+/* ── Row/Item Animations ─────────────────────────────────────────────── */
+
+@keyframes rowHighlight {
+  0%, 100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+}
+
+.row-highlight {
+  animation: rowHighlight 0.6s ease-in-out;
+}
+
+/* ── Button Press Animation ──────────────────────────────────────────── */
+
+@keyframes buttonPress {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.button-press {
+  animation: buttonPress 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Accordion Animations ────────────────────────────────────────────── */
+
+@keyframes accordionSlideDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+}
+
+@keyframes accordionSlideUp {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+}
+
+.accordion-enter {
+  animation: accordionSlideDown 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.accordion-exit {
+  animation: accordionSlideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Button & Interactive Enhancements ──────────────────────────────── */
+
+@keyframes buttonGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+.button-glow {
+  animation: buttonGlow 2s infinite;
+}
+
+/* Smooth underline animation for links */
+@keyframes underlineSlide {
+  from {
+    width: 0;
+    left: 0;
+  }
+  to {
+    width: 100%;
+    left: 0;
+  }
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: currentColor;
+  animation: underlineSlide 0.3s ease-out forwards;
+}
+

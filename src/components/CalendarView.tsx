@@ -238,11 +238,11 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
       {/* Event Detail Modal */}
       {selectedEvent && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 modal-backdrop-enter"
           onClick={handleCloseModal}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 modal-content-enter"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-700/50 dark:bg-slate-800/50">
