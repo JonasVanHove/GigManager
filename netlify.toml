@@ -3,27 +3,49 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [build]
-  command   = "git fetch --unshallow --tags 2>/dev/null || git fetch --tags 2>/dev/null || true && npm ci --include=dev && npx prisma generate && npm run build"
+  # Critical: npm ci --include=dev ensures prisma CLI is available
+  # Then npm run db:generate creates .prisma/client
+  # Then npm run build bundles everything
+  command   = "npm ci --include=dev && npm run db:generate && npm run build"
   publish   = ".next"
 
 [build.environment]
-  NODE_VERSION        = "20"
-  NODE_ENV            = "production"
+  NODE_VERSION                  = "20"
+  NODE_ENV                      = "production"
+  # Prisma query engine: use "library" for serverless (not "binary")
+  # Binary target would look for separate engine file (fails on Lambda)
+  PRISMA_CLI_QUERY_ENGINE_TYPE  = "library"
   # Git clone settings
-  GIT_LFS_ENABLED = "false"
-  # Prisma needs the engine for the Lambda runtime
-  PRISMA_CLI_QUERY_ENGINE_TYPE = "library"
+  GIT_LFS_ENABLED               = "false"
   # Suppress false positive: NEXT_PUBLIC_* vars are intentionally public
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_APP_URL"
+  SECRETS_SCAN_OMIT_KEYS        = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_APP_URL"
 
 # ⚠️  RUNTIME ENVIRONMENT VARIABLES (set in Netlify Dashboard UI)
 # These MUST be configured in Site Settings → Build & Deploy → Environment:
-# - DATABASE_URL: PostgreSQL connection string (e.g., "postgresql://...")
-# - DIRECT_URL: Supabase direct connection for migrations (e.g., "postgresql://...")
-# - NEXT_PUBLIC_SUPABASE_URL: Supabase project URL
-# - NEXT_PUBLIC_SUPABASE_ANON_KEY: Supabase anonymous key
-# - SUPABASE_SERVICE_ROLE_KEY: Supabase service role (for API auth)
-# Without these, API routes will return 500 errors.
+# 
+# DATABASE_URL
+#   - Your PostgreSQL connection string with transaction pooler
+#   - Format: postgresql://user:password@host:6543/database?pgbouncer=true
+#   - Source: Supabase Dashboard → Settings → Database → Connection Pooling → Transaction pooler
+#
+# DIRECT_URL
+#   - Direct database connection for migrations (without pooler)
+#   - Format: postgresql://user:password@host:5432/database
+#   - Source: Supabase Dashboard → Settings → Database → Connection Pooling → Session pooler
+#
+# NEXT_PUBLIC_SUPABASE_URL
+#   - Your Supabase project URL
+#   - Source: Supabase Dashboard → Settings → General → Project URL
+#
+# NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   - Supabase anonymous key (safe to expose)
+#   - Source: Supabase Dashboard → Settings → API → anon key
+#
+# SUPABASE_SERVICE_ROLE_KEY
+#   - Supabase service role (SECRET - never expose)
+#   - Source: Supabase Dashboard → Settings → API → service_role key
+#
+# If any of these are missing, API routes will fail with 500 errors.
 
 # ─── Next.js Runtime Plugin ──────────────────────────────────────────────────
 
