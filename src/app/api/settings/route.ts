@@ -179,11 +179,11 @@ async function requireAuth(
         );
 
         if (!user || !user.id) {
-          console.error("[Settings Auth] User creation returned invalid user object");
+          console.error("[Settings Auth] User creation returned invalid user object:", user);
           return { type: "degraded" };
         }
 
-        console.log("[Settings Auth] User ready:", user.id);
+        console.log("[Settings Auth] ✓ User ready, id:", user.id, "email:", user.email);
         return { type: "success", userId: user.id };
       } catch (dbErr) {
         const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);

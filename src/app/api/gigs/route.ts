@@ -196,11 +196,11 @@ async function requireAuth(
         const user = await getOrCreateUser(jwtPayload.sub, jwtPayload.email || "", jwtPayload.name || null);
 
         if (!user || !user.id) {
-          console.error("[Gigs Auth] Invalid user object");
+          console.error("[Gigs Auth] Invalid user object returned:", user);
           return { type: "degraded" };
         }
 
-        console.log("[Gigs Auth] User ready:", user.id);
+        console.log("[Gigs Auth] ✓ User ready, id:", user.id, "email:", user.email);
         return { type: "success", userId: user.id };
       } catch (dbErr) {
         const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
@@ -319,31 +319,37 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = authResult.userId;
-    console.log("[GET /api/gigs] Querying for userId:", userId);
+    console.log("[GET /api/gigs] ✓ Auth successful, userId:", userId);
 
     // 5. Check cache
     const cacheKey = getCacheKey(userId, "gigs", { take, skip });
     const cached = await safeGetCacheEntry(cacheKey);
     if (cached) {
-      console.log("[GET /api/gigs] Cache hit");
+      console.log("[GET /api/gigs] ✓ Cache hit, returning cached data");
       return NextResponse.json(cached, { headers: { "Cache-Control": "private, max-age=15", Vary: "Authorization" } });
     }
 
     // 6. Query database
     try {
-      console.log("[GET /api/gigs] Querying database...");
+      console.log("[GET /api/gigs] Executing query with:", { userId, take, skip });
       const result = await safeMeasureAsync(
         "GET /api/gigs [DB QUERY]",
-        () =>
-          Promise.all([
-            prisma.gig.findMany({
-              where: { userId },
-              orderBy: { date: "desc" },
-              take,
-              skip,
-            }),
-            prisma.gig.count({ where: { userId } }),
-          ]),
+        async () => {
+          console.log("[GET /api/gigs] Starting findMany...");
+          const gigs = await prisma.gig.findMany({
+            where: { userId },
+            orderBy: { date: "desc" },
+            take,
+            skip,
+          });
+          console.log("[GET /api/gigs] findMany returned", gigs.length, "gigs");
+          
+          console.log("[GET /api/gigs] Starting count...");
+          const count = await prisma.gig.count({ where: { userId } });
+          console.log("[GET /api/gigs] count returned:", count);
+          
+          return [gigs, count];
+        },
         { endpoint: "/api/gigs", userId, metadata: { take, skip } }
       );
 
@@ -353,11 +359,13 @@ export async function GET(request: NextRequest) {
       // Cache the result
       await safeSetCacheEntry(cacheKey, payload, 15);
 
-      console.log("[GET /api/gigs] Success, returning", gigs.length, "gigs");
+      console.log("[GET /api/gigs] ✓ Query successful, userId:", userId, "found", gigs.length, "gigs out of", total, "total");
       return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=15", Vary: "Authorization" } });
     } catch (dbErr) {
       const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-      console.error("[GET /api/gigs] Database query failed:", errMsg);
+      const errStack = dbErr instanceof Error ? dbErr.stack : "no stack";
+      console.error("[GET /api/gigs] ✗ Database query failed:", errMsg);
+      console.error("[GET /api/gigs] Stack:", errStack);
 
       // Graceful degradation
       return NextResponse.json(
