@@ -582,7 +582,11 @@ export default function SharedLinksTab() {
                           className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600"
                         />
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-slate-800 dark:text-slate-200">{artist}</span>
+                          <span className="block truncate font-medium text-slate-800 dark:text-slate-200">
+                            {artist}
+                            {artistGigs.some(g => g.isCharity) && <span className="ml-1">💕</span>}
+                            {artistGigs.some(g => g.isTentative) && <span className="ml-1">⏳</span>}
+                          </span>
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             {artistGigs.length} gig{artistGigs.length === 1 ? "" : "s"}
                           </span>
@@ -602,7 +606,11 @@ export default function SharedLinksTab() {
                           className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600"
                         />
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-slate-800 dark:text-slate-200">{gig.eventName}</span>
+                          <span className="block truncate font-medium text-slate-800 dark:text-slate-200">
+                            {gig.eventName}
+                            {gig.isCharity && <span className="ml-1">💕</span>}
+                            {gig.isTentative && <span className="ml-1">⏳</span>}
+                          </span>
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             {formatDate(gig.date)} • {gig.performers && <BandTag name={gig.performers} variant="soft" />}
                           </span>

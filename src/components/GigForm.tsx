@@ -1319,13 +1319,13 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
           </fieldset>
 
           {/* -- Actions ------------------------------------------------- */}
-          <div className="flex justify-between border-t border-slate-200 pt-4">
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-between">
             {/* Delete button (only when editing) */}
             {gig && onDelete && (
               <button
                 type="button"
                 onClick={() => onDelete(gig)}
-                className="rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-slate-800 px-5 py-2 text-sm text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                className="rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20"
               >
                 Delete Performance
               </button>
@@ -1334,24 +1334,24 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
               <button
                 type="button"
                 onClick={() => setShowNotesEditor(true)}
-                className="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/30 px-5 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 transition hover:bg-brand-100 dark:hover:bg-brand-900/50"
+                className="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/30 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-brand-600 dark:text-brand-400 transition hover:bg-brand-100 dark:hover:bg-brand-900/50"
               >
                 📝 {isDutch ? "Open notities (optreden)" : "Open notes (performance)"}
               </button>
             )}
-            <div className="flex gap-3 ml-auto">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-3 sm:ml-auto">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="rounded-lg border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50"
               >
               {loading && (
                 <Icons.Spinner className="h-4 w-4" />

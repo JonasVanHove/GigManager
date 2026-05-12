@@ -145,8 +145,11 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           if (!isTentative) return false;
         }
 
-        if (gig.clientPaymentReceived && !filterPaid) return false;
-        if (!gig.clientPaymentReceived && !filterUnpaid) return false;
+        // Payment status filter (only apply if at least one payment filter is active)
+        if (filterPaid || filterUnpaid) {
+          if (gig.clientPaymentReceived && !filterPaid) return false;
+          if (!gig.clientPaymentReceived && !filterUnpaid) return false;
+        }
         return true;
       })
       .map((gig) => {

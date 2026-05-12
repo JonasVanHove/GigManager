@@ -134,13 +134,16 @@ export default function AllGigsTab({
       return true;
     });
 
-    // Filter by payment status
-    filtered = filtered.filter((gig) => {
-      const isPaid = gig.paymentReceived;
-      if (isPaid && !showPaid) return false;
-      if (!isPaid && !showUnpaid) return false;
-      return true;
-    });
+    // Filter by payment status (only if at least one payment filter is active)
+    // If both payment filters are unchecked, don't filter by payment status
+    if (showPaid || showUnpaid) {
+      filtered = filtered.filter((gig) => {
+        const isPaid = gig.paymentReceived;
+        if (isPaid && !showPaid) return false;
+        if (!isPaid && !showUnpaid) return false;
+        return true;
+      });
+    }
 
     return filtered;
   }, [deferredGigs, selectedArtists, hidePastGigs, showCharity, showTentative, showPaid, showUnpaid]);

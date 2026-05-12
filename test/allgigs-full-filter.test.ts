@@ -44,8 +44,11 @@ function applyFilters(
 
   filtered = filtered.filter((gig) => {
     const isPaid = !!gig.paymentReceived;
-    if (isPaid && !showPaid) return false;
-    if (!isPaid && !showUnpaid) return false;
+    // Only apply payment filter if at least one payment status is selected
+    if (showPaid || showUnpaid) {
+      if (isPaid && !showPaid) return false;
+      if (!isPaid && !showUnpaid) return false;
+    }
     return true;
   });
 
@@ -84,6 +87,23 @@ describe('AllGigsTab full filter pipeline', () => {
     expect(ids).toContain('regular-future');
     expect(ids).not.toContain('charity-future');
     expect(ids).not.toContain('tentative-future');
+  });
+
+  it('Charity filter works independently when no payment filters are selected', () => {
+    // This tests the bug fix: selecting only Charity with both payment filters unchecked
+    const res = applyFilters(gigs, new Set(), false, true, false, false, false, now);
+    const ids = res.map((g) => g.id);
+    expect(ids).toContain('charity-future');
+    expect(ids).not.toContain('tentative-future');
+    expect(ids).not.toContain('regular-future');
+  });
+
+  it('Tentative filter works independently when no payment filters are selected', () => {
+    const res = applyFilters(gigs, new Set(), false, false, true, false, false, now);
+    const ids = res.map((g) => g.id);
+    expect(ids).toContain('tentative-future');
+    expect(ids).not.toContain('charity-future');
+    expect(ids).not.toContain('regular-future');
   });
 
   it('hidePastGigs removes past charity', () => {
