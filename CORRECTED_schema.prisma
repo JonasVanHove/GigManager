@@ -1,0 +1,29 @@
+// This is your generated Prisma schema.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  // Critical: Include both native (local dev) and rhel-openssl-3.0.x (Netlify Linux)
+  // Netlify uses Amazon Linux 2 which requires rhel-openssl-3.0.x binary target
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  // Ensure client is generated for use in serverless functions
+  previewFeatures = []
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Transaction pooler (port 6543) for API routes
+  url       = env("DATABASE_URL")
+  // Session pooler (port 5432) for migrations
+  directUrl = env("DIRECT_URL")
+}
+
+model Gig {
+  id                         String          @id @default(cuid())
+  eventName                  String
+  date                       DateTime
+  performers                 String
+  numberOfMusicians          Int
+  performanceFee             Float
+  technicalFee               Float           @default(0)
+  managerBonusType           String          @default("fixed")

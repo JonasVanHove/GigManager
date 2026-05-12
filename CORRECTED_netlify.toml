@@ -1,12 +1,19 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Netlify build configuration for GigsManager (Next.js 14 + Prisma)
+# 
+# Critical for Prisma on Netlify:
+# 1. Run prisma generate BEFORE next build
+# 2. Use npm ci (clean install) to ensure exact versions
+# 3. Include devDependencies (prisma CLI needed for generation)
+# 4. Set PRISMA_CLI_QUERY_ENGINE_TYPE=library for serverless
+# 5. Set NODE_ENV=production for optimized build
 # ─────────────────────────────────────────────────────────────────────────────
 
 [build]
-  # Critical: Install with dev deps, generate Prisma client, then build
-  # Uses npx for direct prisma CLI invocation (more reliable on Netlify)
-  # postinstall will also run prisma generate as fallback
-  command   = "npm ci --include=dev && npx prisma generate && npm run build"
+  # Critical: npm ci --include=dev ensures prisma CLI is available
+  # Then prisma generate creates .prisma/client
+  # Then next build bundles everything
+  command   = "npm ci --include=dev && npm run db:generate && npm run build"
   publish   = ".next"
 
 [build.environment]
@@ -48,9 +55,18 @@
 # If any of these are missing, API routes will fail with 500 errors.
 
 # ─── Next.js Runtime Plugin ──────────────────────────────────────────────────
+# Netlify's official Next.js plugin handles SSR, API routes, and dynamic content
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# ─── Redirects & Rewrites ────────────────────────────────────────────────────
+
+# Redirect root to home (if needed)
+# [[redirects]]
+#   from = "/"
+#   to = "/home"
+#   status = 301
 
 # ─── Headers ─────────────────────────────────────────────────────────────────
 
@@ -60,7 +76,7 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Next.js public folder assets
+# Next.js build assets with long-term caching
 [[headers]]
   for = "/_next/static/*"
   [headers.values]
@@ -78,57 +94,56 @@
   [headers.values]
     Cache-Control = "public, max-age=604800, must-revalidate"
 
-# Icons with long caching
+# PNG assets with long caching
 [[headers]]
   for = "/*.png"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# ICO favicon with long caching
 [[headers]]
   for = "/*.ico"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Manifest and browserconfig
+# Manifest with moderate caching
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Cache-Control = "public, max-age=604800"
-    Content-Type  = "application/manifest+json"
+    Content-Type = "application/manifest+json"
 
+# Browser config with moderate caching
 [[headers]]
   for = "/browserconfig.xml"
   [headers.values]
     Cache-Control = "public, max-age=604800"
-    Content-Type  = "application/xml"
+    Content-Type = "application/xml"
 
-# Service worker should always revalidate to avoid stale SW logic on clients
+# Service worker: no cache to always get latest
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "public, max-age=0, no-cache, no-store, must-revalidate"
-    Content-Type  = "application/javascript"
+    Content-Type = "application/javascript"
 
-# API routes with shorter caching
+# API routes: moderate caching with revalidation
 [[headers]]
   for = "/api/*"
   [headers.values]
-    Access-Control-Allow-Origin  = "*"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
-    X-Content-Type-Options       = "nosniff"
-    Cache-Control                = "public, max-age=60, s-maxage=3600"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=60, s-maxage=3600"
+    X-Content-Type-Options = "nosniff"
 
-# HTML pages with revalidation
+# Default: no cache for HTML and dynamic content
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options    = "DENY"
-    X-XSS-Protection   = "1; mode=block"
-    Referrer-Policy     = "strict-origin-when-cross-origin"
-    X-Content-Type-Options = "nosniff"
-    Cache-Control      = "public, max-age=0, must-revalidate"
+    Cache-Control = "public, max-age=0, must-revalidate"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'"
-
-# ─── Redirects ───────────────────────────────────────────────────────────────
-# SPA fallback handled automatically by @netlify/plugin-nextjs
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
