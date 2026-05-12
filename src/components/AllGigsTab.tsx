@@ -116,21 +116,21 @@ export default function AllGigsTab({
 
     // Filter by gig type (charity and tentative)
     filtered = filtered.filter((gig) => {
-      const isCharity = gig.isCharity;
-      const isTentative = gig.isTentative;
+      const isCharity = !!gig.isCharity;
+      const isTentative = !!gig.isTentative;
 
       // When both are checked, show all gigs
       if (showCharity && showTentative) return true;
-      
+
       // When both are unchecked, show only regular gigs
       if (!showCharity && !showTentative) return !isCharity && !isTentative;
-      
+
       // When only charity is checked, show only charity gigs
       if (showCharity && !showTentative) return isCharity;
-      
+
       // When only tentative is checked, show only tentative gigs
       if (!showCharity && showTentative) return isTentative;
-      
+
       return true;
     });
 

@@ -129,9 +129,9 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
     return gigs
       .filter((gig) => {
         // Charity/Tentative filter logic
-        const isCharity = gig.isCharity;
-        const isTentative = gig.isTentative;
-        
+        const isCharity = !!gig.isCharity;
+        const isTentative = !!gig.isTentative;
+
         if (filterCharity && filterTentative) {
           // Both checked: show all
         } else if (!filterCharity && !filterTentative) {
@@ -144,7 +144,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           // Only tentative checked
           if (!isTentative) return false;
         }
-        
+
         if (gig.clientPaymentReceived && !filterPaid) return false;
         if (!gig.clientPaymentReceived && !filterUnpaid) return false;
         return true;
