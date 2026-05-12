@@ -98,11 +98,12 @@ function decodeJWTPayload(token: string): Record<string, any> | null {
 }
 
 // Safe wrapper for helper functions that might fail
-async function safeRecordMetric(...args: any[]) {
+// recordMetric signature: (name: string, duration: number, metadata: any) => void
+async function safeRecordMetric(name: string, duration: number, metadata: any) {
   try {
     const mod = await import("@/lib/performance-metrics");
     if (mod?.recordMetric && typeof mod.recordMetric === "function") {
-      return await mod.recordMetric(...args);
+      return await mod.recordMetric(name, duration, metadata);
     }
   } catch (err) {
     // Silently fail - metrics are not critical
