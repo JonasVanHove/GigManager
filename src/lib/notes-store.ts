@@ -18,10 +18,12 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 export type LocalNoteRecord = {
-  id: string; // gigId or songId
+  id: string; // gigId or songId or unique note ID
   notesJson: string; // serialized notes state
   updatedAt: string; // ISO
   syncedAt?: string | null; // ISO when last synced to server
+  linkedBand?: string | null; // Band name if linked
+  noteType?: 'photo' | 'drawing' | 'text'; // Type of note
 };
 
 export async function saveLocalNotes(id: string, notesJson: string) {

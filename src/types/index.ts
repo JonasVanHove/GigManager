@@ -245,6 +245,8 @@ export interface PublicSharedGig {
   totalCost: number | null;
   clientPaymentStatus: "received" | "pending" | null;
   bandPaymentStatus: "paid" | "pending" | null;
+  isCharity?: boolean;
+  isTentative?: boolean;
 }
 
 // --- Songs / Notes ------------------------------------------------------

@@ -184,7 +184,7 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
   );
 
   useEffect(() => {
-    const defaultExpanded = new Set(upcomingGigs.map((item) => item.key));
+    const defaultExpanded = new Set<string>();
     setExpandedGigKeys(defaultExpanded);
   }, [shareData, upcomingGigs]);
 
@@ -391,9 +391,17 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
                               <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{gig.eventName}</p>
                             )}
                           </div>
-                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            Upcoming
-                          </span>
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {gig.isCharity && (
+                              <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700 dark:bg-pink-900/30 dark:text-pink-300">💕 Charity</span>
+                            )}
+                            {gig.isTentative && (
+                              <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">⏳ Tentative</span>
+                            )}
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              Upcoming
+                            </span>
+                          </div>
                         </button>
 
                         {isExpanded && (
@@ -509,9 +517,17 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
                               <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{gig.eventName}</p>
                             )}
                           </div>
-                          <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                            Past
-                          </span>
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {gig.isCharity && (
+                              <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700 dark:bg-pink-900/30 dark:text-pink-300">💕 Charity</span>
+                            )}
+                            {gig.isTentative && (
+                              <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">⏳ Tentative</span>
+                            )}
+                            <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                              Past
+                            </span>
+                          </div>
                         </button>
 
                         {isExpanded && (
