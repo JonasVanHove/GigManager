@@ -3,18 +3,22 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [build]
-  # Critical: Install with dev deps, generate Prisma client, then build
-  # Uses npx for direct prisma CLI invocation (more reliable on Netlify)
-  # postinstall will also run prisma generate as fallback
-  command   = "npm ci --include=dev && npx prisma generate && npm run build"
+  # Critical build order:
+  # 1. npm ci with dev deps (includes Prisma CLI and @prisma/client)
+  # 2. Explicit prisma generate (ensure client is generated)
+  # 3. npm run build (Next.js build bundles everything correctly)
+  # postinstall will also run prisma generate as redundant safety net
+  command   = "npm ci --include=dev && npm run db:generate && npm run build"
   publish   = ".next"
 
 [build.environment]
   NODE_VERSION                  = "20"
   NODE_ENV                      = "production"
   # Prisma query engine: use "library" for serverless (not "binary")
-  # Binary target would look for separate engine file (fails on Lambda)
+  # This ensures Prisma uses the libquery_engine-*.so.node binary for Netlify Lambda
   PRISMA_CLI_QUERY_ENGINE_TYPE  = "library"
+  # Ensure Prisma generates with correct binary target
+  PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING = "true"
   # Git clone settings
   GIT_LFS_ENABLED               = "false"
   # Suppress false positive: NEXT_PUBLIC_* vars are intentionally public

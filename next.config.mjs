@@ -50,6 +50,8 @@ const nextConfig = {
       "/api/**/*": [
         "./node_modules/.prisma/client/schema.prisma",
         "./node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node",
+        "./node_modules/@prisma/client/index.js",
+        "./node_modules/@prisma/client/runtime/index.js",
       ],
     },
     outputFileTracingExcludes: {
@@ -67,7 +69,6 @@ const nextConfig = {
         "./node_modules/.prisma/client/libquery_engine-windows-openssl-3.0.x.dll.node",
         "./node_modules/.prisma/client/libquery_engine-windows-msvc.dll.node",
         "./node_modules/prisma/**/*",
-        "./node_modules/@prisma/**/*",
       ],
     },
     optimizePackageImports: ["lodash-es"],
