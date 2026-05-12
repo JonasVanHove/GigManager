@@ -51,6 +51,9 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [filterCharity, setFilterCharity] = useState(true);
+  const [filterPaid, setFilterPaid] = useState(true);
+  const [filterUnpaid, setFilterUnpaid] = useState(true);
 
   const mapToCalendarGigs = useCallback((source: AppGig[]): Gig[] => {
     return source.map((gig) => {
@@ -120,17 +123,24 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   }, [preloadedGigs, fetchGigs, mapToCalendarGigs]);
 
   const events: CalendarEvent[] = useMemo(() => {
-    return gigs.map((gig) => {
-      const gigDate = new Date(gig.date);
-      return {
-        id: gig.id,
-        title: gig.eventName,
-        start: gigDate,
-        end: new Date(gigDate.getTime() + 3 * 60 * 60 * 1000), // 3 hours duration
-        resource: gig,
-      };
-    });
-  }, [gigs]);
+    return gigs
+      .filter((gig) => {
+        if (gig.isCharity && !filterCharity) return false;
+        if (gig.clientPaymentReceived && !filterPaid) return false;
+        if (!gig.clientPaymentReceived && !filterUnpaid) return false;
+        return true;
+      })
+      .map((gig) => {
+        const gigDate = new Date(gig.date);
+        return {
+          id: gig.id,
+          title: gig.eventName,
+          start: gigDate,
+          end: new Date(gigDate.getTime() + 3 * 60 * 60 * 1000), // 3 hours duration
+          resource: gig,
+        };
+      });
+  }, [gigs, filterCharity, filterPaid, filterUnpaid]);
 
   const eventStyleGetter = (event: CalendarEvent) => {
     const gig = event.resource;
@@ -192,6 +202,37 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Visual timeline of your gigs
         </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filterCharity}
+            onChange={(e) => setFilterCharity(e.target.checked)}
+            className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-pink-600 focus:ring-2 focus:ring-pink-500/20 cursor-pointer"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">💕 Charity</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filterPaid}
+            onChange={(e) => setFilterPaid(e.target.checked)}
+            className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500/20 cursor-pointer"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">✓ Paid</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filterUnpaid}
+            onChange={(e) => setFilterUnpaid(e.target.checked)}
+            className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-amber-600 focus:ring-2 focus:ring-amber-500/20 cursor-pointer"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">⏳ Unpaid</span>
+        </label>
       </div>
 
       {/* Legend */}

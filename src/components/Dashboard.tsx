@@ -1200,20 +1200,6 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
-                    handleTabChange("calendar");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "calendar" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Calendar className="h-5 w-5 shrink-0" />
-                  <span>Calendar</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
                     handleTabChange("all-gigs");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
@@ -1224,6 +1210,20 @@ export default function Dashboard() {
                 >
                   <Icons.ListView className="h-5 w-5 shrink-0" />
                   <span>All Gigs</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleTabChange("calendar");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    activeTab === "calendar" 
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.Calendar className="h-5 w-5 shrink-0" />
+                  <span>Calendar</span>
                 </button>
                 <div className="px-3 py-2 pt-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Band & Setlists
@@ -1436,22 +1436,6 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Overview</span>
             </span>
           </button>
-          {/* Calendar */}
-          <button
-            onClick={() => handleTabChange("calendar")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "calendar"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
-              <span className="hidden sm:inline">Calendar</span>
-            </span>
-          </button>
           {/* All Gigs */}
           <button
             onClick={() => handleTabChange("all-gigs")}
@@ -1466,6 +1450,22 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
               </svg>
               <span className="hidden sm:inline">All Gigs</span>
+            </span>
+          </button>
+          {/* Calendar */}
+          <button
+            onClick={() => handleTabChange("calendar")}
+            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
+              activeTab === "calendar"
+                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              <span className="hidden sm:inline">Calendar</span>
             </span>
           </button>
           <div className="flex items-center px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
