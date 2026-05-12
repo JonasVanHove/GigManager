@@ -50,6 +50,10 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
   const [inkColor, setInkColor] = useState("#ff4500");
   const [inkWidth, setInkWidth] = useState(3);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [linkedBand, setLinkedBand] = useState<string | null>(null);
+  const [availableBands, setAvailableBands] = useState<string[]>([]);
+  const [fullscreenDrawMode, setFullscreenDrawMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { getAccessToken } = useAuth();
   const toast = useToast();
   const { locale } = useSettings();
@@ -88,6 +92,26 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
     };
   }, [photoUrl]);
 
+  // Load available bands
+  useEffect(() => {
+    const loadBands = async () => {
+      try {
+        const token = await getAccessToken();
+        const res = await fetch("/api/band-members", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const bandNames = data.map((b: { name: string }) => b.name).filter(Boolean);
+          setAvailableBands(Array.from(new Set(bandNames)));
+        }
+      } catch (e) {
+        console.debug("Failed to load bands", e);
+      }
+    };
+    loadBands();
+  }, [getAccessToken]);
+
   // Load persisted notes if provided
   useEffect(() => {
     if (!persistId) return;
@@ -104,6 +128,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
         if (data.photoScale) setPhotoScale(data.photoScale);
         if (Array.isArray(data.notes)) setNotes(data.notes);
         if (Array.isArray(data.strokes)) setStrokes(data.strokes);
+        if (data.linkedBand) setLinkedBand(data.linkedBand);
       } catch (e) {
         console.debug("loadLocalNotes failed", e);
       }
@@ -240,13 +265,14 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
       photoScale,
       notes,
       strokes,
+      linkedBand,
     };
     try {
       saveLocalNotes(persistId, JSON.stringify(payload)).catch((e) => console.debug(e));
     } catch (e) {
       console.debug(e);
     }
-  }, [persistId, photoUrl, photoName, photoNatural, photoPos, photoScale, notes, strokes]);
+  }, [persistId, photoUrl, photoName, photoNatural, photoPos, photoScale, notes, strokes, linkedBand]);
 
   // Auto sync when back online
   useEffect(() => {
@@ -360,8 +386,90 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
     }, "image/webp", 0.92);
   };
 
+  const saveToServer = async () => {
+    if (!persistId) {
+      toast?.error?.("Cannot save: no note ID");
+      return;
+    }
+    try {
+      setIsSaving(true);
+      const token = await getAccessToken();
+      const payload = {
+        photoUrl,
+        photoName,
+        photoNatural,
+        photoPos,
+        photoScale,
+        notes,
+        strokes,
+        linkedBand,
+      };
+      const res = await fetch(`/api/notes/${persistId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        toast?.success?.("Note saved successfully");
+      } else {
+        toast?.error?.("Failed to save note");
+      }
+    } catch (e) {
+      toast?.error?.("Error saving note");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
+    <>
+      {fullscreenDrawMode && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3">
+            <h2 className="text-sm font-semibold text-white">{isDutch ? "Vollscherm tekenen" : "Full-screen Drawing"}</h2>
+            <div className="flex gap-2">
+              <label className="flex items-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white">
+                <input type="color" value={inkColor} onChange={(e) => setInkColor(e.target.value)} className="h-6 w-10 cursor-pointer rounded" />
+              </label>
+              <label className="flex items-center gap-1 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white">
+                <input type="range" min="1" max="12" value={inkWidth} onChange={(e) => setInkWidth(Number(e.target.value))} className="w-16" />
+              </label>
+              <button
+                onClick={() => setStrokes((s) => s.slice(0, -1))}
+                className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-600"
+              >
+                {isDutch ? "Ongedaan" : "Undo"}
+              </button>
+              <button
+                onClick={() => setStrokes([])}
+                className="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600"
+              >
+                {isDutch ? "Wissen" : "Clear"}
+              </button>
+              <button
+                onClick={() => setFullscreenDrawMode(false)}
+                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
+              >
+                {isDutch ? "Klaar" : "Done"}
+              </button>
+            </div>
+          </div>
+          <div
+            ref={stageRef}
+            className="flex-1 touch-none cursor-crosshair"
+            onPointerDown={startStroke}
+            onPointerMove={moveStroke}
+            onPointerUp={endStroke}
+            style={{
+              background: "radial-gradient(circle at 20% 50%, #1e293b 0%, #0f172a 100%)",
+            }}
+          />
+        </div>
+      )}
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{isDutch ? "Foto annoteren" : "Annotate photo"}</div>
@@ -441,6 +549,22 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
           )}
           <button
             type="button"
+            onClick={() => setFullscreenDrawMode(true)}
+            disabled={!photoUrl}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
+          >
+            {isDutch ? "Vollscherm tekenen" : "Full-screen draw"}
+          </button>
+          <button
+            type="button"
+            onClick={saveToServer}
+            disabled={isSaving || !persistId}
+            className="rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 transition hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-700 dark:bg-brand-950/30 dark:text-brand-200 dark:hover:bg-brand-900/30"
+          >
+            {isSaving ? (isDutch ? "Opslaan…" : "Saving…") : (isDutch ? "Opslaan" : "Save")}
+          </button>
+          <button
+            type="button"
             onClick={clearAll}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
@@ -455,8 +579,23 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
       {photoUrl && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950/40">
           <div className="min-w-0 flex-1 truncate text-slate-600 dark:text-slate-300">{photoName}</div>
-          <label className="flex min-w-[220px] items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-            {isDutch ? "Vergroten/verkleinen" : "Scale up/down"}
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            {isDutch ? "Gekoppeld aan band" : "Link to band"}
+            <select
+              value={linkedBand || ""}
+              onChange={(e) => setLinkedBand(e.target.value || null)}
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            >
+              <option value="">-- {isDutch ? "Selecteer" : "Select"} --</option>
+              {availableBands.map((band) => (
+                <option key={band} value={band}>
+                  {band}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-[150px] items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            {isDutch ? "Schaal" : "Scale"}
             <input
               type="range"
               min="0.35"
@@ -596,5 +735,6 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
         </button>
       </div>
     </div>
+    </>
   );
 }
