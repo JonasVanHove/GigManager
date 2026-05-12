@@ -28,6 +28,11 @@ export default function AllGigsTab({
   const [selectedArtists, setSelectedArtists] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [hidePastGigs, setHidePastGigs] = useState(false);
+  const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
+  const [showCharity, setShowCharity] = useState(true);
+  const [showTentative, setShowTentative] = useState(true);
+  const [showPaid, setShowPaid] = useState(true);
+  const [showUnpaid, setShowUnpaid] = useState(true);
   const deferredGigs = useDeferredValue(gigs);
 
   const copy = language === "nl"
@@ -49,6 +54,13 @@ export default function AllGigsTab({
         loadMore: "Meer laden",
         left: "over",
         hidePastGigs: "Verbergen voorbije optredens",
+        expandAll: "Alles uitklappen",
+        collapseAll: "Alles inklappen",
+        showCharity: "Charity",
+        showTentative: "Tentative",
+        paid: "Betaald",
+        unpaid: "Niet betaald",
+        filters: "Filters",
       }
     : {
         noPerformancesYet: "No performances yet",
@@ -68,6 +80,13 @@ export default function AllGigsTab({
         loadMore: "Load more",
         left: "left",
         hidePastGigs: "Hide past performances",
+        expandAll: "Expand all",
+        collapseAll: "Collapse all",
+        showCharity: "Charity",
+        showTentative: "Tentative",
+        paid: "Paid",
+        unpaid: "Unpaid",
+        filters: "Filters",
       };
 
   // Get all unique artists
@@ -79,7 +98,7 @@ export default function AllGigsTab({
     return Array.from(unique).sort();
   }, [deferredGigs]);
 
-  // Filter by selected artists and hide past gigs
+  // Filter by selected artists, hide past gigs, payment status, and gig types
   const filteredGigs = useMemo(() => {
     let filtered = deferredGigs;
 
@@ -95,8 +114,27 @@ export default function AllGigsTab({
       filtered = filtered.filter((gig) => new Date(gig.date) >= today);
     }
 
+    // Filter by gig type (charity and tentative)
+    filtered = filtered.filter((gig) => {
+      const isCharity = gig.isCharity;
+      const isTentative = gig.isTentative;
+
+      if (isCharity && !showCharity) return false;
+      if (isTentative && !showTentative) return false;
+      if (!isCharity && !isTentative) return true; // Regular gigs always shown
+      return true;
+    });
+
+    // Filter by payment status
+    filtered = filtered.filter((gig) => {
+      const isPaid = gig.paymentReceived;
+      if (isPaid && !showPaid) return false;
+      if (!isPaid && !showUnpaid) return false;
+      return true;
+    });
+
     return filtered;
-  }, [deferredGigs, selectedArtists, hidePastGigs]);
+  }, [deferredGigs, selectedArtists, hidePastGigs, showCharity, showTentative, showPaid, showUnpaid]);
 
   // Sort
   const sortedGigs = useMemo(() => {
@@ -152,7 +190,7 @@ export default function AllGigsTab({
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [sortBy, selectedArtists, hidePastGigs, deferredGigs.length]);
+  }, [sortBy, selectedArtists, hidePastGigs, showCharity, showTentative, showPaid, showUnpaid, deferredGigs.length]);
 
   const visibleGigs = useMemo(
     () => sortedGigs.slice(0, visibleCount),
@@ -215,8 +253,23 @@ export default function AllGigsTab({
           </select>
         </div>
 
-        {/* Hide past gigs toggle */}
-        <div className="flex items-center gap-3">
+        {/* Expand/Collapse All & Hide past gigs toggle */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setGlobalExpandState(true)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 bg-white dark:bg-slate-800 transition"
+            title={copy.expandAll}
+          >
+            {copy.expandAll}
+          </button>
+          <button
+            onClick={() => setGlobalExpandState(false)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 bg-white dark:bg-slate-800 transition"
+            title={copy.collapseAll}
+          >
+            {copy.collapseAll}
+          </button>
+
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -228,6 +281,51 @@ export default function AllGigsTab({
               {copy.hidePastGigs}
             </span>
           </label>
+        </div>
+
+        {/* Payment & Gig Type Filters */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            {copy.filters}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showPaid}
+                onChange={(e) => setShowPaid(e.target.checked)}
+                className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500/20 cursor-pointer"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">{copy.paid}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showUnpaid}
+                onChange={(e) => setShowUnpaid(e.target.checked)}
+                className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">{copy.unpaid}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showCharity}
+                onChange={(e) => setShowCharity(e.target.checked)}
+                className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-red-600 focus:ring-2 focus:ring-red-500/20 cursor-pointer"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">💕 {copy.showCharity}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showTentative}
+                onChange={(e) => setShowTentative(e.target.checked)}
+                className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-yellow-600 focus:ring-2 focus:ring-yellow-500/20 cursor-pointer"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">⏳ {copy.showTentative}</span>
+            </label>
+          </div>
         </div>
 
         {/* Artist filter buttons */}
@@ -293,6 +391,7 @@ export default function AllGigsTab({
                 fmtCurrency={fmtCurrency}
                 claimPerformanceFee={gig.claimPerformanceFee}
                 claimTechnicalFee={gig.claimTechnicalFee}
+                isExpandedGlobal={globalExpandState}
               />
             </div>
           ))}
