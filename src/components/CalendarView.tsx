@@ -25,6 +25,7 @@ interface Gig {
   performers: string;
   date: string;
   isCharity: boolean;
+  isTentative?: boolean;
   clientPaymentReceived: boolean;
   bandPaymentComplete: boolean;
   myPayAmount: number;
@@ -52,6 +53,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [filterCharity, setFilterCharity] = useState(true);
+  const [filterTentative, setFilterTentative] = useState(true);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
 
@@ -79,6 +81,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         performers: gig.performers,
         date: String(gig.date),
         isCharity: gig.isCharity,
+        isTentative: gig.isTentative,
         clientPaymentReceived: gig.paymentReceived,
         bandPaymentComplete: gig.bandPaid,
         myPayAmount: calc.myEarnings,
@@ -125,7 +128,23 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   const events: CalendarEvent[] = useMemo(() => {
     return gigs
       .filter((gig) => {
-        if (gig.isCharity && !filterCharity) return false;
+        // Charity/Tentative filter logic
+        const isCharity = gig.isCharity;
+        const isTentative = gig.isTentative;
+        
+        if (filterCharity && filterTentative) {
+          // Both checked: show all
+        } else if (!filterCharity && !filterTentative) {
+          // Both unchecked: show only regular gigs
+          if (isCharity || isTentative) return false;
+        } else if (filterCharity && !filterTentative) {
+          // Only charity checked
+          if (!isCharity) return false;
+        } else if (!filterCharity && filterTentative) {
+          // Only tentative checked
+          if (!isTentative) return false;
+        }
+        
         if (gig.clientPaymentReceived && !filterPaid) return false;
         if (!gig.clientPaymentReceived && !filterUnpaid) return false;
         return true;
@@ -140,7 +159,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           resource: gig,
         };
       });
-  }, [gigs, filterCharity, filterPaid, filterUnpaid]);
+  }, [gigs, filterCharity, filterTentative, filterPaid, filterUnpaid]);
 
   const eventStyleGetter = (event: CalendarEvent) => {
     const gig = event.resource;
@@ -218,6 +237,15 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
+            checked={filterTentative}
+            onChange={(e) => setFilterTentative(e.target.checked)}
+            className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-amber-600 focus:ring-2 focus:ring-amber-500/20 cursor-pointer"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">⏳ Tentative</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
             checked={filterPaid}
             onChange={(e) => setFilterPaid(e.target.checked)}
             className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500/20 cursor-pointer"
@@ -233,6 +261,92 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           />
           <span className="text-sm text-slate-700 dark:text-slate-300">⏳ Unpaid</span>
         </label>
+      </div>
+
+      {/* Date Navigation */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+        <button
+          onClick={() => setDate(new Date())}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
+          Today
+        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              const prev = new Date(date);
+              prev.setMonth(prev.getMonth() - 1);
+              setDate(prev);
+            }}
+            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            ←
+          </button>
+          <select
+            value={date.getFullYear() * 100 + date.getMonth()}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              const year = Math.floor(val / 100);
+              const month = val % 100;
+              const newDate = new Date(date);
+              newDate.setFullYear(year);
+              newDate.setMonth(month);
+              setDate(newDate);
+            }}
+            className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            {(() => {
+              const options = [];
+              const now = new Date();
+              for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 2; y++) {
+                for (let m = 0; m < 12; m++) {
+                  const label = new Date(y, m).toLocaleDateString("default", {
+                    year: "numeric",
+                    month: "long",
+                  });
+                  options.push(
+                    <option key={`${y}-${m}`} value={y * 100 + m}>
+                      {label}
+                    </option>
+                  );
+                }
+              }
+              return options;
+            })()}
+          </select>
+          <button
+            onClick={() => {
+              const next = new Date(date);
+              next.setMonth(next.getMonth() + 1);
+              setDate(next);
+            }}
+            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            →
+          </button>
+        </div>
+        <select
+          value={date.getFullYear()}
+          onChange={(e) => {
+            const newDate = new Date(date);
+            newDate.setFullYear(parseInt(e.target.value));
+            setDate(newDate);
+          }}
+          className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        >
+          {(() => {
+            const options = [];
+            const now = new Date();
+            for (let y = now.getFullYear() - 5; y <= now.getFullYear() + 5; y++) {
+              options.push(
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              );
+            }
+            return options;
+          })()}
+        </select>
       </div>
 
       {/* Legend */}
