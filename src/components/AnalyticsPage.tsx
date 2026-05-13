@@ -809,7 +809,7 @@ function MonthlyIncomeChart({
             </div>
             <div className="relative flex h-full items-end gap-2 sm:gap-3 pt-5 sm:pt-6 overflow-hidden">
             {data.map((entry) => {
-              const chartScale = 0.42;
+              const chartScale = 0.34;
               const receivedHeight = Math.max(2, (entry.received / maxTotal) * 100 * chartScale);
               const pendingHeight = Math.max(0, (entry.pending / maxTotal) * 100 * chartScale);
               const completion = entry.total > 0 ? Math.round((entry.received / entry.total) * 100) : 0;
@@ -817,7 +817,7 @@ function MonthlyIncomeChart({
               return (
                 <div key={entry.monthKey} className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-2 transition-transform duration-200 hover:-translate-y-1">
                   <div className="relative flex w-full items-end justify-center">
-                    <div className="relative flex h-32 sm:h-40 w-full flex-col justify-end overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-900/5 shadow-sm transition-shadow duration-200 group-hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
+                    <div className="relative flex h-28 sm:h-36 w-full flex-col justify-end overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-900/5 shadow-sm transition-shadow duration-200 group-hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
                       <div
                         className="w-full bg-orange-400/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] dark:bg-orange-500/85"
                         style={{ height: hasPending ? `${pendingHeight}%` : "0%" }}
