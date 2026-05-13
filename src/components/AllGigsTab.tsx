@@ -61,6 +61,9 @@ export default function AllGigsTab({
         paid: "Betaald",
         unpaid: "Niet betaald",
         filters: "Filters",
+        sortDirection: "Sorteerrichting",
+        ascending: "Oplopend",
+        descending: "Aflopend",
       }
     : {
         noPerformancesYet: "No performances yet",
@@ -87,6 +90,9 @@ export default function AllGigsTab({
         paid: "Paid",
         unpaid: "Unpaid",
         filters: "Filters",
+        sortDirection: "Sort direction",
+        ascending: "Ascending",
+        descending: "Descending",
       };
 
   // Get all unique artists
@@ -263,6 +269,36 @@ export default function AllGigsTab({
             <option value="payment-status">{copy.paymentStatus}</option>
             <option value="chronology">{copy.chronology}</option>
           </select>
+          {/* Quick direction controls for common fields */}
+          <div className="mt-2 flex items-center gap-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400">{copy.sortDirection}</p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  if (sortBy.startsWith("date")) setSortBy("date-asc");
+                  else if (sortBy.startsWith("band")) setSortBy("band-asc");
+                  else if (sortBy.startsWith("fee")) setSortBy("fee-low");
+                  else setSortBy("date-asc");
+                }}
+                className="rounded-lg border border-slate-300 dark:border-slate-600 px-2 py-1 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
+                title={copy.ascending}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => {
+                  if (sortBy.startsWith("date")) setSortBy("date-desc");
+                  else if (sortBy.startsWith("band")) setSortBy("band-desc");
+                  else if (sortBy.startsWith("fee")) setSortBy("fee-high");
+                  else setSortBy("date-desc");
+                }}
+                className="rounded-lg border border-slate-300 dark:border-slate-600 px-2 py-1 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
+                title={copy.descending}
+              >
+                ↓
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Expand/Collapse All & Hide past gigs toggle */}
@@ -404,6 +440,7 @@ export default function AllGigsTab({
                 claimPerformanceFee={gig.claimPerformanceFee}
                 claimTechnicalFee={gig.claimTechnicalFee}
                 isExpandedGlobal={globalExpandState}
+                onRequestLocalToggle={() => setGlobalExpandState(undefined)}
               />
             </div>
           ))}

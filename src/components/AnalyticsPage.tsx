@@ -112,6 +112,17 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
         });
       }
 
+      // Add personal-level pending entry when there is still amount owed to the manager
+      if (myPendingForGig > 0) {
+        timeline.push({
+          date: new Date(g.date),
+          amount: myPendingForGig,
+          eventName: `${g.eventName} — ${tr("Still owed", "Nog te ontvangen")}`,
+          received: false,
+          kind: "personal",
+        });
+      }
+
       const date = new Date(g.date);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       if (!monthlyManagementData[key]) {
@@ -491,18 +502,32 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
                     {filteredTimeline.length === 0 && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">{tr("No recent payments for this view.", "Geen recente betalingen voor deze weergave.")}</p>
                     )}
-                    {filteredTimeline.map((payment, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-sm"
-                      >
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">{payment.eventName}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(payment.date.toISOString())} · {payment.kind === "client" ? tr("Client", "Klant") : tr("Personal", "Persoonlijk")}</p>
+                    {filteredTimeline.map((payment, idx) => {
+                      const today = new Date();
+                      today.setHours(0,0,0,0);
+                      const paymentDay = new Date(payment.date);
+                      paymentDay.setHours(0,0,0,0);
+                      const amountClass = viewMode === "personal"
+                        ? payment.received
+                          ? "text-emerald-700 dark:text-emerald-300"
+                          : (paymentDay < today
+                              ? "text-red-700 dark:text-red-300"
+                              : "text-orange-700 dark:text-orange-300")
+                        : "text-brand-700 dark:text-brand-300";
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-sm"
+                        >
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-slate-100">{payment.eventName}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(payment.date.toISOString())} · {payment.kind === "client" ? tr("Client", "Klant") : tr("Personal", "Persoonlijk")}</p>
+                          </div>
+                          <p className={`font-semibold ${amountClass}`}>{fmtCurrency(payment.amount)}</p>
                         </div>
-                        <p className="font-semibold text-brand-700 dark:text-brand-300">{fmtCurrency(payment.amount)}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -775,24 +800,23 @@ function MonthlyIncomeChart({
         )}
       </p>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="min-w-[760px]">
-          <div className="relative h-80 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-4 pb-4 pt-6 shadow-inner dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-950/70">
+      <div className="pb-2">
+        <div className="relative h-44 sm:h-72 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-3 sm:px-4 pb-4 pt-5 sm:pt-6 shadow-inner dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-950/70">
             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[linear-gradient(to_top,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[length:100%_20%] dark:bg-[linear-gradient(to_top,rgba(51,65,85,0.35)_1px,transparent_1px)]" />
             <div className="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
               <span>{tr("Monthly volume", "Maandelijks volume")}</span>
               <span>{tr("Hover for values", "Hover voor waarden")}</span>
             </div>
-            <div className="relative flex h-full items-end gap-3 pt-6">
+            <div className="relative flex h-full items-end gap-2 sm:gap-3 pt-5 sm:pt-6">
             {data.map((entry) => {
-              const receivedHeight = Math.max(6, (entry.received / maxTotal) * 100);
+              const receivedHeight = Math.max(4, (entry.received / maxTotal) * 100);
               const pendingHeight = Math.max(0, (entry.pending / maxTotal) * 100);
               const completion = entry.total > 0 ? Math.round((entry.received / entry.total) * 100) : 0;
 
               return (
                 <div key={entry.monthKey} className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-2 transition-transform duration-200 hover:-translate-y-1">
                   <div className="relative flex w-full items-end justify-center">
-                    <div className="relative flex h-60 w-full flex-col justify-end overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-900/5 shadow-sm transition-shadow duration-200 group-hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
+                    <div className="relative flex h-52 sm:h-60 w-full flex-col justify-end overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-900/5 shadow-sm transition-shadow duration-200 group-hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-900/50">
                       <div
                         className="w-full bg-orange-400/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] dark:bg-orange-500/85"
                         style={{ height: hasPending ? `${pendingHeight}%` : "0%" }}
@@ -807,7 +831,7 @@ function MonthlyIncomeChart({
                       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/30" />
                     </div>
                   </div>
-                  <div className="w-full rounded-xl border border-slate-200/60 bg-white/80 px-2 py-2 text-center shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60">
+                  <div className="w-full rounded-xl border border-slate-200/60 bg-white/80 px-2 py-1.5 text-center shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60">
                     <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{entry.monthName}</p>
                     <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{entry.count} {tr("gigs", "optredens")}</p>
                     <p className="mt-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">{fmtCurrency(entry.total)}</p>
@@ -818,7 +842,6 @@ function MonthlyIncomeChart({
             })}
             </div>
           </div>
-        </div>
       </div>
 
       <div className="mt-5 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">

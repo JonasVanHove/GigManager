@@ -31,6 +31,7 @@ interface GigCardProps {
   isExpandedGlobal?: boolean;
   isSelected?: boolean;
   onSelect?: (gigId: string) => void;
+  onRequestLocalToggle?: () => void;
 }
 
 const GigCard = memo(function GigCard({
@@ -42,6 +43,7 @@ const GigCard = memo(function GigCard({
   isExpandedGlobal,
   isSelected = false,
   onSelect,
+  onRequestLocalToggle,
 }: GigCardProps) {
   // Charity gigs start collapsed, others start expanded, but can be overridden by global state
   const [isExpanded, setIsExpanded] = useState(!gig.isCharity);
@@ -133,7 +135,13 @@ const GigCard = memo(function GigCard({
             </button>
           )}
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => {
+              // If a global expand/collapse state is active, clear it so this card can use local state
+              if (isExpandedGlobal !== undefined) {
+                onRequestLocalToggle?.();
+              }
+              setIsExpanded(!isExpanded);
+            }}
             className="min-w-0 flex-1 text-left transition-opacity hover:opacity-80"
           >
           <div className="flex items-center gap-2">
