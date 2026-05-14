@@ -801,7 +801,53 @@ function MonthlyIncomeChart({
       </p>
 
       <div className="pb-2">
-        <div className="relative h-44 sm:h-72 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-3 sm:px-4 pb-4 pt-5 sm:pt-6 shadow-inner dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-950/70 overflow-hidden">
+        <div className="md:hidden space-y-3 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 p-3 shadow-inner dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-950/70">
+          {data.map((entry) => {
+            const completion = entry.total > 0 ? Math.round((entry.received / entry.total) * 100) : 0;
+            const receivedShare = entry.total > 0 ? (entry.received / entry.total) * 100 : 0;
+            const pendingShare = entry.total > 0 ? (entry.pending / entry.total) * 100 : 0;
+
+            return (
+              <div key={entry.monthKey} className="rounded-xl border border-slate-200/70 bg-white/90 p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/60">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.monthName}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {entry.count} {tr("gigs", "optredens")} · {completion}% {tr("complete", "voltooid")}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{fmtCurrency(entry.total)}</p>
+                </div>
+
+                <div className="h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                  <div className="flex h-full w-full">
+                    <div
+                      className="h-full bg-emerald-500"
+                      style={{ width: `${receivedShare}%` }}
+                      title={`${entry.monthName}: ${fmtCurrency(entry.received)} ${tr("received", "ontvangen")}`}
+                    />
+                    <div
+                      className="h-full bg-orange-400"
+                      style={{ width: `${pendingShare}%` }}
+                      title={`${entry.monthName}: ${fmtCurrency(entry.pending)} ${tr("pending", "openstaand")}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-[11px] font-medium">
+                  <span className="text-emerald-700 dark:text-emerald-300">
+                    {tr("Received", "Ontvangen")}: {fmtCurrency(entry.received)}
+                  </span>
+                  <span className="text-orange-700 dark:text-orange-300">
+                    {tr("Pending", "Openstaand")}: {fmtCurrency(entry.pending)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="relative hidden h-44 overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 px-3 sm:h-72 sm:px-4 pb-4 pt-5 sm:pt-6 shadow-inner dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-950/70 md:block">
             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[linear-gradient(to_top,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[length:100%_20%] dark:bg-[linear-gradient(to_top,rgba(51,65,85,0.35)_1px,transparent_1px)]" />
             <div className="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
               <span>{tr("Monthly volume", "Maandelijks volume")}</span>
