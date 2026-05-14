@@ -39,14 +39,14 @@ export default function AllGigsTab({
     ? {
         noPerformancesYet: "Nog geen optredens",
         sortBy: "Sorteer op",
-        newestFirst: "Nieuwste eerst",
-        oldestFirst: "Oudste eerst",
-        bandAz: "Band A-Z",
-        bandZa: "Band Z-A",
-        highestFee: "Hoogste vergoeding",
-        lowestFee: "Laagste vergoeding",
+          soonestFirst: "Eerstkomende eerst",
+          latestFirst: "Laatste eerst",
+          bandAz: "Band A-Z",
+          bandZa: "Band Z-A",
+          highestFee: "Hoogste vergoeding",
+          lowestFee: "Laagste vergoeding",
         paymentStatus: "Betaalstatus",
-        chronology: "Chronologie (voorbije onderaan)",
+          chronology: "Chronologie (eerstkomend eerst)",
         filterByArtist: "Filter op artiest",
         clearAll: "Alles wissen",
         performances: "optredens",
@@ -64,18 +64,20 @@ export default function AllGigsTab({
         sortDirection: "Sorteerrichting",
         ascending: "Oplopend",
         descending: "Aflopend",
+        sortHint: "Tik op een chip om direct te sorteren",
+        active: "Actief",
       }
     : {
         noPerformancesYet: "No performances yet",
         sortBy: "Sort by",
-        newestFirst: "Newest First",
-        oldestFirst: "Oldest First",
+        soonestFirst: "Soonest first",
+        latestFirst: "Latest first",
         bandAz: "Band A-Z",
         bandZa: "Band Z-A",
         highestFee: "Highest Fee",
         lowestFee: "Lowest Fee",
         paymentStatus: "Payment Status",
-        chronology: "Chronology (past at bottom)",
+        chronology: "Chronology (upcoming first)",
         filterByArtist: "Filter by Artist",
         clearAll: "Clear all",
         performances: "performances",
@@ -93,7 +95,22 @@ export default function AllGigsTab({
         sortDirection: "Sort direction",
         ascending: "Ascending",
         descending: "Descending",
+        sortHint: "Tap a chip to sort instantly",
+        active: "Active",
       };
+
+  const sortOptions = [
+    { value: "date-asc" as const, label: copy.soonestFirst },
+    { value: "date-desc" as const, label: copy.latestFirst },
+    { value: "band-asc" as const, label: copy.bandAz },
+    { value: "band-desc" as const, label: copy.bandZa },
+    { value: "fee-high" as const, label: copy.highestFee },
+    { value: "fee-low" as const, label: copy.lowestFee },
+    { value: "payment-status" as const, label: copy.paymentStatus },
+    { value: "chronology" as const, label: copy.chronology },
+  ];
+
+  const activeSortLabel = sortOptions.find((option) => option.value === sortBy)?.label ?? copy.soonestFirst;
 
   // Get all unique artists
   const artists = useMemo(() => {
@@ -250,54 +267,38 @@ export default function AllGigsTab({
     <div className="space-y-6">
       {/* -- Controls: Sort & Filter ---------------------------------------- */}
       <div className="space-y-4">
-        {/* Sort dropdown */}
+        {/* Sort buttons */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            {copy.sortBy}
-          </label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="block w-full max-w-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus:border-brand-500 dark:focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-          >
-            <option value="date-desc">{copy.newestFirst}</option>
-            <option value="date-asc">{copy.oldestFirst}</option>
-            <option value="band-asc">{copy.bandAz}</option>
-            <option value="band-desc">{copy.bandZa}</option>
-            <option value="fee-high">{copy.highestFee}</option>
-            <option value="fee-low">{copy.lowestFee}</option>
-            <option value="payment-status">{copy.paymentStatus}</option>
-            <option value="chronology">{copy.chronology}</option>
-          </select>
-          {/* Quick direction controls for common fields */}
-          <div className="mt-2 flex items-center gap-2">
-            <p className="text-xs text-slate-500 dark:text-slate-400">{copy.sortDirection}</p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  if (sortBy.startsWith("date")) setSortBy("date-asc");
-                  else if (sortBy.startsWith("band")) setSortBy("band-asc");
-                  else if (sortBy.startsWith("fee")) setSortBy("fee-low");
-                  else setSortBy("date-asc");
-                }}
-                className="rounded-lg border border-slate-300 dark:border-slate-600 px-2 py-1 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
-                title={copy.ascending}
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => {
-                  if (sortBy.startsWith("date")) setSortBy("date-desc");
-                  else if (sortBy.startsWith("band")) setSortBy("band-desc");
-                  else if (sortBy.startsWith("fee")) setSortBy("fee-high");
-                  else setSortBy("date-desc");
-                }}
-                className="rounded-lg border border-slate-300 dark:border-slate-600 px-2 py-1 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
-                title={copy.descending}
-              >
-                ↓
-              </button>
-            </div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              {copy.sortBy}
+            </label>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+              {activeSortLabel}
+            </span>
+          </div>
+          <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+            {copy.sortHint}
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {sortOptions.map((option) => {
+              const active = sortBy === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setSortBy(option.value)}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm font-medium transition ${
+                    active
+                      ? "border-brand-500 bg-brand-600 text-white shadow-sm dark:border-brand-400 dark:bg-brand-500"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700/70"
+                  }`}
+                >
+                  <span className="block">{option.label}</span>
+                  {active && <span className="mt-1 block text-[11px] font-normal opacity-80">{copy.active}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
 
