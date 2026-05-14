@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
@@ -14,6 +14,7 @@ type AttachmentMeta = {
   publicUrl: string;
   contentType: string;
   caption?: string | null;
+  isLocalFallback?: boolean;
 };
 
 type PhotoNote = {
@@ -38,6 +39,78 @@ type SongRecord = {
   tags?: Array<{ id: string; name: string }>;
   bands?: Array<{ id: string; name: string }>;
 };
+
+type SongMeta = {
+  bandProject: string;
+  genre: string;
+  keySignature: string;
+  bpm: string;
+  comments: string;
+};
+
+type ParsedSongNotes = {
+  meta: SongMeta;
+  body: string;
+};
+
+const SONG_META_START = "[[song-meta]]";
+const SONG_META_END = "[[/song-meta]]";
+
+const createDefaultSongMeta = (): SongMeta => ({
+  bandProject: "",
+  genre: "",
+  keySignature: "",
+  bpm: "",
+  comments: "",
+});
+
+const parseSongNotes = (rawNotes: string | null | undefined): ParsedSongNotes => {
+  const fallback = { meta: createDefaultSongMeta(), body: rawNotes || "" };
+  if (!rawNotes) return fallback;
+
+  const startIndex = rawNotes.indexOf(SONG_META_START);
+  const endIndex = rawNotes.indexOf(SONG_META_END);
+  if (startIndex !== 0 || endIndex < 0) return fallback;
+
+  const metaJson = rawNotes.slice(SONG_META_START.length, endIndex).trim();
+  const body = rawNotes.slice(endIndex + SONG_META_END.length).replace(/^\s+/, "");
+
+  try {
+    const parsed = JSON.parse(metaJson) as Partial<SongMeta>;
+    return {
+      meta: {
+        bandProject: typeof parsed.bandProject === "string" ? parsed.bandProject : "",
+        genre: typeof parsed.genre === "string" ? parsed.genre : "",
+        keySignature: typeof parsed.keySignature === "string" ? parsed.keySignature : "",
+        bpm: typeof parsed.bpm === "string" ? parsed.bpm : "",
+        comments: typeof parsed.comments === "string" ? parsed.comments : "",
+      },
+      body,
+    };
+  } catch {
+    return fallback;
+  }
+};
+
+const serializeSongNotes = (meta: SongMeta, body: string) => {
+  const payload = JSON.stringify(meta);
+  const trimmedBody = body.trim();
+  return `${SONG_META_START}\n${payload}\n${SONG_META_END}${trimmedBody ? `\n\n${trimmedBody}` : ""}`;
+};
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Failed to read attachment locally"));
+    };
+    reader.onerror = () => reject(new Error("Failed to read attachment locally"));
+    reader.readAsDataURL(file);
+  });
 
 const PHOTO_EXPORT_WIDTH = 1400;
 const PHOTO_EXPORT_HEIGHT = 933;
@@ -121,9 +194,18 @@ function CanvasEditor({ onExport }: { onExport: (blob: Blob) => void }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     return new Promise<void>((resolve) => {
+      // WebP export can fail on some tablet browsers (notably older iPad/Safari builds).
       canvas.toBlob((blob) => {
-        if (blob) onExport(blob);
-        resolve();
+        if (blob) {
+          onExport(blob);
+          resolve();
+          return;
+        }
+
+        canvas.toBlob((fallbackBlob) => {
+          if (fallbackBlob) onExport(fallbackBlob);
+          resolve();
+        }, "image/png");
       }, "image/webp", 0.9);
     });
   };
@@ -196,7 +278,12 @@ export default function SongsTab() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [availableBands, setAvailableBands] = useState<Array<{id:string,name:string}>>([]);
+  const [bandSuggestions, setBandSuggestions] = useState<string[]>([]);
+  const [selectedBandName, setSelectedBandName] = useState("");
+  const [addingBandToNote, setAddingBandToNote] = useState(false);
   const [selectedBandIds, setSelectedBandIds] = useState<string[]>([]);
+  const [songMeta, setSongMeta] = useState<SongMeta>(createDefaultSongMeta());
+  const [formSection, setFormSection] = useState<"details" | "notes" | "media" | "concert">("details");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [attachmentsMeta, setAttachmentsMeta] = useState<AttachmentMeta[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
@@ -209,8 +296,13 @@ export default function SongsTab() {
   const [performanceBaseNotes, setPerformanceBaseNotes] = useState("");
   const [savingPerformanceNotes, setSavingPerformanceNotes] = useState(false);
   const [autoSavingPerformanceNotes, setAutoSavingPerformanceNotes] = useState(false);
+  const [songSearch, setSongSearch] = useState("");
+  const [bandFilterIds, setBandFilterIds] = useState<string[]>([]);
+  const [showOnlyWithNotes, setShowOnlyWithNotes] = useState(false);
   const [lastPerformanceSavedAt, setLastPerformanceSavedAt] = useState<Date | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const performanceTouchStartRef = useRef<number | null>(null);
+  const draftStorageKey = editingSongId ? `gigmanager:song-draft:${editingSongId}` : "gigmanager:song-draft:new";
   const isDutch = locale.startsWith("nl");
   const hasPerformanceChanges = performanceNotesDraft !== performanceBaseNotes;
   const copy = {
@@ -249,6 +341,94 @@ export default function SongsTab() {
     cueDynamics: isDutch ? "Dynamiek opbouwen" : "Build dynamics",
     cueTempo: isDutch ? "Tempo check" : "Tempo check",
     cueReminder: isDutch ? "Herinnering" : "Reminder",
+    searchPlaceholder: isDutch ? "Zoek in titel of notities..." : "Search title or notes...",
+    filterByBand: isDutch ? "Filter op band" : "Filter by band",
+    withNotesOnly: isDutch ? "Alleen met notities" : "Only with notes",
+    clearFilters: isDutch ? "Filters wissen" : "Clear filters",
+    resultsLabel: isDutch ? "resultaten" : "results",
+    noBand: isDutch ? "Zonder band" : "No band",
+    assignBands: isDutch ? "Koppel bands" : "Assign bands",
+    clearBands: isDutch ? "Geen band" : "No band",
+    selectedBandsCount: isDutch ? "geselecteerd" : "selected",
+    chooseBand: isDutch ? "Kies bestaande band" : "Choose an existing band",
+    addBand: isDutch ? "Band toevoegen" : "Add band",
+    noBandsHint: isDutch ? "Nog geen bands beschikbaar" : "No bands available yet",
+    detailsTab: isDutch ? "Details" : "Details",
+    notesTab: isDutch ? "Notities" : "Notes",
+    mediaTab: isDutch ? "Media" : "Media",
+    concertTab: isDutch ? "Concert" : "Concert",
+    saveDraftHint: isDutch ? "Opslag gebeurt automatisch als concept." : "Drafts are saved automatically.",
+    restoreDraft: isDutch ? "Concept herstellen" : "Restore draft",
+    bandProject: isDutch ? "Band / project" : "Band / project",
+    genre: isDutch ? "Genre" : "Genre",
+    keySignature: isDutch ? "Toonsoort" : "Key",
+    bpm: isDutch ? "BPM" : "BPM",
+    comments: isDutch ? "Opmerkingen" : "Comments",
+  };
+
+  const normalizeName = (name: string) => name.trim().toLowerCase();
+
+  const mergeBandSuggestions = useCallback((names: string[]) => {
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const raw of names) {
+      const clean = raw.trim();
+      if (!clean) continue;
+      const key = normalizeName(clean);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(clean);
+    }
+    unique.sort((a, b) => a.localeCompare(b));
+    return unique;
+  }, []);
+
+  const filterBandOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const band of availableBands) map.set(band.id, band.name);
+    for (const song of songs) {
+      for (const band of song.bands || []) {
+        if (!map.has(band.id)) map.set(band.id, band.name);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [availableBands, songs]);
+
+  const filteredSongs = useMemo(() => {
+    const q = songSearch.trim().toLowerCase();
+    return songs.filter((song) => {
+      const parsed = parseSongNotes(song.notes);
+      if (showOnlyWithNotes && !parsed.body.trim()) return false;
+
+      if (bandFilterIds.length > 0) {
+        const songBandIds = new Set((song.bands || []).map((band) => band.id));
+        const matchesBand = bandFilterIds.some((id) => songBandIds.has(id));
+        if (!matchesBand) return false;
+      }
+
+      if (!q) return true;
+      const inTitle = song.title.toLowerCase().includes(q);
+      const inNotes = parsed.body.toLowerCase().includes(q);
+      const inMeta = [parsed.meta.bandProject, parsed.meta.genre, parsed.meta.keySignature, parsed.meta.bpm, parsed.meta.comments]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+      return inTitle || inNotes || inMeta;
+    });
+  }, [songs, songSearch, showOnlyWithNotes, bandFilterIds]);
+
+  const hasActiveFilters = songSearch.trim().length > 0 || showOnlyWithNotes || bandFilterIds.length > 0;
+
+  const toggleBandFilter = (bandId: string) => {
+    setBandFilterIds((prev) => (prev.includes(bandId) ? prev.filter((id) => id !== bandId) : [...prev, bandId]));
+  };
+
+  const resetListFilters = () => {
+    setSongSearch("");
+    setBandFilterIds([]);
+    setShowOnlyWithNotes(false);
   };
 
   const fetchSongs = useCallback(async () => {
@@ -259,6 +439,8 @@ export default function SongsTab() {
       if (!res.ok) throw new Error("Failed to load songs");
       const data = await res.json();
       setSongs(data);
+      // Debug: check if bands are present
+      console.log("[SongsTab] Fetched songs:", data.length, "songs with bands sample:", data.slice(0, 2).map((s: any) => ({ id: s.id, title: s.title, bands: s.bands })));
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Failed to fetch songs");
@@ -267,22 +449,132 @@ export default function SongsTab() {
     }
   }, [getAccessToken, toast]);
 
+  const fetchBandSources = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const [bandsRes, gigsRes, membersRes] = await Promise.all([
+        fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/gigs", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/band-members", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+
+      const bands = bandsRes.ok ? await bandsRes.json() : [];
+      const gigs = gigsRes.ok ? await gigsRes.json() : [];
+      const members = membersRes.ok ? await membersRes.json() : [];
+
+      const normalizedBands = Array.isArray(bands) ? bands : [];
+      setAvailableBands(normalizedBands);
+
+      const suggestionNames = [
+        ...normalizedBands.map((band: { name: string }) => band.name),
+        ...(Array.isArray(gigs) ? gigs.map((gig: { performers?: string }) => gig.performers || "") : []),
+        ...(Array.isArray(members)
+          ? members.flatMap((member: { bands?: string[] }) => member.bands || [])
+          : []),
+      ];
+      setBandSuggestions(mergeBandSuggestions(suggestionNames));
+    } catch {
+      // ignore band source loading failures to keep notes form usable
+    }
+  }, [getAccessToken, mergeBandSuggestions]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    try {
+      const raw = window.localStorage.getItem(draftStorageKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as {
+        title?: string;
+        notes?: string;
+        meta?: SongMeta;
+        tags?: string[];
+        bandIds?: string[];
+        section?: "details" | "notes" | "media" | "concert";
+      };
+
+      if (typeof draft.title === "string") setTitle(draft.title);
+      if (typeof draft.notes === "string") setNotes(draft.notes);
+      if (draft.meta) setSongMeta({ ...createDefaultSongMeta(), ...draft.meta });
+      if (Array.isArray(draft.tags)) setTags(draft.tags.filter((tag) => typeof tag === "string"));
+      if (Array.isArray(draft.bandIds)) setSelectedBandIds(draft.bandIds.filter((id) => typeof id === "string"));
+      if (draft.section) setFormSection(draft.section);
+    } catch {
+      // ignore draft restore failures
+    }
+  }, [draftStorageKey, showForm]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    try {
+      window.localStorage.setItem(
+        draftStorageKey,
+        JSON.stringify({
+          title,
+          notes,
+          meta: songMeta,
+          tags,
+          bandIds: selectedBandIds,
+          section: formSection,
+        })
+      );
+    } catch {
+      // ignore draft save failures
+    }
+  }, [draftStorageKey, showForm, title, notes, songMeta, tags, selectedBandIds, formSection]);
+
+  const ensureBandExistsByName = useCallback(async (name: string) => {
+    const clean = name.trim();
+    if (!clean) return null;
+    const key = normalizeName(clean);
+
+    const existing = availableBands.find((band) => normalizeName(band.name) === key);
+    if (existing) return existing;
+
+    const token = await getAccessToken();
+    if (!token) throw new Error("No session token");
+
+    const res = await fetch("/api/bands", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: clean }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error || "Failed to create band");
+    }
+
+    const created = await res.json();
+    setAvailableBands((prev) => [...prev, created]);
+    setBandSuggestions((prev) => mergeBandSuggestions([...prev, clean]));
+    return created as { id: string; name: string };
+  }, [availableBands, getAccessToken, mergeBandSuggestions]);
+
+  const handleAddBandToNote = useCallback(async (bandName?: string) => {
+    const targetName = (bandName ?? selectedBandName).trim();
+    if (!targetName) return;
+    try {
+      setAddingBandToNote(true);
+      const band = await ensureBandExistsByName(targetName);
+      if (!band) return;
+      setSelectedBandIds((prev) => (prev.includes(band.id) ? prev : [...prev, band.id]));
+      setSelectedBandName("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add band");
+    } finally {
+      setAddingBandToNote(false);
+    }
+  }, [ensureBandExistsByName, selectedBandName, toast]);
+
   useEffect(() => {
     fetchSongs();
-    // load bands for selection
-    (async () => {
-      try {
-        const token = await getAccessToken();
-        const res = await fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const b = await res.json();
-          setAvailableBands(b || []);
-        }
-      } catch (e) {
-        // ignore
-      }
-    })();
-  }, [fetchSongs, getAccessToken]);
+    fetchBandSources();
+  }, [fetchSongs, fetchBandSources]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -291,6 +583,17 @@ export default function SongsTab() {
   };
 
   async function uploadFile(file: File) {
+    const {
+      data: { session: activeSession },
+    } = await supabaseClient.auth.getSession();
+
+    if (!activeSession?.access_token) {
+      const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession();
+      if (refreshError || !refreshedData.session?.access_token) {
+        throw new Error("Session expired. Please sign in again before uploading drawings.");
+      }
+    }
+
     // compress images if large by drawing to canvas
     let uploadFile = file;
     if (file.type.startsWith("image/") && file.size > 800 * 1024) {
@@ -311,7 +614,19 @@ export default function SongsTab() {
     const fileName = `${session?.user?.id}-${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
     const { error: uploadError } = await supabaseClient.storage.from("songs").upload(fileName, uploadFile, { upsert: true });
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      const message = uploadError.message || "Upload failed";
+      if (message.toLowerCase().includes("bucket") || uploadError.statusCode === "404") {
+        const localUrl = await readFileAsDataUrl(uploadFile);
+        return {
+          storagePath: `local:${crypto.randomUUID()}`,
+          publicUrl: localUrl,
+          contentType: uploadFile.type || "application/octet-stream",
+          isLocalFallback: true,
+        } as AttachmentMeta;
+      }
+      throw new Error(message);
+    }
 
     const { data: { publicUrl } } = supabaseClient.storage.from("songs").getPublicUrl(fileName);
     return { storagePath: fileName, publicUrl, contentType: uploadFile.type } as AttachmentMeta;
@@ -328,15 +643,18 @@ export default function SongsTab() {
       if (!token) throw new Error("No session token");
 
       const uploaded: AttachmentMeta[] = [];
+      let usedLocalFallback = false;
       for (const f of selectedFiles) {
         const meta = await uploadFile(f);
+        if (meta.isLocalFallback) usedLocalFallback = true;
         uploaded.push(meta);
       }
 
       // attachmentsMeta may include drawings saved via CanvasEditor (client will push using onExport -> handleDrawingExport)
       const allAttachments = [...attachmentsMeta, ...uploaded];
 
-      const bodyPayload: any = { title: title.trim(), notes: notes.trim() || null, attachments: allAttachments, tags, bandIds: selectedBandIds };
+      const composedNotes = serializeSongNotes(songMeta, notes);
+      const bodyPayload: any = { title: title.trim(), notes: composedNotes, attachments: allAttachments, tags, bandIds: selectedBandIds };
 
       let res;
       if (editingSongId) {
@@ -366,13 +684,22 @@ export default function SongsTab() {
 
       setTitle("");
       setNotes("");
+      setSongMeta(createDefaultSongMeta());
       setTags([]);
       setSelectedBandIds([]);
       setSelectedFiles([]);
       setAttachmentsMeta([]);
       setEditingSongId(null);
       setShowForm(false);
+      try {
+        window.localStorage.removeItem(draftStorageKey);
+      } catch {
+        // ignore
+      }
       toast.success("Song saved");
+      if (usedLocalFallback) {
+        toast.info(isDutch ? "Een of meer bijlagen zijn lokaal opgeslagen omdat de opslagbucket niet bereikbaar is." : "One or more attachments were stored locally because the storage bucket was unavailable.");
+      }
       fetchSongs();
     } catch (err: any) {
       console.error(err);
@@ -383,21 +710,33 @@ export default function SongsTab() {
   };
 
   const handleDrawingExport = async (blob: Blob) => {
-    const file = new File([blob], `drawing-${Date.now()}.webp`, { type: blob.type });
+    if (!blob || blob.size === 0) {
+      toast.error(isDutch ? "Tekenen export mislukt op dit apparaat." : "Drawing export failed on this device.");
+      return;
+    }
+
+    const inferredType = blob.type && blob.type.startsWith("image/") ? blob.type : "image/png";
+    const ext = inferredType.includes("png") ? "png" : "webp";
+    const file = new File([blob], `drawing-${Date.now()}.${ext}`, { type: inferredType });
     try {
       const meta = await uploadFile(file);
       setAttachmentsMeta((s) => [...s, meta]);
-      toast.success("Drawing saved as attachment");
+      toast[meta.isLocalFallback ? "info" : "success"](meta.isLocalFallback
+        ? (isDutch ? "Tekening lokaal bewaard omdat opslagbucket niet bereikbaar is." : "Drawing stored locally because the storage bucket was unavailable.")
+        : "Drawing saved as attachment");
     } catch (err: any) {
       console.error(err);
-      toast.error("Failed to upload drawing");
+      toast.error(err?.message || "Failed to upload drawing");
     }
   };
 
   const startEdit = (song: any) => {
+    const parsed = parseSongNotes(song.notes);
     setEditingSongId(song.id);
     setTitle(song.title || "");
-    setNotes(song.notes || "");
+    setNotes(parsed.body);
+    setSongMeta(parsed.meta);
+    setFormSection("details");
     setExistingAttachments((song.attachments || []).map((a: any) => ({ id: a.id, storagePath: a.storagePath || a.storage_path || a.storagePath, publicUrl: a.publicUrl || a.public_url || a.publicUrl, contentType: a.contentType || a.content_type || 'image', caption: a.caption || null })));
     setAttachmentsMeta([]);
     setSelectedFiles([]);
@@ -408,8 +747,10 @@ export default function SongsTab() {
   };
 
   const openPerformanceMode = (song: SongRecord) => {
+    const parsed = parseSongNotes(song.notes);
     setActiveSong(song);
-    const noteText = song.notes || "";
+    const noteText = parsed.body;
+    setSongMeta(parsed.meta);
     setPerformanceNotesDraft(noteText);
     setPerformanceBaseNotes(noteText);
     setLastPerformanceSavedAt(null);
@@ -439,9 +780,11 @@ export default function SongsTab() {
     setShowForm(false);
     setTitle("");
     setNotes("");
+    setSongMeta(createDefaultSongMeta());
     setTags([]);
     setTagInput("");
     setSelectedBandIds([]);
+    setSelectedBandName("");
     setSelectedFiles([]);
     setAttachmentsMeta([]);
     setExistingAttachments([]);
@@ -459,9 +802,11 @@ export default function SongsTab() {
     setEditingSongId(null);
     setTitle("");
     setNotes("");
+    setSongMeta(createDefaultSongMeta());
     setTags([]);
     setTagInput("");
     setSelectedBandIds([]);
+    setSelectedBandName("");
     setSelectedFiles([]);
     setAttachmentsMeta([]);
     setExistingAttachments([]);
@@ -497,7 +842,8 @@ export default function SongsTab() {
     }
 
     const songId = activeSong.id;
-    const nextNotes = performanceNotesDraft.trim() || null;
+    const nextNotes = performanceNotesDraft.trim() || "";
+    const currentMeta = activeSong ? parseSongNotes(activeSong.notes).meta : createDefaultSongMeta();
 
     try {
       const token = await getAccessToken();
@@ -509,7 +855,7 @@ export default function SongsTab() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ notes: nextNotes }),
+        body: JSON.stringify({ notes: serializeSongNotes(currentMeta, nextNotes) }),
       });
 
       if (!res.ok) {
@@ -519,10 +865,10 @@ export default function SongsTab() {
 
       setSongs((prev) =>
         prev.map((song) =>
-          song.id === songId ? { ...song, notes: nextNotes } : song
+          song.id === songId ? { ...song, notes: serializeSongNotes(currentMeta, nextNotes) } : song
         )
       );
-      setActiveSong((prev) => (prev && prev.id === songId ? { ...prev, notes: nextNotes } : prev));
+      setActiveSong((prev) => (prev && prev.id === songId ? { ...prev, notes: serializeSongNotes(currentMeta, nextNotes) } : prev));
       setPerformanceBaseNotes(nextNotes || "");
       setLastPerformanceSavedAt(new Date());
 
@@ -611,6 +957,32 @@ export default function SongsTab() {
     });
   };
 
+  const selectedBands = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const band of availableBands) map.set(band.id, band.name);
+    for (const song of songs) {
+      for (const band of song.bands || []) {
+        if (!map.has(band.id)) map.set(band.id, band.name);
+      }
+    }
+    return selectedBandIds
+      .map((id) => ({ id, name: map.get(id) || id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [availableBands, songs, selectedBandIds]);
+
+  const activePerformanceIndex = useMemo(() => {
+    if (!activeSong) return -1;
+    return filteredSongs.findIndex((song) => song.id === activeSong.id);
+  }, [activeSong, filteredSongs]);
+
+  const goToAdjacentPerformanceSong = (direction: -1 | 1) => {
+    if (activePerformanceIndex < 0) return;
+    const nextSong = filteredSongs[activePerformanceIndex + direction];
+    if (nextSong) {
+      openPerformanceMode(nextSong);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -621,160 +993,356 @@ export default function SongsTab() {
       </div>
 
       {showForm && (
-        <div className="space-y-3 rounded-lg border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-semibold">{copy.create}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{copy.prompt}</p>
+        <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/95">
+          <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{copy.create}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{copy.prompt}</p>
+              </div>
+              <button type="button" onClick={resetSongFormState} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">{copy.cancel}</button>
             </div>
-            <button type="button" onClick={resetSongFormState} className="rounded-lg border px-3 py-2 text-sm">{copy.cancel}</button>
-          </div>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isDutch ? 'Titel' : 'Title'} className="w-full rounded-lg border px-3 py-2" />
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={isDutch ? 'Notities' : 'Notes'} className="w-full rounded-lg border px-3 py-2 h-28" />
 
-          <div className="space-y-2 rounded-lg border p-3">
-            <label className="block text-sm font-medium">Tags</label>
-            <div className="flex gap-2">
-              <input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const value = tagInput.trim();
-                    if (value && !tags.includes(value)) {
-                      setTags((prev) => [...prev, value]);
-                    }
-                    setTagInput('');
-                  }
-                }}
-                placeholder="Add tag and press Enter"
-                className="flex-1 rounded-lg border px-3 py-2"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const value = tagInput.trim();
-                  if (value && !tags.includes(value)) setTags((prev) => [...prev, value]);
-                  setTagInput('');
-                }}
-                className="rounded-lg border px-3 py-2"
-              >
-                Add
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
+            <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-100 p-2 dark:bg-slate-800/70">
+              {(["details", "notes", "media", "concert"] as const).map((key) => (
                 <button
-                  key={tag}
+                  key={key}
                   type="button"
-                  onClick={() => setTags((prev) => prev.filter((item) => item !== tag))}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-sm dark:bg-slate-800"
+                  onClick={() => setFormSection(key)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${formSection === key ? "bg-cyan-600 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"}`}
                 >
-                  {tag} ×
+                  {key === "details" ? copy.detailsTab : key === "notes" ? copy.notesTab : key === "media" ? copy.mediaTab : copy.concertTab}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="space-y-2 rounded-lg border p-3">
-            <label className="block text-sm font-medium">Bands</label>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {availableBands.length === 0 ? (
-                <div className="text-sm text-slate-500">No bands yet</div>
-              ) : (
-                availableBands.map((band) => (
-                  <label key={band.id} className="flex items-center gap-2 rounded border px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedBandIds.includes(band.id)}
-                      onChange={(e) => {
-                        setSelectedBandIds((prev) =>
-                          e.target.checked ? [...prev, band.id] : prev.filter((id) => id !== band.id)
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+              <div className="space-y-4">
+                {formSection === "details" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{isDutch ? "Songtitel" : "Song title"}</label>
+                  <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isDutch ? "Titel" : "Title"} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{copy.bandProject}</label>
+                      <input value={songMeta.bandProject} onChange={(e) => setSongMeta((prev) => ({ ...prev, bandProject: e.target.value }))} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" placeholder={copy.chooseBand} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{copy.genre}</label>
+                      <input value={songMeta.genre} onChange={(e) => setSongMeta((prev) => ({ ...prev, genre: e.target.value }))} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" placeholder="Pop, jazz, rock..." />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{copy.keySignature}</label>
+                      <input value={songMeta.keySignature} onChange={(e) => setSongMeta((prev) => ({ ...prev, keySignature: e.target.value }))} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" placeholder="C, Am..." />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{copy.bpm}</label>
+                      <input value={songMeta.bpm} onChange={(e) => setSongMeta((prev) => ({ ...prev, bpm: e.target.value }))} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" placeholder="120" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{copy.comments}</label>
+                    <textarea value={songMeta.comments} onChange={(e) => setSongMeta((prev) => ({ ...prev, comments: e.target.value }))} placeholder={isDutch ? "Context, intro cues, arrangement notes..." : "Context, intro cues, arrangement notes..."} className="h-20 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                  </div>
+                </div>
+                )}
+
+                {formSection === "notes" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="block text-sm font-medium text-slate-900 dark:text-slate-100">{copy.notesTab}</label>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{copy.saveDraftHint}</span>
+                  </div>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={isDutch ? "Notities" : "Notes"} className="mt-2 min-h-[10rem] w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                </div>
+                )}
+
+                {formSection === "notes" && (
+                <details className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <summary className="cursor-pointer select-none text-sm font-medium text-slate-900 dark:text-slate-100">Tags</summary>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const value = tagInput.trim();
+                            if (value && !tags.includes(value)) setTags((prev) => [...prev, value]);
+                            setTagInput("");
+                          }
+                        }}
+                        placeholder="Add tag and press Enter"
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                      />
+                      <button type="button" onClick={() => { const value = tagInput.trim(); if (value && !tags.includes(value)) setTags((prev) => [...prev, value]); setTagInput(""); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Add</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <button key={tag} type="button" onClick={() => setTags((prev) => prev.filter((item) => item !== tag))} className="rounded-full bg-slate-100 px-3 py-1 text-sm dark:bg-slate-800">{tag} ×</button>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+                )}
+
+                {formSection === "notes" && (
+                <details className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50" open>
+                  <summary className="cursor-pointer select-none text-sm font-medium">{copy.assignBands}</summary>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{selectedBandIds.length} {copy.selectedBandsCount}</div>
+                      <button type="button" onClick={() => setSelectedBandIds([])} className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">{copy.clearBands}</button>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <input type="text" value={selectedBandName} onChange={(e) => setSelectedBandName(e.target.value)} placeholder={copy.chooseBand} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                      <button type="button" onClick={() => handleAddBandToNote()} disabled={!selectedBandName.trim() || addingBandToNote} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-slate-700 dark:text-slate-200">{addingBandToNote ? (isDutch ? "Toevoegen..." : "Adding...") : copy.addBand}</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {bandSuggestions.map((bandName) => {
+                        const alreadySelected = selectedBands.some((band) => band.name === bandName);
+                        return (
+                          <button key={bandName} type="button" onClick={() => handleAddBandToNote(bandName)} disabled={alreadySelected || addingBandToNote} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${alreadySelected ? "cursor-default bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:ring-cyan-800/50" : "bg-slate-100 text-slate-700 hover:bg-cyan-50 hover:text-cyan-800 hover:ring-1 hover:ring-cyan-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-200"}`}>{bandName}</button>
                         );
-                      }}
-                    />
-                    <span>{band.name}</span>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedBands.map((band) => (
+                        <button key={band.id} type="button" onClick={() => setSelectedBandIds((prev) => prev.filter((id) => id !== band.id))} className="rounded-full bg-slate-100 px-3 py-1 text-sm dark:bg-slate-800">{band.name} ×</button>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+                )}
+              </div>
 
-          <div className="flex gap-2 items-center">
-            <label className="rounded-lg border px-3 py-2 cursor-pointer">Attach Photo
-              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" multiple />
-            </label>
-            <div className="text-sm text-slate-500">{selectedFiles.length} files selected</div>
-          </div>
+              <div className="space-y-4">
+                {formSection === "media" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                      <Icons.Document className="h-4 w-4" />
+                      {isDutch ? "Afbeelding/PDF toevoegen" : "Add image/PDF"}
+                      <input type="file" accept="image/*,.pdf" onChange={handleFileChange} className="hidden" multiple />
+                    </label>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">{selectedFiles.length} files selected</div>
+                  </div>
+                  <div className="mt-3 text-xs text-slate-400 dark:text-slate-500">{isDutch ? "Gebruik media en tekening om aantekeningen snel vast te leggen." : "Use media and drawing to capture notes quickly."}</div>
+                </div>
+                )}
 
-          <div className="space-y-3">
-            <PhotoAnnotationEditor onExport={handleDrawingExport} />
-            <CanvasEditor onExport={handleDrawingExport} />
-          </div>
+                {formSection === "media" && (
+                <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{copy.mediaTab}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{isDutch ? "Teken, markeer en annoteer direct op tablet." : "Draw, highlight, and annotate directly on tablet."}</div>
+                  </div>
+                  <PhotoAnnotationEditor onExport={handleDrawingExport} />
+                  <CanvasEditor onExport={handleDrawingExport} />
+                </div>
+                )}
 
-              {/* Existing attachments (when editing) */}
-              {existingAttachments.length > 0 && (
-                <div className="space-y-2">
-                  <div className="font-semibold">Existing attachments</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {existingAttachments.map((a, idx) => (
-                      <div key={a.id} className={`rounded overflow-hidden border p-2 ${deletingAttachmentIds.has(a.id) ? 'opacity-50' : ''}`}>
-                        <Image src={a.publicUrl} width={150} height={100} className="h-24 w-full object-cover rounded" alt="attachment" />
-                        <div className="mt-2 flex gap-2 items-center">
-                          <button onClick={() => moveExistingAttachment(idx, -1)} className="px-2 py-1 border rounded">◀</button>
-                          <button onClick={() => moveExistingAttachment(idx, 1)} className="px-2 py-1 border rounded">▶</button>
-                          <button onClick={() => toggleDeleteExistingAttachment(a.id)} className={`ml-auto px-2 py-1 rounded ${deletingAttachmentIds.has(a.id) ? 'bg-red-600 text-white' : 'border'}`}>{deletingAttachmentIds.has(a.id) ? 'Undo' : 'Delete'}</button>
+                {formSection === "concert" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{copy.concertTab}</div>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{isDutch ? "Na opslaan kun je meteen concertmodus openen voor snelle navigatie." : "After saving, open concert mode for quick navigation."}</p>
+                </div>
+                )}
+
+                {formSection === "media" && existingAttachments.length > 0 && (
+                  <details className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                    <summary className="cursor-pointer select-none font-semibold">Existing attachments</summary>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {existingAttachments.map((a, idx) => (
+                        <div key={a.id} className={`rounded overflow-hidden border p-2 ${deletingAttachmentIds.has(a.id) ? "opacity-50" : ""}`}>
+                          <Image src={a.publicUrl} width={150} height={100} className="h-24 w-full object-cover rounded" alt="attachment" />
+                          <div className="mt-2 flex items-center gap-2">
+                            <button onClick={() => moveExistingAttachment(idx, -1)} className="rounded border px-2 py-1">◀</button>
+                            <button onClick={() => moveExistingAttachment(idx, 1)} className="rounded border px-2 py-1">▶</button>
+                            <button onClick={() => toggleDeleteExistingAttachment(a.id)} className={`ml-auto rounded px-2 py-1 ${deletingAttachmentIds.has(a.id) ? "bg-red-600 text-white" : "border"}`}>{deletingAttachmentIds.has(a.id) ? "Undo" : "Delete"}</button>
+                          </div>
+                          <input value={a.caption || ""} onChange={(e) => updateExistingAttachmentCaption(a.id, e.target.value)} placeholder="Caption" className="mt-2 w-full rounded border px-2 py-1 text-sm" />
                         </div>
-                        <input value={a.caption || ''} onChange={(e) => updateExistingAttachmentCaption(a.id, e.target.value)} placeholder="Caption" className="mt-2 w-full rounded border px-2 py-1 text-sm" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      ))}
+                    </div>
+                  </details>
+                )}
 
-              {/* New attachments preview (selected files and drawings) */}
-              {(selectedFiles.length > 0 || attachmentsMeta.length > 0) && (
-                <div className="space-y-2">
-                  <div className="font-semibold">New attachments</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {selectedFiles.map((f, i) => (
-                      <div key={f.name + i} className="rounded overflow-hidden border p-2">
-                        <div className="h-24 w-full bg-slate-100 flex items-center justify-center text-sm">{f.name}</div>
-                        <div className="mt-2 text-xs text-slate-500">{Math.round(uploadProgress[`${session?.user?.id}-${Date.now()}-${i}`] || 0)}%</div>
-                      </div>
-                    ))}
-                    {attachmentsMeta.map((a, i) => (
-                      <div key={a.storagePath} className="rounded overflow-hidden border p-2">
-                        <Image src={a.publicUrl} width={150} height={100} className="h-24 w-full object-cover rounded" alt="attachment" />
-                        <input value={a.caption || ''} onChange={(e) => setAttachmentsMeta((prev) => prev.map((p, idx) => idx === i ? { ...p, caption: e.target.value } : p))} placeholder="Caption" className="mt-2 w-full rounded border px-2 py-1 text-sm" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button onClick={handleSave} disabled={uploading} className="rounded-lg bg-brand-600 text-white px-3 py-2">{copy.save}</button>
-                <button onClick={resetSongFormState} className="rounded-lg border px-3 py-2">{copy.cancel}</button>
+                {formSection === "media" && (selectedFiles.length > 0 || attachmentsMeta.length > 0) && (
+                  <details className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50" open>
+                    <summary className="cursor-pointer select-none font-semibold">New attachments</summary>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {selectedFiles.map((f, i) => (
+                        <div key={f.name + i} className="rounded overflow-hidden border p-2">
+                          <div className="flex h-24 w-full items-center justify-center bg-slate-100 text-sm">{f.name}</div>
+                          <div className="mt-2 text-xs text-slate-500">{Math.round(uploadProgress[`${session?.user?.id}-${Date.now()}-${i}`] || 0)}%</div>
+                        </div>
+                      ))}
+                      {attachmentsMeta.map((a, i) => (
+                        <div key={a.storagePath} className="rounded overflow-hidden border p-2">
+                          <Image src={a.publicUrl} width={150} height={100} className="h-24 w-full object-cover rounded" alt="attachment" />
+                          <input value={a.caption || ""} onChange={(e) => setAttachmentsMeta((prev) => prev.map((p, idx) => idx === i ? { ...p, caption: e.target.value } : p))} placeholder="Caption" className="mt-2 w-full rounded border px-2 py-1 text-sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
             </div>
-          )}
+
+            <div className="sticky bottom-0 -mx-4 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-xs text-slate-500 dark:text-slate-400">{isDutch ? "Snelle opslag: Ctrl/Cmd+S werkt ook in de notitie-editor." : "Quick save: Ctrl/Cmd+S also works in the note editor."}</div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button onClick={handleSave} disabled={uploading || !title.trim()} className="w-full sm:w-auto rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">{copy.save}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
+        {/* Quick actions bar */}
+        <div className="rounded-xl border border-cyan-200 bg-gradient-to-r from-cyan-50 to-blue-50 p-4 shadow-sm dark:border-cyan-800/50 dark:from-cyan-950/20 dark:to-blue-950/20">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">{copy.title}</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{copy.create}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  resetSongFormState();
+                  setShowForm(true);
+                }}
+                className="rounded-lg bg-cyan-600 text-white px-3 py-2 text-sm font-medium transition hover:bg-cyan-700 dark:bg-cyan-700 dark:hover:bg-cyan-800"
+              >
+                {isDutch ? "+ Nieuwe notitie" : "+ New note"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div className="relative">
+              <Icons.Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={songSearch}
+                onChange={(e) => setSongSearch(e.target.value)}
+                placeholder={copy.searchPlaceholder}
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              />
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={showOnlyWithNotes}
+                onChange={(e) => setShowOnlyWithNotes(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              {copy.withNotesOnly}
+            </label>
+          </div>
+
+          {filterBandOptions.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{copy.filterByBand}</div>
+              <div className="flex flex-wrap gap-2">
+                {filterBandOptions.map((band) => {
+                  const selected = bandFilterIds.includes(band.id);
+                  return (
+                    <button
+                      key={band.id}
+                      type="button"
+                      onClick={() => toggleBandFilter(band.id)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                        selected
+                          ? "bg-cyan-600 text-white ring-2 ring-cyan-300/50 dark:bg-cyan-700 dark:ring-cyan-600/50"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:ring-1 hover:ring-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:ring-slate-600"
+                      }`}
+                    >
+                      {band.name || copy.noBand}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 text-xs text-slate-400 dark:text-slate-500">{isDutch ? "Geen bands beschikbaar om op te filteren" : "No bands available to filter"}</div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span>
+              {filteredSongs.length} / {songs.length} {copy.resultsLabel}
+            </span>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetListFilters}
+                className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                {copy.clearFilters}
+              </button>
+            )}
+          </div>
+        </div>
+
         {loading ? (
           <div className="text-sm text-slate-500">Loading...</div>
         ) : songs.length === 0 ? (
           <div className="text-sm text-slate-500">No songs yet</div>
+        ) : filteredSongs.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            {isDutch ? "Geen notities gevonden met deze filters." : "No notes found for these filters."}
+          </div>
         ) : (
           <div className="grid gap-3">
-            {songs.map((s) => (
-              <div key={s.id} className="rounded-lg border p-3">
+            {filteredSongs.map((s) => {
+              const parsed = parseSongNotes(s.notes);
+              return (
+              <div key={s.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold">{s.title}</div>
-                    {s.notes ? (
-                      <div className="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{s.notes}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="truncate font-semibold text-slate-900 dark:text-slate-100">{s.title}</div>
+                      {parsed.meta.bandProject && (
+                        <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
+                          {parsed.meta.bandProject}
+                        </span>
+                      )}
+                    </div>
+                    {s.bands && s.bands.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {s.bands.map((band) => (
+                          <span key={band.id} className="inline-flex items-center gap-1 rounded-full bg-cyan-100/70 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-700 ring-1 ring-cyan-200/50 dark:bg-cyan-950/40 dark:text-cyan-300 dark:ring-cyan-800/50">
+                            <span className="inline-block w-1.5 h-1.5 bg-cyan-400 rounded-full dark:bg-cyan-400"></span>
+                            {band.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : parsed.meta.bandProject ? (
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{parsed.meta.bandProject}</div>
+                    ) : (
+                      <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 italic">{isDutch ? "Geen band gekoppeld" : "No band assigned"}</div>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {parsed.meta.genre && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{parsed.meta.genre}</span>
+                      )}
+                      {parsed.meta.keySignature && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{parsed.meta.keySignature}</span>
+                      )}
+                      {parsed.meta.bpm && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{parsed.meta.bpm} BPM</span>
+                      )}
+                    </div>
+                    {parsed.body ? (
+                      <div className="mt-2 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{parsed.body}</div>
                     ) : (
                       <div className="mt-1 text-sm text-slate-400">{copy.emptyState}</div>
                     )}
@@ -804,83 +1372,116 @@ export default function SongsTab() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {activeSong && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm">
-          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/95 px-4 py-6 backdrop-blur-sm"
+          onTouchStart={(event) => {
+            performanceTouchStartRef.current = event.touches[0]?.clientX ?? null;
+          }}
+          onTouchEnd={(event) => {
+            const startX = performanceTouchStartRef.current;
+            const endX = event.changedTouches[0]?.clientX ?? null;
+            if (startX === null || endX === null) return;
+            const delta = endX - startX;
+            if (Math.abs(delta) > 60) {
+              goToAdjacentPerformanceSong(delta < 0 ? 1 : -1);
+            }
+            performanceTouchStartRef.current = null;
+          }}
+        >
+          <div className="w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-700 bg-black text-white shadow-2xl ring-1 ring-white/10">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
                   {copy.performance}
                 </p>
-                <h3 className="truncate text-xl font-semibold text-slate-900 dark:text-slate-100">{activeSong.title}</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{copy.prompt}</p>
+                <h3 className="truncate text-xl font-semibold text-white sm:text-2xl">{activeSong.title}</h3>
+                <p className="mt-1 text-sm text-slate-300">{isDutch ? "Alleen de essentiële notities voor live gebruik" : "Only the essential notes for live use"}</p>
               </div>
-              <button
-                type="button"
-                onClick={closePerformanceMode}
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                title={copy.closeOverlay}
-              >
-                <Icons.Close className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => goToAdjacentPerformanceSong(-1)}
+                  disabled={activePerformanceIndex <= 0}
+                  className="rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isDutch ? "Vorige" : "Prev"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToAdjacentPerformanceSong(1)}
+                  disabled={activePerformanceIndex < 0 || activePerformanceIndex >= filteredSongs.length - 1}
+                  className="rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isDutch ? "Volgende" : "Next"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePerformanceMode}
+                  className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  title={copy.closeOverlay}
+                >
+                  <Icons.Close className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
+            <div className="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{copy.quickLabel}</label>
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] `)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.addTimestamp}
                     </button>
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueIntro}`)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.cueIntro}
                     </button>
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueBridge}`)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.cueBridge}
                     </button>
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueBreak}`)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.cueBreak}
                     </button>
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueDynamics}`)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.cueDynamics}
                     </button>
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueTempo}`)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.cueTempo}
                     </button>
                     <button
                       type="button"
                       onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueReminder}: `)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
                     >
                       {copy.cueReminder}
                     </button>
@@ -889,7 +1490,7 @@ export default function SongsTab() {
                     value={performanceNotesDraft}
                     onChange={(e) => setPerformanceNotesDraft(e.target.value)}
                     placeholder={copy.placeholder}
-                    className="min-h-[320px] w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base leading-6 text-slate-900 shadow-inner outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:bg-slate-900"
+                    className="min-h-[320px] w-full rounded-2xl border border-white/10 bg-black px-4 py-3 text-base leading-7 text-white shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
                   />
                   <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
                     <span>{isDutch ? "Tip: Ctrl/Cmd+S om direct op te slaan" : "Tip: Ctrl/Cmd+S to save instantly"}</span>
@@ -910,7 +1511,7 @@ export default function SongsTab() {
                     type="button"
                     onClick={() => savePerformanceNotes({ source: "manual" })}
                     disabled={savingPerformanceNotes || autoSavingPerformanceNotes || !hasPerformanceChanges}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {savingPerformanceNotes ? <Icons.Spinner className="h-4 w-4" /> : null}
                     {copy.saveNow}
@@ -919,7 +1520,7 @@ export default function SongsTab() {
                     type="button"
                     onClick={handleSavePerformanceNotes}
                     disabled={savingPerformanceNotes}
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {savingPerformanceNotes ? <Icons.Spinner className="h-4 w-4" /> : null}
                     {copy.saveAndClose}
@@ -927,77 +1528,28 @@ export default function SongsTab() {
                   <button
                     type="button"
                     onClick={() => handleOpenEditMode(activeSong)}
-                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
                   >
                     {copy.openEditFromPerformance}
                   </button>
                   <button
                     type="button"
                     onClick={closePerformanceMode}
-                    className="rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    className="rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:text-white"
                   >
                     {copy.cancel}
                   </button>
                 </div>
               </div>
 
-              <aside className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{copy.title}</div>
-                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{activeSong.notes ? copy.quickHelp : copy.emptyState}</div>
+              <aside className="rounded-2xl border border-white/10 bg-white/5 p-4 text-slate-200">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{copy.quickHelp}</div>
+                <p className="mt-2 text-sm leading-6 text-slate-200">
+                  {parseSongNotes(activeSong.notes).body || (isDutch ? "Geen notities toegevoegd" : "No notes added")}
+                </p>
+                <div className="mt-4 text-xs text-slate-400">
+                  {isDutch ? "Dit scherm is bedoeld voor snelle live toegang. Alleen de zichtbare notitie-inhoud wordt getoond." : "This view is for fast live access. Only the visible note content is shown."}
                 </div>
-                <div>
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{copy.quickActions}</div>
-                  <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                    <li>{isDutch ? "Gebruik tijdstempelknoppen voor een speelvolgorde met context." : "Use timestamp buttons for context-rich running notes."}</li>
-                    <li>{isDutch ? "Kort noteren per overgang werkt beter dan lange paragrafen." : "Capture short notes per transition instead of long paragraphs."}</li>
-                    <li>{isDutch ? "Sla tussendoor op of laat autosave het werk doen." : "Save in between or let autosave handle it."}</li>
-                  </ul>
-                </div>
-
-                {activeSong.tags && activeSong.tags.length > 0 && (
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Tags</div>
-                    <div className="flex flex-wrap gap-2">
-                      {activeSong.tags.map((tag) => (
-                        <span key={tag.id} className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700">
-                          {tag.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeSong.bands && activeSong.bands.length > 0 && (
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Bands</div>
-                    <div className="flex flex-wrap gap-2">
-                      {activeSong.bands.map((band) => (
-                        <span key={band.id} className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-200 dark:bg-brand-950/30 dark:text-brand-300 dark:ring-brand-800">
-                          {band.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeSong.attachments && activeSong.attachments.length > 0 && (
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Attachments</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {activeSong.attachments.map((attachment) => (
-                        <Image
-                          key={attachment.id}
-                          src={attachment.publicUrl}
-                          width={240}
-                          height={160}
-                          className="h-28 w-full rounded-xl object-cover"
-                          alt={attachment.caption || activeSong.title}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </aside>
             </div>
           </div>

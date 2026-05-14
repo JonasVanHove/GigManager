@@ -816,8 +816,8 @@ export default function Dashboard() {
   // -- Summary calculation ----------------------------------------------------
 
   const summary: DashboardSummary = useMemo(
-    () =>
-      gigs.reduce(
+    () => {
+      const result = gigs.reduce(
         (acc, g) => {
           const c = calculateGigFinancials(
             g.performanceFee,
@@ -871,7 +871,17 @@ export default function Dashboard() {
           outstandingToBand: 0,
           pendingByBand: [],
         } as DashboardSummary
-      ),
+      );
+      
+      console.log("[Dashboard] Summary calculation complete:", {
+        totalEarnings: result.totalEarnings,
+        totalEarningsReceived: result.totalEarningsReceived,
+        totalEarningsPending: result.totalEarningsPending,
+        gigsCount: result.totalGigs
+      });
+      
+      return result;
+    },
     [gigs]
   );
 
@@ -982,7 +992,7 @@ export default function Dashboard() {
               onClick={() => handleTabChange("songs")}
               className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
                 activeTab === "songs"
-                  ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
+                  ? "border-cyan-400 bg-black text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.45),0_0_22px_rgba(34,211,238,0.25)]"
                   : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
               }`}
               title={isDutch ? "Notities" : "Notes"}
@@ -1180,9 +1190,11 @@ export default function Dashboard() {
 
               {/* Navigation */}
               <nav className="space-y-1">
+                {activeTab !== "songs" && (
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Overview
                 </div>
+                )}
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
@@ -1263,7 +1275,7 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                     activeTab === "songs" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
+                      ? "bg-black text-cyan-300 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.45)]" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -1326,7 +1338,11 @@ export default function Dashboard() {
         </>
       )}
 
-      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 min-h-screen transition-colors ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
+      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen transition-colors ${
+        activeTab === "songs"
+          ? "bg-black text-slate-100"
+          : "dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950"
+      } ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
         {/* Search results indicator */}
         {searchQuery && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-brand-50 px-4 py-2 text-sm dark:bg-brand-950/30">
@@ -1342,6 +1358,7 @@ export default function Dashboard() {
           </div>
         )}
         {/* -- Premium Summary Cards ----------------------------------- */}
+        {activeTab !== "songs" && (
         <div className="mb-4 sm:mb-8">
           {/* Overview collapse header with export actions */}
           <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
@@ -1414,6 +1431,7 @@ export default function Dashboard() {
             <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
           </div>
         </div>
+        )}
 
         {/* -- Tabs (desktop only) ----------------------------------------------------- */}
         <div className="mb-6 hidden lg:flex gap-1 sm:gap-2 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">

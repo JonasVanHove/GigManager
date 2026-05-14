@@ -3,6 +3,31 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromHeader } from "@/lib/auth-helpers";
 
+async function resolveValidBandIds(userId: string, bandIds: unknown): Promise<string[] | null> {
+  if (bandIds === undefined) return null;
+  if (!Array.isArray(bandIds)) throw new Error("bandIds must be an array");
+
+  const normalizedBandIds = Array.from(new Set(
+    bandIds
+      .filter((id): id is string => typeof id === "string")
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+  ));
+
+  if (normalizedBandIds.length === 0) return [];
+
+  const validBands = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id FROM bands WHERE "userId" = ${userId} AND id IN (${Prisma.join(normalizedBandIds)})
+  `);
+  const validBandIdSet = new Set(validBands.map((b) => b.id));
+  const invalidBandIds = normalizedBandIds.filter((id) => !validBandIdSet.has(id));
+  if (invalidBandIds.length > 0) {
+    throw new Error("One or more bands are invalid for this user");
+  }
+
+  return normalizedBandIds;
+}
+
 // GET: list songs for user with attachments
 export async function GET(request: NextRequest) {
   try {
@@ -91,6 +116,8 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({ where: { supabaseId: userId }, select: { id: true } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+    const validatedBandIds = await resolveValidBandIds(user.id, bandIds);
+
     const inserted = await prisma.$queryRaw<Array<any>>(Prisma.sql`
       INSERT INTO songs (id, title, notes, date, "userId", "createdAt", "updatedAt")
       VALUES (${crypto.randomUUID()}, ${title}, ${notes || null}, ${date ? new Date(date) : new Date()}, ${user.id}, NOW(), NOW())
@@ -128,8 +155,8 @@ export async function POST(request: NextRequest) {
 
     // handle bands (associate by id)
     const createdBands: any[] = [];
-    if (Array.isArray(bandIds) && bandIds.length > 0) {
-      for (const bId of bandIds) {
+    if (Array.isArray(validatedBandIds) && validatedBandIds.length > 0) {
+      for (const bId of validatedBandIds) {
         const sbId = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`INSERT INTO song_bands (id, "songId", "bandId", "createdAt") VALUES (${sbId}, ${song.id}, ${bId}, NOW())`);
         createdBands.push({ id: bId });
@@ -138,6 +165,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ...song, attachments: createdAttachments, tags: createdTags, bands: createdBands }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && (error.message === "bandIds must be an array" || error.message === "One or more bands are invalid for this user")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("POST /api/songs error:", error);
     return NextResponse.json({ error: "Failed to create song" }, { status: 500 });
   }
@@ -168,6 +198,8 @@ export async function PATCH(request: NextRequest) {
     const nextTitle = typeof title === "string" && title.trim().length > 0 ? title : currentSong.title;
     const nextNotes = notes === undefined ? currentSong.notes : (typeof notes === "string" && notes.trim().length > 0 ? notes : null);
     const nextDate = date ? new Date(date) : currentSong.date;
+
+    const validatedBandIds = await resolveValidBandIds(user.id, bandIds);
 
     const updated = await prisma.$queryRaw<Array<any>>(Prisma.sql`
       UPDATE songs
@@ -208,11 +240,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const createdBands: any[] = [];
-    if (Array.isArray(bandIds) && bandIds.length > 0) {
-      // Replace bands only when a new band list is supplied.
+    if (Array.isArray(validatedBandIds)) {
+      // Replace bands when a new band list is supplied, including an empty list.
       await prisma.$executeRaw(Prisma.sql`DELETE FROM song_bands WHERE "songId" = ${songId}`);
 
-      for (const bId of bandIds) {
+      for (const bId of validatedBandIds) {
         const sbId = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`INSERT INTO song_bands (id, "songId", "bandId", "createdAt") VALUES (${sbId}, ${songId}, ${bId}, NOW())`);
         createdBands.push({ id: bId });
@@ -223,9 +255,12 @@ export async function PATCH(request: NextRequest) {
       ...updated[0],
       ...(Array.isArray(attachments) ? { attachments: createdAttachments } : {}),
       ...(Array.isArray(incomingTags) ? { tags: createdTags } : {}),
-      ...(Array.isArray(bandIds) ? { bands: createdBands } : {}),
+      ...(Array.isArray(validatedBandIds) ? { bands: createdBands } : {}),
     });
   } catch (error) {
+    if (error instanceof Error && (error.message === "bandIds must be an array" || error.message === "One or more bands are invalid for this user")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("PATCH /api/songs error:", error);
     return NextResponse.json({ error: "Failed to update song" }, { status: 500 });
   }

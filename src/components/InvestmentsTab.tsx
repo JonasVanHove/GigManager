@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "./AuthProvider";
-import type { Investment, InvestmentFormData } from "@/types";
+import type { Gig, Investment, InvestmentFormData } from "@/types";
 import LoadingSpinner from "./LoadingSpinner";
+import { calculateGigFinancials } from "@/lib/calculations";
 
 interface BandMemberOption {
   id: string;
@@ -24,6 +25,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
     date: new Date().toISOString().split("T")[0],
   });
   const [investments, setInvestments] = useState<Investment[]>([]);
+  const [gigs, setGigs] = useState<Gig[]>([]);
   const [bandMembers, setBandMembers] = useState<BandMemberOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -95,10 +97,56 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
     }
   }, [session?.user, getAccessToken]);
 
+  const fetchGigs = useCallback(async () => {
+    if (!session?.user) {
+      console.log("[InvestmentsTab fetchGigs] No user session, skipping");
+      setGigs([]);
+      return;
+    }
+
+    try {
+      console.log("[InvestmentsTab fetchGigs] Getting token...");
+      const token = await getAccessToken();
+      if (!token) {
+        console.log("[InvestmentsTab fetchGigs] No token available");
+        return;
+      }
+
+      console.log("[InvestmentsTab fetchGigs] Fetching gigs from API...");
+      const res = await fetch("/api/gigs", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        console.error("[InvestmentsTab fetchGigs] API returned status:", res.status);
+        return;
+      }
+
+      const response = await res.json();
+      console.log("[InvestmentsTab fetchGigs] API response:", response);
+
+      // Handle both direct array response and { data: [...] } response
+      let gigsArray = [];
+      if (Array.isArray(response)) {
+        gigsArray = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        gigsArray = response.data;
+      } else {
+        console.warn("[InvestmentsTab fetchGigs] Unexpected response format:", response);
+      }
+
+      console.log("[InvestmentsTab fetchGigs] ✓ Success: setting", gigsArray.length, 'gigs');
+      setGigs(gigsArray);
+    } catch (err) {
+      console.error("[InvestmentsTab fetchGigs] Error:", err);
+    }
+  }, [session?.user, getAccessToken]);
+
   useEffect(() => {
     fetchInvestments();
     fetchBandMembers();
-  }, [session?.user, fetchInvestments, fetchBandMembers]);
+    fetchGigs();
+  }, [session?.user, fetchInvestments, fetchBandMembers, fetchGigs]);
 
   const resetForm = () => {
     setForm(defaultForm());
@@ -228,6 +276,57 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
 
   const totalInvested = investments.reduce((sum, inv) => sum + getYourShare(inv), 0);
   const totalCost = investments.reduce((sum, inv) => sum + inv.amount, 0);
+  const earningsSummary = useMemo(
+    () => {
+      const summary = gigs.reduce(
+        (acc, gig) => {
+          const c = calculateGigFinancials(
+            gig.performanceFee,
+            gig.technicalFee,
+            gig.managerBonusType,
+            gig.managerBonusAmount,
+            gig.numberOfMusicians,
+            gig.claimPerformanceFee,
+            gig.claimTechnicalFee,
+            gig.technicalFeeClaimAmount,
+            gig.advanceReceivedByManager,
+            gig.advanceToMusicians,
+            gig.isCharity
+          );
+
+          acc.totalEarned += c.myEarnings;
+          if (gig.paymentReceived) {
+            acc.totalEarnedReceived += c.myEarnings;
+          } else {
+            acc.totalEarnedReceived += c.myEarningsAlreadyReceived;
+            acc.totalEarnedPending += c.myEarningsStillOwed;
+          }
+          return acc;
+        },
+        {
+          totalEarned: 0,
+          totalEarnedReceived: 0,
+          totalEarnedPending: 0,
+        }
+      );
+      
+      console.log("[InvestmentsTab] earningsSummary result:", {
+        totalEarned: summary.totalEarned,
+        totalEarnedReceived: summary.totalEarnedReceived,
+        totalEarnedPending: summary.totalEarnedPending,
+        gigsCount: gigs.length
+      });
+      
+      return summary;
+    },
+    [gigs]
+  );
+
+  const totalEarned = earningsSummary.totalEarned;
+  const totalEarnedReceived = earningsSummary.totalEarnedReceived;
+  const totalEarnedPending = earningsSummary.totalEarnedPending;
+  const currentBalance = totalEarnedReceived - totalInvested;
+  const projectedBalance = totalEarned - totalInvested;
 
   return (
     <div className="space-y-6">
@@ -395,17 +494,33 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-brand-50/50 p-4 dark:border-slate-700 dark:from-brand-950/20 dark:to-transparent">
-        <div className="text-center">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Total Invested (your share)
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-brand-50/50 p-4 dark:border-slate-700 dark:from-brand-950/20 dark:to-transparent">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Total Invested (your share)</p>
+          <p className="mt-1 text-xl font-bold text-brand-600 dark:text-brand-400">{fmtCurrency(totalInvested)}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{fmtCurrency(totalCost)} total cost</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Earned (all gigs)</p>
+          <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{fmtCurrency(totalEarned)}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{gigs.length} {gigs.length === 1 ? "gig" : "gigs"}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Received</p>
+          <p className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">{fmtCurrency(totalEarnedReceived)}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Cash in</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Pending earnings</p>
+          <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-400">{fmtCurrency(totalEarnedPending)}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Nog te ontvangen</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-black p-4 text-white dark:border-slate-700">
+          <p className="text-xs font-medium text-slate-300">Current / projected balance</p>
+          <p className={`mt-1 text-xl font-bold ${currentBalance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {fmtCurrency(currentBalance)}
           </p>
-          <p className="mt-1 text-2xl font-bold text-brand-600 dark:text-brand-400">
-            {fmtCurrency(totalInvested)}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {fmtCurrency(totalCost)} total cost · {investments.length} {investments.length === 1 ? "investment" : "investments"}
-          </p>
+          <p className="mt-1 text-xs text-slate-300">Projected: {fmtCurrency(projectedBalance)}</p>
         </div>
       </div>
 
