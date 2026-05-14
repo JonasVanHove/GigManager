@@ -24,10 +24,10 @@ export default function AllGigsTab({
 }: AllGigsTabProps) {
   const { language } = useSettings();
   const PAGE_SIZE = 24;
-  const [sortBy, setSortBy] = useState<SortOption>("chronology");
+  const [sortBy, setSortBy] = useState<SortOption>("date-asc");
   const [selectedArtists, setSelectedArtists] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [hidePastGigs, setHidePastGigs] = useState(false);
+  const [hidePastGigs, setHidePastGigs] = useState(true);
   const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
   const [showCharity, setShowCharity] = useState(true);
   const [showTentative, setShowTentative] = useState(true);
