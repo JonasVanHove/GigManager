@@ -306,16 +306,18 @@ export default function AllGigsTab({
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setGlobalExpandState(true)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 bg-white dark:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition font-medium"
             title={copy.expandAll}
           >
+            <Icons.ChevronDown className="h-4 w-4 rotate-180" />
             {copy.expandAll}
           </button>
           <button
             onClick={() => setGlobalExpandState(false)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 bg-white dark:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition font-medium"
             title={copy.collapseAll}
           >
+            <Icons.ChevronDown className="h-4 w-4" />
             {copy.collapseAll}
           </button>
 
@@ -337,7 +339,7 @@ export default function AllGigsTab({
           <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             {copy.filters}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -345,7 +347,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowPaid(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500/20 cursor-pointer"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300">{copy.paid}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">✓ {copy.paid}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -354,7 +356,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowUnpaid(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300">{copy.unpaid}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">⏳ {copy.unpaid}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -363,7 +365,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowCharity(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-red-600 focus:ring-2 focus:ring-red-500/20 cursor-pointer"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300">💕 {copy.showCharity}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">💕 {copy.showCharity}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -372,7 +374,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowTentative(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-yellow-600 focus:ring-2 focus:ring-yellow-500/20 cursor-pointer"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300">⏳ {copy.showTentative}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">⏳ {copy.showTentative}</span>
             </label>
           </div>
         </div>
@@ -416,17 +418,27 @@ export default function AllGigsTab({
       </div>
 
       {/* -- Results -------------------------------------------------------- */}
-      <div className="space-y-1">
-        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          {sortedGigs.length} of {deferredGigs.length} {copy.performances}
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 p-3">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <span className="text-brand-600 dark:text-brand-400">{sortedGigs.length}</span> {copy.performances}
+          {sortedGigs.length !== deferredGigs.length && (
+            <span className="ml-2 text-slate-500 dark:text-slate-400">
+              ({deferredGigs.length} {copy.left})
+            </span>
+          )}
         </p>
       </div>
 
       {sortedGigs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 py-12 text-center">
-          <Icons.AlertCircle className="mb-3 h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-900/30 py-12 text-center">
+          <Icons.AlertCircle className="mb-3 h-10 w-10 text-slate-400 dark:text-slate-500" />
+          <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
             {copy.noMatches}
+          </p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {language === "nl" 
+              ? "Pas je filters aan of kies andere sorteeropties"
+              : "Adjust your filters or try different sort options"}
           </p>
         </div>
       ) : (
