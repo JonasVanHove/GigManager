@@ -5,6 +5,7 @@ import { useAuth } from "./AuthProvider";
 import type { Gig, Investment, InvestmentFormData } from "@/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { calculateGigFinancials } from "@/lib/calculations";
+import { useSettings } from "./SettingsProvider";
 
 interface BandMemberOption {
   id: string;
@@ -17,6 +18,7 @@ interface InvestmentsTabProps {
 
 export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
   const { session, getAccessToken } = useAuth();
+  const { language } = useSettings();
   const defaultForm = (): InvestmentFormData => ({
     amount: 0,
     sharedWithMusician: false,
@@ -34,6 +36,84 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  const copy = language === "nl"
+    ? {
+        title: "Investeringen",
+        subtitle: "Houd uitgaven bij die je nettowinst verlagen",
+        addInvestment: "Investering toevoegen",
+        cancel: "Annuleren",
+        editInvestment: "Investering bewerken",
+        amount: "Bedrag",
+        descriptionOptional: "Omschrijving (optioneel)",
+        descriptionPlaceholder: "bijv. Nieuwe geluidsapparatuur",
+        sharingTitle: "Muzikanten die deze investering delen",
+        sharingHelp: "Het totaal wordt gelijk verdeeld over jou en iedereen die hier is geselecteerd.",
+        clear: "Wissen",
+        noBandMembers: "Nog geen bandleden gevonden.",
+        splitAmong: "Gedeeld met",
+        peopleIncludingYou: "personen, inclusief jij",
+        date: "Datum",
+        saveChanges: "Wijzigingen opslaan",
+        saveInvestment: "Investering opslaan",
+        saving: "Opslaan...",
+        totalInvested: "Totaal geïnvesteerd (jouw deel)",
+        totalCost: "Totaalkost",
+        earned: "Verdiend",
+        received: "Ontvangen",
+        cashIn: "Binnengekomen geld",
+        pending: "Openstaand",
+        pendingHelp: "Nog te ontvangen",
+        currentBalance: "Huidig saldo",
+        projected: "Geprojecteerd",
+        loading: "Investeringen laden...",
+        emptyTitle: "Nog geen investeringen",
+        emptySubtitle: "Voeg je eerste investering toe om uitgaven bij te houden",
+        investment: "Investering",
+        edit: "Investering bewerken",
+        delete: "Investering verwijderen",
+        total: "totaal",
+        gig: "optreden",
+        gigs: "optredens",
+      }
+    : {
+        title: "Investments",
+        subtitle: "Track expenses that reduce your net profit",
+        addInvestment: "Add Investment",
+        cancel: "Cancel",
+        editInvestment: "Edit Investment",
+        amount: "Amount",
+        descriptionOptional: "Description (optional)",
+        descriptionPlaceholder: "e.g., New sound equipment",
+        sharingTitle: "Musicians sharing this investment",
+        sharingHelp: "The total is split equally between you and everyone selected here.",
+        clear: "Clear",
+        noBandMembers: "No band members found yet.",
+        splitAmong: "Split among",
+        peopleIncludingYou: "people including you",
+        date: "Date",
+        saveChanges: "Save Changes",
+        saveInvestment: "Save Investment",
+        saving: "Saving...",
+        totalInvested: "Total Invested (your share)",
+        totalCost: "Total cost",
+        earned: "Earned",
+        received: "Received",
+        cashIn: "Cash in",
+        pending: "Pending",
+        pendingHelp: "Still to receive",
+        currentBalance: "Current balance",
+        projected: "Projected",
+        loading: "Loading investments...",
+        emptyTitle: "No investments yet",
+        emptySubtitle: "Add your first investment to track expenses",
+        investment: "Investment",
+        edit: "Edit investment",
+        delete: "Delete investment",
+        total: "total",
+        gig: "gig",
+        gigs: "gigs",
+      };
 
   const fetchInvestments = useCallback(async () => {
     if (!session?.user) {
@@ -333,10 +413,10 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Investments
+            {copy.title}
           </h3>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Track expenses that reduce your net profit
+            {copy.subtitle}
           </p>
         </div>
         <button
@@ -353,14 +433,14 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 9.75A3.75 3.75 0 0 1 6 6h12a3.75 3.75 0 0 1 3.75 3.75v5.25A3.75 3.75 0 0 1 18 18.75H6A3.75 3.75 0 0 1 2.25 15V9.75Z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 9h12M7.5 13.5h2.25" />
           </svg>
-          {showForm ? "Cancel" : "Add Investment"}
+          {showForm ? copy.cancel : copy.addInvestment}
         </button>
       </div>
 
       {showForm && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-900">
           <h4 className="mb-4 font-semibold text-slate-900 dark:text-white">
-            {editingId ? "Edit Investment" : "Add Investment"}
+            {editingId ? copy.editInvestment : copy.addInvestment}
           </h4>
 
           {error && (
@@ -372,7 +452,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
           <div className="space-y-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Amount
+                {copy.amount}
               </label>
               <input
                 type="number"
@@ -392,12 +472,12 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Description (optional)
+                {copy.descriptionOptional}
               </label>
               <input
                 type="text"
                 className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
-                placeholder="e.g., New sound equipment"
+                placeholder={copy.descriptionPlaceholder}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
@@ -407,10 +487,10 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    Musicians sharing this investment
+                    {copy.sharingTitle}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    The total is split equally between you and everyone selected here.
+                    {copy.sharingHelp}
                   </p>
                 </div>
                 {form.contributorIds.length > 0 && (
@@ -419,7 +499,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                     onClick={() => setForm({ ...form, contributorIds: [], sharedWithMusician: false })}
                     className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
                   >
-                    Clear
+                    {copy.clear}
                   </button>
                 )}
               </div>
@@ -427,7 +507,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {bandMembers.length === 0 ? (
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    No band members found yet.
+                    {copy.noBandMembers}
                   </p>
                 ) : (
                   bandMembers.map((member) => {
@@ -466,14 +546,14 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
 
               {form.contributorIds.length > 0 && (
                 <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                  Split among {form.contributorIds.length + 1} people including you.
+                  {copy.splitAmong} {form.contributorIds.length + 1} {copy.peopleIncludingYou}.
                 </p>
               )}
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Date
+                {copy.date}
               </label>
               <input
                 type="date"
@@ -488,45 +568,42 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
               disabled={saving}
               className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-50 dark:hover:bg-brand-700"
             >
-              {saving ? "Saving..." : editingId ? "Save Changes" : "Save Investment"}
+              {saving ? copy.saving : editingId ? copy.saveChanges : copy.saveInvestment}
             </button>
           </div>
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-brand-50/50 p-4 dark:border-slate-700 dark:from-brand-950/20 dark:to-transparent">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Total Invested (your share)</p>
-          <p className="mt-1 text-xl font-bold text-brand-600 dark:text-brand-400">{fmtCurrency(totalInvested)}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{fmtCurrency(totalCost)} total cost</p>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-200/80 bg-white/85 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{copy.earned}</p>
+            <p className="mt-1 text-lg font-semibold text-slate-600 dark:text-slate-300">{fmtCurrency(totalEarned)}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{gigs.length} {gigs.length === 1 ? copy.gig : copy.gigs}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200/80 bg-white/85 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{copy.received}</p>
+            <p className="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">{fmtCurrency(totalEarnedReceived)}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{copy.cashIn}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200/80 bg-white/85 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{copy.pending}</p>
+            <p className="mt-1 text-lg font-semibold text-amber-600 dark:text-amber-400">{fmtCurrency(totalEarnedPending)}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{copy.pendingHelp}</p>
+          </div>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Earned (all gigs)</p>
-          <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{fmtCurrency(totalEarned)}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{gigs.length} {gigs.length === 1 ? "gig" : "gigs"}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Received</p>
-          <p className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">{fmtCurrency(totalEarnedReceived)}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Cash in</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Pending earnings</p>
-          <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-400">{fmtCurrency(totalEarnedPending)}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Nog te ontvangen</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-black p-4 text-white dark:border-slate-700">
-          <p className="text-xs font-medium text-slate-300">Current / projected balance</p>
-          <p className={`mt-1 text-xl font-bold ${currentBalance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-            {fmtCurrency(currentBalance)}
-          </p>
-          <p className="mt-1 text-xs text-slate-300">Projected: {fmtCurrency(projectedBalance)}</p>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <span>{copy.totalInvested}: <span className="font-medium text-slate-700 dark:text-slate-200">{fmtCurrency(totalInvested)}</span></span>
+          <span>{copy.totalCost}: <span className="font-medium text-slate-700 dark:text-slate-200">{fmtCurrency(totalCost)}</span></span>
+          <span>{copy.currentBalance}: <span className={`font-medium ${currentBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>{fmtCurrency(currentBalance)}</span></span>
+          <span>{copy.projected}: <span className="font-medium text-slate-700 dark:text-slate-200">{fmtCurrency(projectedBalance)}</span></span>
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <LoadingSpinner size="md" message="Loading investments..." />
+          <LoadingSpinner size="md" message={copy.loading} />
         </div>
       ) : investments.length === 0 ? (
         <div className="py-12 text-center">
@@ -534,10 +611,10 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 3.07-.879 4.242 0M9.75 17.25c0 .552-.448 1-1 1H5.625c-.552 0-1-.448-1-1m12.621-4.47c.409-.34.659-.934.659-1.591v-2.64c0-1.228-.841-2.265-1.964-2.565A6.521 6.521 0 0 0 12 2.25c-1.466 0-2.869.36-4.095 1.001C6.041 3.476 5.2 4.513 5.2 5.74v2.637c0 .657.25 1.251.659 1.591m0 0c.409.34 1.227.855 2.966 1.694C9.75 15.75 11.565 16.5 12 16.5c.435 0 2.25-.75 3.175-1.32 1.738-.839 2.557-1.354 2.966-1.694" />
           </svg>
           <h3 className="mt-4 font-semibold text-slate-700 dark:text-slate-300">
-            No investments yet
+            {copy.emptyTitle}
           </h3>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Add your first investment to track expenses
+            {copy.emptySubtitle}
           </p>
         </div>
       ) : (
@@ -554,7 +631,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-medium text-slate-900 dark:text-white">
-                      {inv.description || "Investment"}
+                      {inv.description || copy.investment}
                     </h4>
                     <span className="text-xs text-slate-500 dark:text-slate-400">
                       {new Date(inv.date).toLocaleDateString("nl-BE")}
@@ -572,7 +649,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                         </span>
                       ))}
                       <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                        Split among {contributorCount + 1}
+                        {copy.splitAmong} {contributorCount + 1}
                       </span>
                     </div>
                   )}
@@ -585,7 +662,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                     </p>
                     {contributorCount > 0 && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        total {fmtCurrency(inv.amount)}
+                        {copy.total} {fmtCurrency(inv.amount)}
                       </p>
                     )}
                   </div>
@@ -593,7 +670,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                   <button
                     onClick={() => handleStartEdit(inv)}
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:text-slate-600 dark:hover:bg-brand-900/20"
-                    title="Edit investment"
+                    title={copy.edit}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
@@ -604,7 +681,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                     onClick={() => handleDelete(inv.id)}
                     disabled={deleting === inv.id}
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-slate-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                    title="Delete investment"
+                    title={copy.delete}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

@@ -31,6 +31,43 @@ interface Gig {
   myPayAmount: number;
 }
 
+// Custom toolbar that shows the current month in month view and the active range in agenda view
+function CustomToolbar(props: any) {
+  const { date, view, views, onView, onNavigate, rangeLabel } = props;
+  const monthYear = moment(date).format("MMMM YYYY");
+
+  return (
+    <div className="rbc-toolbar">
+      {view === "month" && (
+        <div className="rbc-btn-group">
+          <button type="button" onClick={() => onNavigate("TODAY")}>
+            Today
+          </button>
+          <button type="button" onClick={() => onNavigate("PREV")}>
+            ←
+          </button>
+          <button type="button" onClick={() => onNavigate("NEXT")}>
+            →
+          </button>
+        </div>
+      )}
+      <span className="rbc-label">{rangeLabel ?? monthYear}</span>
+      <div className="rbc-btn-group">
+        {views.map((viewName: string) => (
+          <button
+            key={viewName}
+            type="button"
+            className={viewName === view ? "rbc-active" : ""}
+            onClick={() => onView(viewName)}
+          >
+            {viewName.charAt(0).toUpperCase() + viewName.slice(1)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface CalendarEvent {
   id: string;
   title: string;
@@ -45,6 +82,8 @@ interface CalendarViewProps {
   gigs?: AppGig[];
 }
 
+type DateRangeFilter = "all" | "thisMonth" | "nextMonth" | "lastMonth" | "next3Months" | "past3Months";
+
 export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGigs }: CalendarViewProps) {
   const { getAccessToken } = useAuth();
   const [gigs, setGigs] = useState<Gig[]>([]);
@@ -56,6 +95,143 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   const [filterTentative, setFilterTentative] = useState(true);
   const [filterPaid, setFilterPaid] = useState(true);
   const [filterUnpaid, setFilterUnpaid] = useState(true);
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("all");
+  const [searchText, setSearchText] = useState("");
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+
+  // Compute search matches separately for the dropdown
+  const searchMatches = useMemo(() => {
+    if (!searchText.trim()) return [];
+    const searchLower = searchText.toLowerCase();
+    return gigs
+      .filter((gig) => {
+        const eventNameMatch = gig.eventName.toLowerCase().includes(searchLower);
+        const performersMatch = gig.performers.toLowerCase().includes(searchLower);
+        return eventNameMatch || performersMatch;
+      })
+      .slice(0, 10) // Limit to 10 results
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [gigs, searchText]);
+
+  const getDateRangeLabel = (range: DateRangeFilter) => {
+    switch (range) {
+      case "all":
+        return "All gigs";
+      case "thisMonth":
+        return "This Month";
+      case "lastMonth":
+        return "Last Month";
+      case "nextMonth":
+        return "Next Month";
+      case "next3Months":
+        return "Next 3 Months";
+      case "past3Months":
+        return "Past 3 Months";
+      default:
+        return null;
+    }
+  };
+
+  const getRangeStartDate = (range: DateRangeFilter) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (range === "all") {
+      const earliestGig = gigs.reduce<Date | null>((earliest, gig) => {
+        const gigDate = new Date(gig.date);
+        if (isNaN(gigDate.getTime())) return earliest;
+        gigDate.setHours(0, 0, 0, 0);
+        return !earliest || gigDate < earliest ? gigDate : earliest;
+      }, null);
+      return earliestGig ?? today;
+    }
+
+    switch (range) {
+      case "lastMonth":
+        return new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      case "thisMonth":
+        return new Date(today.getFullYear(), today.getMonth(), 1);
+      case "nextMonth":
+      case "next3Months":
+        return new Date(today.getFullYear(), today.getMonth() + 1, 1);
+      case "past3Months":
+        return new Date(today.getFullYear(), today.getMonth() - 3, 1);
+      default:
+        return today;
+    }
+  };
+
+  const getRangeEndDate = (range: DateRangeFilter) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (range) {
+      case "all": {
+        const latestGig = gigs.reduce<Date | null>((latest, gig) => {
+          const gigDate = new Date(gig.date);
+          if (isNaN(gigDate.getTime())) return latest;
+          gigDate.setHours(0, 0, 0, 0);
+          return !latest || gigDate > latest ? gigDate : latest;
+        }, null);
+        return latestGig ?? today;
+      }
+      case "lastMonth":
+        return new Date(today.getFullYear(), today.getMonth(), 0);
+      case "thisMonth":
+        return new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      case "nextMonth":
+        return new Date(today.getFullYear(), today.getMonth() + 2, 0);
+      case "next3Months":
+        return new Date(today.getFullYear(), today.getMonth() + 4, 0);
+      case "past3Months":
+        return today;
+      default:
+        return today;
+    }
+  };
+
+  const agendaLength = useMemo(() => {
+    const start = getRangeStartDate(dateRangeFilter);
+    const end = getRangeEndDate(dateRangeFilter);
+    const diff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    return Math.min(diff, 3660);
+  }, [dateRangeFilter, gigs]);
+
+  // Calculate active filter count and labels
+  const getActiveFilterLabels = () => {
+    const labels: string[] = [];
+    if (dateRangeFilter !== "all") {
+      const rangeLabel = {
+        thisMonth: "This Month",
+        lastMonth: "Last Month",
+        nextMonth: "Next Month",
+        next3Months: "Next 3M",
+        past3Months: "Past 3M",
+      }[dateRangeFilter];
+      labels.push(rangeLabel || "");
+    }
+    if (!filterCharity) labels.push("No Charity");
+    if (!filterTentative) labels.push("No Tentative");
+    if (!filterPaid && filterUnpaid) labels.push("Unpaid Only");
+    if (filterPaid && !filterUnpaid) labels.push("Paid Only");
+    // Search is now a dropdown, not a filter
+    return labels.filter(Boolean);
+  };
+
+  const clearAllFilters = () => {
+    setFilterCharity(true);
+    setFilterTentative(true);
+    setFilterPaid(true);
+    setFilterUnpaid(true);
+    setDateRangeFilter("all");
+    setSearchText("");
+    setDate(new Date());
+  };
+
+  const handleRangeSelect = (range: DateRangeFilter) => {
+    setDateRangeFilter(range);
+    setDate(getRangeStartDate(range));
+  };
 
   const mapToCalendarGigs = useCallback((source: AppGig[]): Gig[] => {
     return source.map((gig) => {
@@ -126,8 +302,37 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   }, [preloadedGigs, fetchGigs, mapToCalendarGigs]);
 
   const events: CalendarEvent[] = useMemo(() => {
+    // Use TODAY as reference, not the calendar's selected date
+      const isInDateRange = (gigDateStr: string): boolean => {
+        try {
+          const gigDate = new Date(gigDateStr);
+          gigDate.setHours(0, 0, 0, 0);
+          if (isNaN(gigDate.getTime())) {
+            console.warn(`[isInDateRange] Invalid gig date: ${gigDateStr}`);
+            return false;
+          }
+
+          // Use centralized helpers so all ranges are consistent
+          const start = getRangeStartDate(dateRangeFilter);
+          const end = getRangeEndDate(dateRangeFilter);
+
+          const passes = gigDate >= start && gigDate <= end;
+
+          if (process.env.NODE_ENV === "development" && dateRangeFilter !== "all") {
+            console.debug(`[Filter] gig: ${gigDateStr.substring(0, 10)}, range: ${dateRangeFilter}, start: ${start.toISOString().substring(0,10)}, end: ${end.toISOString().substring(0,10)}, pass: ${passes}`);
+          }
+
+          return passes;
+        } catch (error) {
+          console.error(`[isInDateRange] Error parsing gig date: ${gigDateStr}`, error);
+          return false;
+        }
+      };
     return gigs
       .filter((gig) => {
+        // Date range filter
+        if (!isInDateRange(gig.date)) return false;
+
         // Charity/Tentative filter logic
         const isCharity = !!gig.isCharity;
         const isTentative = !!gig.isTentative;
@@ -150,6 +355,8 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           if (gig.clientPaymentReceived && !filterPaid) return false;
           if (!gig.clientPaymentReceived && !filterUnpaid) return false;
         }
+
+        // Search filter is now handled separately in dropdown (not applied here)
         return true;
       })
       .map((gig) => {
@@ -161,8 +368,9 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           end: new Date(gigDate.getTime() + 3 * 60 * 60 * 1000), // 3 hours duration
           resource: gig,
         };
-      });
-  }, [gigs, filterCharity, filterTentative, filterPaid, filterUnpaid]);
+      })
+      .sort((a, b) => a.start.getTime() - b.start.getTime()); // Sort chronologically
+  }, [gigs, filterCharity, filterTentative, filterPaid, filterUnpaid, dateRangeFilter]);
 
   const eventStyleGetter = (event: CalendarEvent) => {
     const gig = event.resource;
@@ -226,6 +434,93 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         </p>
       </div>
 
+      {/* Active Filters Badge */}
+      {getActiveFilterLabels().length > 0 && (
+        <div className="flex flex-wrap gap-2 rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-brand-900/30 dark:bg-brand-900/10">
+          <span className="text-xs font-semibold text-brand-700 dark:text-brand-300">Active Filters:</span>
+          {getActiveFilterLabels().map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-1 rounded-full bg-brand-200 px-2 py-1 text-xs font-medium text-brand-800 dark:bg-brand-900/40 dark:text-brand-200"
+            >
+              {label}
+            </span>
+          ))}
+          <button
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-semibold text-brand-600 transition hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+          >
+            Clear All →
+          </button>
+        </div>
+      )}
+
+      {/* Search Autocomplete Dropdown */}
+      <div className="relative rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="🔍 Search gigs by name or performer..."
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setShowSearchDropdown(e.target.value.length > 0);
+            }}
+            onFocus={() => setShowSearchDropdown(searchText.length > 0)}
+            onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-500 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder-slate-400"
+          />
+          {searchText && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchText("");
+                setShowSearchDropdown(false);
+              }}
+              className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        
+        {/* Search Results Dropdown */}
+        {showSearchDropdown && searchMatches.length > 0 && (
+          <div className="absolute top-full left-0 right-0 z-40 mt-1 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+            <div className="max-h-64 overflow-y-auto">
+              {searchMatches.map((gig) => (
+                <button
+                  key={gig.id}
+                  type="button"
+                  onClick={() => {
+                    setSearchText("");
+                    setShowSearchDropdown(false);
+                    setSelectedEvent({
+                      id: gig.id,
+                      title: gig.eventName,
+                      start: new Date(gig.date),
+                      end: new Date(new Date(gig.date).getTime() + 3 * 60 * 60 * 1000),
+                      resource: gig,
+                    });
+                  }}
+                  className="w-full border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700 last:border-b-0"
+                >
+                  <div className="font-medium text-slate-900 dark:text-white">{gig.eventName}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {formatDateTime(gig.date)} · {gig.performers}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {showSearchDropdown && searchText && searchMatches.length === 0 && (
+          <div className="absolute top-full left-0 right-0 z-40 mt-1 rounded-lg border border-slate-200 bg-white p-3 text-center text-sm text-slate-500 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+            No gigs found matching "{searchText}"
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
         <label className="flex items-center gap-2 cursor-pointer">
@@ -266,9 +561,84 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         </label>
       </div>
 
-      {/* Date Navigation */}
+      {/* Date Range Filters - Only for Agenda/List View */}
+      {view === "agenda" && (
+      <div className="flex flex-wrap gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 w-full mb-2">📋 Time Range (for list view):</span>
+        <button
+          type="button"
+          onClick={() => handleRangeSelect("all")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            dateRangeFilter === "all"
+              ? "bg-brand-600 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          All
+        </button>
+        <button
+          type="button"
+          onClick={() => handleRangeSelect("lastMonth")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            dateRangeFilter === "lastMonth"
+              ? "bg-brand-600 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          Last Month
+        </button>
+        <button
+          type="button"
+          onClick={() => handleRangeSelect("thisMonth")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            dateRangeFilter === "thisMonth"
+              ? "bg-brand-600 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          This Month
+        </button>
+        <button
+          type="button"
+          onClick={() => handleRangeSelect("nextMonth")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            dateRangeFilter === "nextMonth"
+              ? "bg-brand-600 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          Next Month
+        </button>
+        <button
+          type="button"
+          onClick={() => handleRangeSelect("next3Months")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            dateRangeFilter === "next3Months"
+              ? "bg-brand-600 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          Next 3 Months
+        </button>
+        <button
+          type="button"
+          onClick={() => handleRangeSelect("past3Months")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            dateRangeFilter === "past3Months"
+              ? "bg-brand-600 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          Past 3 Months
+        </button>
+      </div>
+      )}
+
+      {/* Date Navigation - Only visible in Month View */}
+      {view === "month" && (
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
         <button
+          type="button"
           onClick={() => setDate(new Date())}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
         >
@@ -276,6 +646,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         </button>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={() => {
               const prev = new Date(date);
               prev.setMonth(prev.getMonth() - 1);
@@ -318,6 +689,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
             })()}
           </select>
           <button
+            type="button"
             onClick={() => {
               const next = new Date(date);
               next.setMonth(next.getMonth() + 1);
@@ -351,6 +723,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           })()}
         </select>
       </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
@@ -372,6 +745,49 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         </div>
       </div>
 
+      {/* Summary Stats */}
+      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 p-3 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Gigs</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{events.length}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Earnings</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {fmtCurrency(events.reduce((sum, e) => sum + e.resource.myPayAmount, 0))}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">View</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{view === "month" ? "📅 Month" : "📋 Agenda"}</p>
+        </div>
+      </div>
+
+      {/* Time Range Info Banner (especially for list view) */}
+      {view === "agenda" && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+          <span className="text-sm text-blue-700 dark:text-blue-300">
+            📋 Showing all gigs in{" "}
+            <span className="font-semibold">
+              {dateRangeFilter === "all"
+                ? "all time"
+                : dateRangeFilter === "thisMonth"
+                ? "this month"
+                : dateRangeFilter === "lastMonth"
+                ? "last month"
+                : dateRangeFilter === "nextMonth"
+                ? "next month"
+                : dateRangeFilter === "next3Months"
+                ? "next 3 months"
+                : "past 3 months"}
+            </span>
+            {searchText && `, matching "${searchText}"`}
+          </span>
+        </div>
+      )}
+
       {/* Calendar */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="calendar-wrapper p-4">
@@ -385,10 +801,20 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
             onView={setView}
             date={date}
             onNavigate={setDate}
+            length={view === "agenda" ? agendaLength : undefined}
             eventPropGetter={eventStyleGetter}
             onSelectEvent={handleSelectEvent}
             views={["month", "agenda"]}
             popup
+            toolbar={true}
+            components={{
+              toolbar: (toolbarProps) => (
+                <CustomToolbar
+                  {...toolbarProps}
+                  rangeLabel={view === "agenda" ? getDateRangeLabel(dateRangeFilter) : null}
+                />
+              ),
+            }}
           />
         </div>
       </div>
@@ -504,6 +930,83 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
 
       {/* Custom Styles */}
       <style jsx global>{`
+        .calendar-wrapper .rbc-toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          margin-bottom: 12px;
+          background: #f8fafc;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          flex-wrap: wrap;
+        }
+        
+        .dark .calendar-wrapper .rbc-toolbar {
+          background: #1e293b;
+          border-color: #334155;
+        }
+        
+        .calendar-wrapper .rbc-toolbar .rbc-label {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1e293b;
+          letter-spacing: 0.5px;
+          flex: 1;
+          text-align: center;
+        }
+        
+        .dark .calendar-wrapper .rbc-toolbar .rbc-label {
+          color: #f1f5f9;
+        }
+        
+        .calendar-wrapper .rbc-toolbar .rbc-btn-group {
+          display: flex;
+          gap: 4px;
+        }
+        
+        .calendar-wrapper .rbc-toolbar .rbc-btn-group button {
+          color: #475569;
+          border-color: #cbd5e1;
+          border: 1px solid #cbd5e1;
+          background: white;
+          font-weight: 500;
+          padding: 6px 12px;
+          border-radius: 6px;
+          transition: all 0.2s;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        
+        .dark .calendar-wrapper .rbc-toolbar .rbc-btn-group button {
+          color: #cbd5e1;
+          border-color: #475569;
+          background: #1e293b;
+        }
+        
+        .calendar-wrapper .rbc-toolbar .rbc-btn-group button:hover {
+          background: #f1f5f9;
+          border-color: #94a3b8;
+        }
+        
+        .dark .calendar-wrapper .rbc-toolbar .rbc-btn-group button:hover {
+          background: #334155;
+          border-color: #64748b;
+        }
+        
+        .calendar-wrapper .rbc-toolbar .rbc-btn-group button.rbc-active {
+          background: #0ea5e9;
+          color: white;
+          border-color: #0284c7;
+        }
+        
+        .dark .calendar-wrapper .rbc-toolbar .rbc-btn-group button.rbc-active {
+          background: #0ea5e9;
+          color: white;
+          border-color: #0284c7;
+        }
+        
         .calendar-wrapper .rbc-calendar {
           font-family: inherit;
         }
@@ -548,43 +1051,6 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
           padding: 2px 6px;
         }
         
-        .calendar-wrapper .rbc-toolbar button {
-          color: #475569;
-          border-color: #cbd5e1;
-          background: white;
-          font-weight: 500;
-          padding: 6px 12px;
-          border-radius: 8px;
-          transition: all 0.2s;
-        }
-        
-        .dark .calendar-wrapper .rbc-toolbar button {
-          color: #cbd5e1;
-          border-color: #475569;
-          background: #1e293b;
-        }
-        
-        .calendar-wrapper .rbc-toolbar button:hover {
-          background: #f1f5f9;
-          border-color: #94a3b8;
-        }
-        
-        .dark .calendar-wrapper .rbc-toolbar button:hover {
-          background: #334155;
-          border-color: #64748b;
-        }
-        
-        .calendar-wrapper .rbc-toolbar button.rbc-active {
-          background: #0ea5e9;
-          color: white;
-          border-color: #0284c7;
-        }
-        
-        .dark .calendar-wrapper .rbc-toolbar button.rbc-active {
-          background: #0ea5e9;
-          border-color: #0284c7;
-        }
-        
         .calendar-wrapper .rbc-month-view,
         .calendar-wrapper .rbc-time-view {
           border: 1px solid #e2e8f0;
@@ -595,6 +1061,81 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         .dark .calendar-wrapper .rbc-month-view,
         .dark .calendar-wrapper .rbc-time-view {
           border-color: #334155;
+        }
+
+        /* Agenda/List View Styling */
+        .calendar-wrapper .rbc-agenda-view {
+          font-size: 14px;
+        }
+
+        .calendar-wrapper .rbc-agenda-view table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .calendar-wrapper .rbc-agenda-view table tbody > tr > td {
+          padding: 12px;
+          vertical-align: middle;
+        }
+
+        .calendar-wrapper .rbc-agenda-view table tbody > tr {
+          border-bottom: 1px solid #e2e8f0;
+          transition: background-color 0.15s;
+        }
+
+        .dark .calendar-wrapper .rbc-agenda-view table tbody > tr {
+          border-bottom-color: #334155;
+        }
+
+        .calendar-wrapper .rbc-agenda-view table tbody > tr:hover {
+          background-color: #f8fafc;
+          cursor: pointer;
+        }
+
+        .dark .calendar-wrapper .rbc-agenda-view table tbody > tr:hover {
+          background-color: #1e293b;
+        }
+
+        .calendar-wrapper .rbc-agenda-view table thead > tr > th {
+          padding: 12px;
+          text-align: left;
+          font-weight: 600;
+          background: #f8fafc;
+          border-bottom: 2px solid #e2e8f0;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #475569;
+        }
+
+        .dark .calendar-wrapper .rbc-agenda-view table thead > tr > th {
+          background: #1e293b;
+          border-bottom-color: #334155;
+          color: #cbd5e1;
+        }
+
+        .calendar-wrapper .rbc-agenda-view table tbody > tr > td:first-child {
+          font-weight: 500;
+          color: #1e293b;
+          min-width: 150px;
+        }
+
+        .dark .calendar-wrapper .rbc-agenda-view table tbody > tr > td:first-child {
+          color: #f1f5f9;
+        }
+
+        .calendar-wrapper .rbc-agenda-date-cell,
+        .calendar-wrapper .rbc-agenda-time-cell {
+          color: #64748b;
+        }
+
+        .dark .calendar-wrapper .rbc-agenda-date-cell,
+        .dark .calendar-wrapper .rbc-agenda-time-cell {
+          color: #94a3b8;
+        }
+
+        .calendar-wrapper .rbc-agenda-event-cell {
+          width: 100%;
         }
       `}</style>
     </div>

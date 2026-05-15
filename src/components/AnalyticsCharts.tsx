@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { Gig } from "@/types";
 import { calculateGigFinancials } from "@/lib/calculations";
 import { resolveLocale } from "@/lib/preferences";
+import { useSettings } from "./SettingsProvider";
 
 interface AnalyticsChartsProps {
   gigs: Gig[];
@@ -35,6 +36,10 @@ interface AnalyticsSummary {
 }
 
 export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsProps) {
+  const { language } = useSettings();
+  const tr = (en: string, nl: string) => (language === "nl" ? nl : en);
+  const gigCountLabel = (count: number) => (count === 1 ? tr("gig", "optreden") : tr("gigs", "optredens"));
+
   const analytics = useMemo<AnalyticsSummary>(() => {
     if (gigs.length === 0) {
       return {
@@ -80,7 +85,7 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
       });
 
       // Band aggregation
-      const performers = gig.performers || "Unknown";
+      const performers = gig.performers || tr("Unknown", "Onbekend");
       bandMap.set(performers, {
         earnings: (bandMap.get(performers)?.earnings || 0) + managerEarnings,
         gigs: (bandMap.get(performers)?.gigs || 0) + 1,
@@ -122,7 +127,7 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
       monthlyData,
       bandPerformance,
     };
-  }, [gigs]);
+  }, [gigs, tr]);
 
   return (
     <div className="space-y-8">
@@ -130,38 +135,38 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Total Earnings
+            {tr("Total Earnings", "Totale inkomsten")}
           </p>
           <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
             {fmtCurrency(analytics.totalEarnings)}
           </p>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            from {analytics.totalGigs} gig{analytics.totalGigs !== 1 ? "s" : ""}
+            {tr("from", "van")} {analytics.totalGigs} {gigCountLabel(analytics.totalGigs)}
           </p>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Average per Gig
+            {tr("Average per Gig", "Gemiddelde per optreden")}
           </p>
           <p className="mt-2 text-2xl font-bold text-brand-600 dark:text-brand-400">
             {fmtCurrency(analytics.averagePerGig)}
           </p>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Across all performances
+            {tr("Across all performances", "Over alle optredens")}
           </p>
         </div>
 
         {analytics.highestMonth && (
           <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Highest Month
+              {tr("Highest Month", "Beste maand")}
             </p>
             <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
               {fmtCurrency(analytics.highestMonth.earnings)}
             </p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {analytics.highestMonth.month} ({analytics.highestMonth.gigs} gigs)
+              {analytics.highestMonth.month} ({analytics.highestMonth.gigs} {gigCountLabel(analytics.highestMonth.gigs)})
             </p>
           </div>
         )}
@@ -169,7 +174,7 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
         {analytics.bestBand && (
           <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Most Frequent Band
+              {tr("Most Frequent Band", "Meest gespeelde band")}
             </p>
             <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white truncate">
               {analytics.bestBand.name.length > 20
@@ -177,7 +182,7 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
                 : analytics.bestBand.name}
             </p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {analytics.bestBand.gigs} gig{analytics.bestBand.gigs !== 1 ? "s" : ""} ({fmtCurrency(analytics.bestBand.averageEarnings)}/gig)
+              {analytics.bestBand.gigs} {gigCountLabel(analytics.bestBand.gigs)} ({fmtCurrency(analytics.bestBand.averageEarnings)}/{tr("gig", "optreden")})
             </p>
           </div>
         )}
@@ -187,23 +192,23 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
       {analytics.monthlyData.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
           <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-            <h3 className="font-semibold text-slate-900 dark:text-white">Monthly Earnings</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{tr("Monthly Earnings", "Maandelijkse inkomsten")}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Month
+                    {tr("Month", "Maand")}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Gigs
+                    {tr("Gigs", "Optredens")}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Total
+                    {tr("Total", "Totaal")}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Average
+                    {tr("Average", "Gemiddelde")}
                   </th>
                 </tr>
               </thead>
@@ -234,23 +239,23 @@ export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsPr
       {analytics.bandPerformance.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
           <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-            <h3 className="font-semibold text-slate-900 dark:text-white">Band Performance Metrics</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{tr("Band Performance Metrics", "Bandprestaties")}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Band / Performers
+                    {tr("Band / Performers", "Band / uitvoerenden")}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Gigs
+                    {tr("Gigs", "Optredens")}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Total Earned
+                    {tr("Total Earned", "Totaal verdiend")}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Per Gig Avg
+                    {tr("Per Gig Avg", "Gemiddelde per optreden")}
                   </th>
                 </tr>
               </thead>
