@@ -256,10 +256,10 @@ function CanvasEditor({ onExport }: { onExport: (blob: Blob) => void }) {
       </div>
       <div className="flex gap-2 justify-between">
         <div className="flex gap-2">
-          <button type="button" onClick={clear} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Wissen</button>
-          <button type="button" onClick={undo} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Undo</button>
+          <button type="button" onClick={clear} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Wissen</button>
+          <button type="button" onClick={undo} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Undo</button>
         </div>
-        <button type="button" onClick={exportImage} className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700">Notitie Opslaan</button>
+        <button type="button" onClick={exportImage} className="rounded-lg bg-brand-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700">Notitie Opslaan</button>
       </div>
     </div>
   );
@@ -1030,7 +1030,7 @@ export default function SongsTab() {
                 <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{copy.create}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{copy.prompt}</p>
               </div>
-              <button type="button" onClick={resetSongFormState} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">{copy.cancel}</button>
+              <button type="button" onClick={resetSongFormState} className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">{copy.cancel}</button>
             </div>
 
             <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-100 p-2 dark:bg-slate-800/70">
@@ -1106,7 +1106,7 @@ export default function SongsTab() {
                         placeholder="Add tag and press Enter"
                         className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                       />
-                      <button type="button" onClick={() => { const value = tagInput.trim(); if (value && !tags.includes(value)) setTags((prev) => [...prev, value]); setTagInput(""); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Add</button>
+                      <button type="button" onClick={() => { const value = tagInput.trim(); if (value && !tags.includes(value)) setTags((prev) => [...prev, value]); setTagInput(""); }} className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-medium dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Add</button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {tags.map((tag) => (
@@ -1127,7 +1127,7 @@ export default function SongsTab() {
                     </div>
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                       <input type="text" value={selectedBandName} onChange={(e) => setSelectedBandName(e.target.value)} placeholder={copy.chooseBand} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
-                      <button type="button" onClick={() => handleAddBandToNote()} disabled={!selectedBandName.trim() || addingBandToNote} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-slate-700 dark:text-slate-200">{addingBandToNote ? (isDutch ? "Toevoegen..." : "Adding...") : copy.addBand}</button>
+                      <button type="button" onClick={() => handleAddBandToNote()} disabled={!selectedBandName.trim() || addingBandToNote} className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-medium disabled:opacity-50 dark:border-slate-700 dark:text-slate-200">{addingBandToNote ? (isDutch ? "Toevoegen..." : "Adding...") : copy.addBand}</button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {bandSuggestions.map((bandName) => {
@@ -1248,7 +1248,7 @@ export default function SongsTab() {
                   resetSongFormState();
                   setShowForm(true);
                 }}
-                className="rounded-lg bg-cyan-600 text-white px-3 py-2 text-sm font-medium transition hover:bg-cyan-700 dark:bg-cyan-700 dark:hover:bg-cyan-800"
+                className="rounded-lg bg-cyan-600 text-white px-3 py-2.5 text-sm font-medium transition hover:bg-cyan-700 dark:bg-cyan-700 dark:hover:bg-cyan-800"
               >
                 {isDutch ? "+ Nieuwe notitie" : "+ New note"}
               </button>
@@ -1381,14 +1381,14 @@ export default function SongsTab() {
                     <button
                       type="button"
                       onClick={() => openPerformanceMode(s)}
-                      className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 transition hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-300 dark:hover:bg-brand-900/40"
+                      className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm font-medium text-brand-700 transition hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-300 dark:hover:bg-brand-900/40"
                     >
                       {copy.performance}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleOpenEditMode(s)}
-                      className="rounded-lg border px-3 py-2 text-sm font-medium transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                      className="rounded-lg border px-3 py-2.5 text-sm font-medium transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
                     >
                       {copy.edit}
                     </button>
@@ -1439,7 +1439,7 @@ export default function SongsTab() {
                   type="button"
                   onClick={() => goToAdjacentPerformanceSong(-1)}
                   disabled={activePerformanceIndex <= 0}
-                  className="rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg border border-white/15 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isDutch ? "Vorige" : "Prev"}
                 </button>
@@ -1447,7 +1447,7 @@ export default function SongsTab() {
                   type="button"
                   onClick={() => goToAdjacentPerformanceSong(1)}
                   disabled={activePerformanceIndex < 0 || activePerformanceIndex >= filteredSongs.length - 1}
-                  className="rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg border border-white/15 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isDutch ? "Volgende" : "Next"}
                 </button>

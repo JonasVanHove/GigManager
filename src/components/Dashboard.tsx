@@ -961,7 +961,7 @@ export default function Dashboard() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition"
                   title="Clear search"
                 >
                   <Icons.Close className="h-4 w-4 text-slate-400" />
@@ -1024,7 +1024,7 @@ export default function Dashboard() {
               <button
                 onClick={() => setShowProfileMenu((open) => !open)}
                 title="Profile & Settings"
-                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-md hover:shadow-lg transition duration-200 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 flex-shrink-0"
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-md hover:shadow-lg transition duration-200 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 flex-shrink-0"
               >
                 {session.user?.user_metadata?.avatar_url ? (
                   <Image
@@ -1056,7 +1056,7 @@ export default function Dashboard() {
                         setShowSettings(true);
                         setShowProfileMenu(false);
                       }}
-                      className="w-full px-3 py-2 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icons.Settings className="h-4 w-4" />
@@ -1068,7 +1068,7 @@ export default function Dashboard() {
                         setShowKeyboardShortcuts(true);
                         setShowProfileMenu(false);
                       }}
-                      className="w-full px-3 py-2 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icons.Keyboard className="h-4 w-4" />
@@ -1081,7 +1081,7 @@ export default function Dashboard() {
                           setShowProfileMenu(false);
                           await signOut();
                         }}
-                        className="w-full px-3 py-2 text-left text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
+                        className="w-full px-3 py-2.5 text-left text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
                       >
                         Sign Out
                       </button>
@@ -1105,7 +1105,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Menu</h2>
                 <button
                   onClick={() => setShowMobileMenu(false)}
-                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   <Icons.Close className="h-5 w-5" />
                 </button>
@@ -1119,7 +1119,7 @@ export default function Dashboard() {
                     setEditGig(null);
                     setShowForm(true);
                   }}
-                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg bg-brand-600 px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium text-white transition hover:bg-brand-700"
+                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg bg-brand-600 px-2 tablet:px-3 py-2.5 text-xs tablet:text-sm font-medium text-white transition hover:bg-brand-700"
                 >
                   <Icons.Plus className="h-4 w-4 shrink-0" />
                   <span className="hidden tablet:inline">Add gig</span>
@@ -1151,7 +1151,7 @@ export default function Dashboard() {
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition"
                     >
                       <Icons.Close className="h-4 w-4 text-slate-400" />
                     </button>
