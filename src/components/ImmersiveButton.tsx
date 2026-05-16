@@ -22,16 +22,12 @@ export function ImmersiveButton() {
     >
       {isFullscreen ? (
         <>
-          <svg className="h-4 w-4 md:h-4 md:w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-          </svg>
+          <Icons.Fullscreen className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
           <span className="hidden lg:inline whitespace-nowrap">Exit</span>
         </>
       ) : (
         <>
-          <svg className="h-4 w-4 md:h-4 md:w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-          </svg>
+          <Icons.Fullscreen className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
           <span className="hidden lg:inline whitespace-nowrap">Fullscreen</span>
         </>
       )}
@@ -57,9 +53,7 @@ export function ImmersiveButtonMobile() {
       }`}
       title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen mode'}
     >
-      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-      </svg>
+      <Icons.Fullscreen className="h-4 w-4 shrink-0" />
     </button>
   );
 }

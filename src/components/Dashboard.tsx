@@ -123,7 +123,7 @@ export default function Dashboard() {
   const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
   const [selectedGigIds, setSelectedGigIds] = useState<Set<string>>(new Set());
   const [showBulkEditor, setShowBulkEditor] = useState(false);
-  const [isOverviewExpanded, setIsOverviewExpanded] = useState(true);
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(activeTab === "gigs");
   const [exportingType, setExportingType] = useState<"gigs" | "summary" | "report" | null>(null);
   const [isActiveSectionExpanded, setIsActiveSectionExpanded] = useState(true);
   const [isHandledSectionExpanded, setIsHandledSectionExpanded] = useState(false);
@@ -234,15 +234,11 @@ export default function Dashboard() {
   }, [activeTab]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("overview-expanded");
-      if (saved !== null) {
-        setIsOverviewExpanded(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error("Failed to load overview preference:", e);
-    }
-  }, []);
+    // Default behavior per tab:
+    // - Overview tab (`gigs`) starts expanded
+    // - All other tabs start collapsed
+    setIsOverviewExpanded(activeTab === "gigs");
+  }, [activeTab]);
 
   useEffect(() => {
     try {
@@ -264,17 +260,8 @@ export default function Dashboard() {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Save overview expanded preference to localStorage
   const handleToggleOverview = useCallback(() => {
-    setIsOverviewExpanded((prev) => {
-      const newVal = !prev;
-      try {
-        localStorage.setItem("overview-expanded", JSON.stringify(newVal));
-      } catch (e) {
-        console.error("Failed to save overview preference:", e);
-      }
-      return newVal;
-    });
+    setIsOverviewExpanded((prev) => !prev);
   }, []);
 
   const handleToggleWideView = useCallback(() => {
@@ -977,9 +964,7 @@ export default function Dashboard() {
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
                   title="Clear search"
                 >
-                  <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <Icons.Close className="h-4 w-4 text-slate-400" />
                 </button>
               )}
             </div>
@@ -1073,7 +1058,10 @@ export default function Dashboard() {
                       }}
                       className="w-full px-3 py-2 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      ⚙️ Settings
+                      <span className="inline-flex items-center gap-2">
+                        <Icons.Settings className="h-4 w-4" />
+                        Settings
+                      </span>
                     </button>
                     <button
                       onClick={() => {
@@ -1082,7 +1070,10 @@ export default function Dashboard() {
                       }}
                       className="w-full px-3 py-2 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      ⌨️ Keyboard shortcuts
+                      <span className="inline-flex items-center gap-2">
+                        <Icons.Keyboard className="h-4 w-4" />
+                        Keyboard shortcuts
+                      </span>
                     </button>
                     <div className="border-t border-slate-200 dark:border-slate-700 mt-2 pt-2">
                       <button
@@ -1410,15 +1401,7 @@ export default function Dashboard() {
                 className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 ml-1"
                 title={isOverviewExpanded ? "Collapse overview" : "Expand overview"}
               >
-                <svg
-                  className={`h-4 w-4 transition-transform duration-200 ${isOverviewExpanded ? "rotate-0" : "-rotate-90"}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
+                <Icons.ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOverviewExpanded ? "rotate-0" : "-rotate-90"}`} />
               </button>
             </div>
           </div>
@@ -1448,9 +1431,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6Zm0 9.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25v-2.25Zm9-9.75A2.25 2.25 0 0 1 15 3.75H17.25a2.25 2.25 0 0 1 2.25 2.25V6A2.25 2.25 0 0 1 17.25 8.25H15a2.25 2.25 0 0 1-2.25-2.25V6Zm0 9.75A2.25 2.25 0 0 1 15 13.5H17.25a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 17.25 20.25H15a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
-              </svg>
+              <Icons.GridView className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
             </span>
           </button>
@@ -1464,9 +1445,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-              </svg>
+              <Icons.ListView className="h-4 w-4" />
               <span className="hidden sm:inline">All Gigs</span>
             </span>
           </button>
@@ -1480,9 +1459,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
+              <Icons.Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Calendar</span>
             </span>
           </button>
@@ -1595,9 +1572,7 @@ export default function Dashboard() {
                     onClick={() => setShowForm(true)}
                     className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 dark:hover:bg-brand-700"
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
+                    <Icons.Plus className="h-4 w-4" />
                     Add Performance
                   </button>
                 )}
@@ -1614,15 +1589,7 @@ export default function Dashboard() {
                                 className="rounded p-1 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200"
                                 title={isActiveSectionExpanded ? "Collapse section" : "Expand section"}
                               >
-                                <svg
-                                  className={`h-4 w-4 transition-transform ${isActiveSectionExpanded ? "rotate-0" : "-rotate-90"}`}
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={2}
-                                  stroke="currentColor"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <Icons.ChevronDown className={`h-4 w-4 transition-transform ${isActiveSectionExpanded ? "rotate-0" : "-rotate-90"}`} />
                               </button>
                               <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
                                 Active Performances
@@ -1638,18 +1605,14 @@ export default function Dashboard() {
                                   title="Expand all (Cmd+E)"
                                   className="rounded p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                 >
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                                  </svg>
+                                  <Icons.ChevronUp className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={handleCollapseAll}
                                   title="Collapse all (Cmd+C)"
                                   className="rounded p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                 >
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                  </svg>
+                                  <Icons.ChevronDown className="h-4 w-4" />
                                 </button>
                                 <div className="mx-1 w-px bg-slate-200 dark:bg-slate-700" />
                                 <button
@@ -1657,9 +1620,7 @@ export default function Dashboard() {
                                   title="Select all performances"
                                   className="rounded p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                 >
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
+                                  <Icons.CheckCircle className="h-4 w-4" />
                                 </button>
                                 {selectedGigIds.size > 0 && (
                                   <>
@@ -1668,18 +1629,14 @@ export default function Dashboard() {
                                       title={`Bulk edit (${selectedGigIds.size} selected)`}
                                       className="rounded p-1 text-blue-500 transition hover:bg-blue-50 dark:hover:bg-blue-900/20 text-xs"
                                     >
-                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 9.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                                      </svg>
+                                      <Icons.Edit className="h-4 w-4" />
                                     </button>
                                     <button
                                       onClick={handleClearSelection}
                                       title="Clear selection"
                                       className="rounded px-1.5 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                     >
-                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
+                                      <Icons.Close className="h-4 w-4" />
                                     </button>
                                   </>
                                 )}
@@ -1717,15 +1674,7 @@ export default function Dashboard() {
                                 className="rounded p-1 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200"
                                 title={isHandledSectionExpanded ? "Collapse section" : "Expand section"}
                               >
-                                <svg
-                                  className={`h-4 w-4 transition-transform ${isHandledSectionExpanded ? "rotate-0" : "-rotate-90"}`}
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={2}
-                                  stroke="currentColor"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <Icons.ChevronDown className={`h-4 w-4 transition-transform ${isHandledSectionExpanded ? "rotate-0" : "-rotate-90"}`} />
                               </button>
                               <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
                                 Handled Performances
@@ -1741,18 +1690,14 @@ export default function Dashboard() {
                                   title="Expand all (Cmd+E)"
                                   className="rounded p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                 >
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                                  </svg>
+                                  <Icons.ChevronUp className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={handleCollapseAll}
                                   title="Collapse all (Cmd+C)"
                                   className="rounded p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                 >
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                  </svg>
+                                  <Icons.ChevronDown className="h-4 w-4" />
                                 </button>
                               </div>
                             )}

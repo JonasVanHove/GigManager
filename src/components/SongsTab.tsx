@@ -294,6 +294,8 @@ export default function SongsTab() {
   const [activeSong, setActiveSong] = useState<SongRecord | null>(null);
   const [performanceNotesDraft, setPerformanceNotesDraft] = useState("");
   const [performanceBaseNotes, setPerformanceBaseNotes] = useState("");
+  const [activeAttachmentIndex, setActiveAttachmentIndex] = useState(0);
+  const [showPerformanceEditor, setShowPerformanceEditor] = useState(false);
   const [savingPerformanceNotes, setSavingPerformanceNotes] = useState(false);
   const [autoSavingPerformanceNotes, setAutoSavingPerformanceNotes] = useState(false);
   const [songSearch, setSongSearch] = useState("");
@@ -329,6 +331,11 @@ export default function SongsTab() {
     notesSaved: isDutch ? "Notitie opgeslagen" : "Note saved",
     notesSaveFailed: isDutch ? "Opslaan mislukt" : "Save failed",
     closeOverlay: isDutch ? "Sluiten" : "Close",
+    sheetViewer: isDutch ? "Partituurweergave" : "Sheet viewer",
+    noSheetsYet: isDutch ? "Geen geuploade partituren voor dit nummer." : "No uploaded sheet files for this song.",
+    openEditor: isDutch ? "Toon live notities" : "Show live notes",
+    hideEditor: isDutch ? "Verberg live notities" : "Hide live notes",
+    attachmentCounter: isDutch ? "Partituur" : "Sheet",
     saveNow: isDutch ? "Nu opslaan" : "Save now",
     autosaving: isDutch ? "Automatisch opslaan..." : "Autosaving...",
     unsavedChanges: isDutch ? "Niet-opgeslagen wijzigingen" : "Unsaved changes",
@@ -975,6 +982,29 @@ export default function SongsTab() {
     return filteredSongs.findIndex((song) => song.id === activeSong.id);
   }, [activeSong, filteredSongs]);
 
+  const performanceAttachments = useMemo(() => {
+    if (!activeSong?.attachments || activeSong.attachments.length === 0) return [];
+    return activeSong.attachments
+      .map((attachment) => ({
+        id: attachment.id,
+        publicUrl: attachment.publicUrl,
+        contentType: attachment.contentType || "",
+        caption: attachment.caption || null,
+      }))
+      .filter((attachment) => Boolean(attachment.publicUrl));
+  }, [activeSong]);
+
+  const activePerformanceAttachment =
+    performanceAttachments.length > 0
+      ? performanceAttachments[Math.min(activeAttachmentIndex, performanceAttachments.length - 1)]
+      : null;
+
+  useEffect(() => {
+    if (!activeSong) return;
+    setActiveAttachmentIndex(0);
+    setShowPerformanceEditor(false);
+  }, [activeSong?.id]);
+
   const goToAdjacentPerformanceSong = (direction: -1 | 1) => {
     if (activePerformanceIndex < 0) return;
     const nextSong = filteredSongs[activePerformanceIndex + direction];
@@ -1432,9 +1462,87 @@ export default function SongsTab() {
               </div>
             </div>
 
-            <div className="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
-              <div className="space-y-4">
-                <div>
+            <div className="space-y-4 px-4 py-5 sm:px-6">
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">{copy.sheetViewer}</p>
+                  {performanceAttachments.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveAttachmentIndex((prev) => Math.max(0, prev - 1))}
+                        disabled={activeAttachmentIndex <= 0}
+                        className="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isDutch ? "Vorige partituur" : "Previous sheet"}
+                      </button>
+                      <span className="text-xs text-slate-300">
+                        {copy.attachmentCounter} {activeAttachmentIndex + 1}/{performanceAttachments.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAttachmentIndex((prev) => Math.min(performanceAttachments.length - 1, prev + 1))}
+                        disabled={activeAttachmentIndex >= performanceAttachments.length - 1}
+                        className="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isDutch ? "Volgende partituur" : "Next sheet"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {activePerformanceAttachment ? (
+                  <div className="relative min-h-[68vh] overflow-hidden rounded-xl border border-white/10 bg-black">
+                    {activePerformanceAttachment.contentType.includes("pdf") ? (
+                      <iframe
+                        src={`${activePerformanceAttachment.publicUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=1`}
+                        className="h-[68vh] w-full"
+                        title={activePerformanceAttachment.caption || activeSong.title}
+                      />
+                    ) : (
+                      <Image
+                        src={activePerformanceAttachment.publicUrl}
+                        alt={activePerformanceAttachment.caption || activeSong.title}
+                        fill
+                        sizes="100vw"
+                        className="object-contain"
+                        priority
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="min-h-[68vh] rounded-xl border border-dashed border-white/15 bg-black/60 px-6 py-10 text-center text-sm text-slate-300">
+                    {copy.noSheetsYet}
+                  </div>
+                )}
+              </section>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPerformanceEditor((prev) => !prev)}
+                  className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  {showPerformanceEditor ? copy.hideEditor : copy.openEditor}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenEditMode(activeSong)}
+                  className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  {copy.openEditFromPerformance}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePerformanceMode}
+                  className="rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  {copy.cancel}
+                </button>
+              </div>
+
+              {showPerformanceEditor && (
+                <section className="space-y-4 rounded-2xl border border-white/10 bg-black/50 p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
@@ -1464,34 +1572,15 @@ export default function SongsTab() {
                     >
                       {copy.cueBreak}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueDynamics}`)}
-                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
-                    >
-                      {copy.cueDynamics}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueTempo}`)}
-                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
-                    >
-                      {copy.cueTempo}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => appendPerformanceSnippet(`[${getPerformanceTimestamp()}] ${copy.cueReminder}: `)}
-                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10"
-                    >
-                      {copy.cueReminder}
-                    </button>
                   </div>
+
                   <textarea
                     value={performanceNotesDraft}
                     onChange={(e) => setPerformanceNotesDraft(e.target.value)}
                     placeholder={copy.placeholder}
-                    className="min-h-[320px] w-full rounded-2xl border border-white/10 bg-black px-4 py-3 text-base leading-7 text-white shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+                    className="min-h-[220px] w-full rounded-2xl border border-white/10 bg-black px-4 py-3 text-base leading-7 text-white shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
                   />
+
                   <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
                     <span>{isDutch ? "Tip: Ctrl/Cmd+S om direct op te slaan" : "Tip: Ctrl/Cmd+S to save instantly"}</span>
                     <span>
@@ -1504,53 +1593,29 @@ export default function SongsTab() {
                         : ""}
                     </span>
                   </div>
-                </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => savePerformanceNotes({ source: "manual" })}
-                    disabled={savingPerformanceNotes || autoSavingPerformanceNotes || !hasPerformanceChanges}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {savingPerformanceNotes ? <Icons.Spinner className="h-4 w-4" /> : null}
-                    {copy.saveNow}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSavePerformanceNotes}
-                    disabled={savingPerformanceNotes}
-                    className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {savingPerformanceNotes ? <Icons.Spinner className="h-4 w-4" /> : null}
-                    {copy.saveAndClose}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditMode(activeSong)}
-                    className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
-                  >
-                    {copy.openEditFromPerformance}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closePerformanceMode}
-                    className="rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:text-white"
-                  >
-                    {copy.cancel}
-                  </button>
-                </div>
-              </div>
-
-              <aside className="rounded-2xl border border-white/10 bg-white/5 p-4 text-slate-200">
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{copy.quickHelp}</div>
-                <p className="mt-2 text-sm leading-6 text-slate-200">
-                  {parseSongNotes(activeSong.notes).body || (isDutch ? "Geen notities toegevoegd" : "No notes added")}
-                </p>
-                <div className="mt-4 text-xs text-slate-400">
-                  {isDutch ? "Dit scherm is bedoeld voor snelle live toegang. Alleen de zichtbare notitie-inhoud wordt getoond." : "This view is for fast live access. Only the visible note content is shown."}
-                </div>
-              </aside>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => savePerformanceNotes({ source: "manual" })}
+                      disabled={savingPerformanceNotes || autoSavingPerformanceNotes || !hasPerformanceChanges}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {savingPerformanceNotes ? <Icons.Spinner className="h-4 w-4" /> : null}
+                      {copy.saveNow}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSavePerformanceNotes}
+                      disabled={savingPerformanceNotes}
+                      className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {savingPerformanceNotes ? <Icons.Spinner className="h-4 w-4" /> : null}
+                      {copy.saveAndClose}
+                    </button>
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         </div>

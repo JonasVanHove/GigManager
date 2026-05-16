@@ -6,6 +6,7 @@ import type { Gig, Investment, InvestmentFormData } from "@/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { calculateGigFinancials } from "@/lib/calculations";
 import { useSettings } from "./SettingsProvider";
+import { Icons } from "./Icons";
 
 interface BandMemberOption {
   id: string;
@@ -429,10 +430,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
           }}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 dark:hover:bg-brand-700"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 9.75A3.75 3.75 0 0 1 6 6h12a3.75 3.75 0 0 1 3.75 3.75v5.25A3.75 3.75 0 0 1 18 18.75H6A3.75 3.75 0 0 1 2.25 15V9.75Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 9h12M7.5 13.5h2.25" />
-          </svg>
+          <Icons.Wallet className="h-4 w-4" />
           {showForm ? copy.cancel : copy.addInvestment}
         </button>
       </div>
@@ -607,9 +605,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
         </div>
       ) : investments.length === 0 ? (
         <div className="py-12 text-center">
-          <svg className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 3.07-.879 4.242 0M9.75 17.25c0 .552-.448 1-1 1H5.625c-.552 0-1-.448-1-1m12.621-4.47c.409-.34.659-.934.659-1.591v-2.64c0-1.228-.841-2.265-1.964-2.565A6.521 6.521 0 0 0 12 2.25c-1.466 0-2.869.36-4.095 1.001C6.041 3.476 5.2 4.513 5.2 5.74v2.637c0 .657.25 1.251.659 1.591m0 0c.409.34 1.227.855 2.966 1.694C9.75 15.75 11.565 16.5 12 16.5c.435 0 2.25-.75 3.175-1.32 1.738-.839 2.557-1.354 2.966-1.694" />
-          </svg>
+          <Icons.Wallet className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
           <h3 className="mt-4 font-semibold text-slate-700 dark:text-slate-300">
             {copy.emptyTitle}
           </h3>
@@ -672,9 +668,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:text-slate-600 dark:hover:bg-brand-900/20"
                     title={copy.edit}
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
-                    </svg>
+                    <Icons.Edit className="h-4 w-4" />
                   </button>
 
                   <button
@@ -683,9 +677,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-slate-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
                     title={copy.delete}
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
+                    <Icons.Trash className="h-4 w-4" />
                   </button>
                 </div>
               </div>
