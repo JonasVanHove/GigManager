@@ -18,7 +18,6 @@ interface SuperAdminUserRow {
     bandMembers: number;
     gigs: number;
     investments: number;
-    notes: number;
     setlists: number;
     songs: number;
   };
@@ -102,7 +101,7 @@ export default function SuperAdminTab() {
           { label: "Users", value: users.length },
           { label: "Superadmins", value: users.filter((user) => user.superAdmin).length },
           { label: "Gigs", value: users.reduce((total, user) => total + user.counts.gigs, 0) },
-          { label: "Notes", value: users.reduce((total, user) => total + user.counts.notes, 0) },
+          { label: "Investments", value: users.reduce((total, user) => total + user.counts.investments, 0) },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{item.label}</div>
@@ -154,7 +153,6 @@ export default function SuperAdminTab() {
                       <span>Band members: {user.counts.bandMembers}</span>
                       <span>Setlists: {user.counts.setlists}</span>
                       <span>Investments: {user.counts.investments}</span>
-                      <span>Notes: {user.counts.notes}</span>
                       <span>Songs: {user.counts.songs}</span>
                     </div>
                   </td>

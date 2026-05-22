@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
             bandMembers: true,
             gigs: true,
             investments: true,
-            notes: true,
             setlists: true,
             songs: true,
           },
