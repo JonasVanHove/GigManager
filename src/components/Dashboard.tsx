@@ -33,6 +33,7 @@ const CalendarView = lazy(() => import("./CalendarView"));
 const SetlistsTab = lazy(() => import("./SetlistsTab"));
 const SharedLinksTab = lazy(() => import("./SharedLinksTab"));
 const SongsTab = lazy(() => import("./SongsTab"));
+const SuperAdminTab = lazy(() => import("./SuperAdminTab"));
 
 type DashboardTab =
   | "gigs"
@@ -43,7 +44,8 @@ type DashboardTab =
   | "band-members"
   | "calendar"
   | "setlists"
-  | "shared-links";
+  | "shared-links"
+  | "superadmin";
 
 const DASHBOARD_TABS: DashboardTab[] = [
   "gigs",
@@ -55,6 +57,7 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "calendar",
   "setlists",
   "shared-links",
+  "superadmin",
 ];
 
 const isDashboardTab = (value: string | null): value is DashboardTab => {
@@ -70,6 +73,7 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   calendar: () => import("./CalendarView"),
   setlists: () => import("./SetlistsTab"),
   "shared-links": () => import("./SharedLinksTab"),
+  superadmin: () => import("./SuperAdminTab"),
 };
 
 const TabLoader = () => (
@@ -115,9 +119,12 @@ export default function Dashboard() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const queryTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<DashboardTab>(isDashboardTab(queryTab) ? queryTab : "gigs");
+  const [canAccessSuperAdmin, setCanAccessSuperAdmin] = useState(false);
+  const [superAdminAccessChecked, setSuperAdminAccessChecked] = useState(false);
   const [insightsView, setInsightsView] = useState<"analytics" | "reports">("analytics");
   const [, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
+  const selectedTab = activeTab === "superadmin" && !canAccessSuperAdmin ? "gigs" : activeTab;
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
@@ -228,6 +235,64 @@ export default function Dashboard() {
     }
   }, [searchParams, activeTab]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkSuperAdminAccess = async () => {
+      if (!session?.user) {
+        if (!cancelled) {
+          setCanAccessSuperAdmin(false);
+          setSuperAdminAccessChecked(true);
+        }
+        return;
+      }
+
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          if (!cancelled) {
+            setCanAccessSuperAdmin(false);
+            setSuperAdminAccessChecked(true);
+          }
+          return;
+        }
+
+        const response = await fetch("/api/superadmin/status", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const payload = response.ok ? await response.json() : null;
+        if (!cancelled) {
+          setCanAccessSuperAdmin(Boolean(payload?.superAdmin));
+          setSuperAdminAccessChecked(true);
+        }
+      } catch (error) {
+        console.debug("Failed to check superadmin access", error);
+        if (!cancelled) {
+          setCanAccessSuperAdmin(false);
+          setSuperAdminAccessChecked(true);
+        }
+      }
+    };
+
+    checkSuperAdminAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id, getAccessToken]);
+
+  useEffect(() => {
+    if (!superAdminAccessChecked) return;
+
+    if (activeTab === "superadmin" && !canAccessSuperAdmin) {
+      setActiveTab("gigs");
+      router.replace("?tab=gigs", { scroll: false } as any);
+    }
+  }, [activeTab, canAccessSuperAdmin, superAdminAccessChecked, router]);
+
   // Scroll to top when tab changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -237,8 +302,8 @@ export default function Dashboard() {
     // Default behavior per tab:
     // - Overview tab (`gigs`) starts expanded
     // - All other tabs start collapsed
-    setIsOverviewExpanded(activeTab === "gigs");
-  }, [activeTab]);
+    setIsOverviewExpanded(selectedTab === "gigs");
+  }, [selectedTab]);
 
   useEffect(() => {
     try {
@@ -312,6 +377,11 @@ export default function Dashboard() {
         return;
       }
 
+      if (nextTab === "superadmin" && !canAccessSuperAdmin) {
+        setShowMobileMenu(false);
+        return;
+      }
+
       TAB_PRELOADERS[nextTab]?.();
       if (nextTab === "analytics") {
         import("./FinancialReports");
@@ -322,7 +392,7 @@ export default function Dashboard() {
         setShowMobileMenu(false);
       });
     },
-    [activeTab, startTransition, router]
+    [activeTab, canAccessSuperAdmin, startTransition, router]
   );
 
   useEffect(() => {
@@ -1168,7 +1238,7 @@ export default function Dashboard() {
                     handleTabChange("songs");
                   }}
                   className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                    activeTab === "songs"
+                      selectedTab === "songs"
                       ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   }`}
@@ -1181,7 +1251,7 @@ export default function Dashboard() {
 
               {/* Navigation */}
               <nav className="space-y-1">
-                {activeTab !== "songs" && (
+                {selectedTab !== "songs" && selectedTab !== "superadmin" && (
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Overview
                 </div>
@@ -1192,7 +1262,7 @@ export default function Dashboard() {
                     handleTabChange("gigs");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "gigs" 
+                    selectedTab === "gigs" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1206,7 +1276,7 @@ export default function Dashboard() {
                     handleTabChange("all-gigs");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "all-gigs" 
+                    selectedTab === "all-gigs" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1220,7 +1290,7 @@ export default function Dashboard() {
                     handleTabChange("calendar");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "calendar" 
+                    selectedTab === "calendar" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1237,7 +1307,7 @@ export default function Dashboard() {
                     handleTabChange("band-members");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "band-members" 
+                    selectedTab === "band-members" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1251,7 +1321,7 @@ export default function Dashboard() {
                     handleTabChange("setlists");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "setlists" 
+                    selectedTab === "setlists" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1265,7 +1335,7 @@ export default function Dashboard() {
                     handleTabChange("songs");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "songs" 
+                    selectedTab === "songs" 
                       ? "bg-black text-cyan-300 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.45)]" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1279,7 +1349,7 @@ export default function Dashboard() {
                     handleTabChange("shared-links");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "shared-links" 
+                    selectedTab === "shared-links" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1297,7 +1367,7 @@ export default function Dashboard() {
                     handleTabChange("analytics");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "analytics" 
+                    selectedTab === "analytics" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1315,7 +1385,7 @@ export default function Dashboard() {
                     handleTabChange("investments");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    activeTab === "investments" 
+                    selectedTab === "investments" 
                       ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1323,6 +1393,22 @@ export default function Dashboard() {
                   <Icons.Wallet className="h-5 w-5 shrink-0" />
                   <span>Investments</span>
                 </button>
+                {canAccessSuperAdmin && (
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleTabChange("superadmin");
+                    }}
+                    className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                      selectedTab === "superadmin"
+                        ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-300"
+                        : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Icons.Settings className="h-5 w-5 shrink-0" />
+                    <span>Superadmin</span>
+                  </button>
+                )}
               </nav>
             </div>
           </div>
@@ -1411,7 +1497,19 @@ export default function Dashboard() {
               isOverviewExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
             }`}
           >
-            <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
+            {loading && gigs.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/50">
+                <div className="flex items-center gap-4">
+                  <LoadingSpinner size="md" message="Loading overview..." />
+                  <div className="hidden sm:block space-y-2">
+                    <div className="h-4 w-40 rounded bg-slate-200/70 dark:bg-slate-700/70" />
+                    <div className="h-3 w-64 rounded bg-slate-200/60 dark:bg-slate-700/60" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
+            )}
           </div>
         </div>
         )}
@@ -1497,11 +1595,26 @@ export default function Dashboard() {
           <div className="flex items-center px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
             Insights
           </div>
+          {canAccessSuperAdmin && (
+            <button
+              onClick={() => handleTabChange("superadmin")}
+              className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
+                selectedTab === "superadmin"
+                  ? "border-b-2 border-fuchsia-500 text-fuchsia-600 dark:border-fuchsia-400 dark:text-fuchsia-400"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+              }`}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Icons.Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Superadmin</span>
+              </span>
+            </button>
+          )}
           {/* Shared Links */}
           <button
             onClick={() => handleTabChange("shared-links")}
             className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "shared-links"
+              selectedTab === "shared-links"
                 ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
@@ -1515,7 +1628,7 @@ export default function Dashboard() {
           <button
             onClick={() => handleTabChange("analytics")}
             className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "analytics"
+              selectedTab === "analytics"
                 ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
@@ -1529,7 +1642,7 @@ export default function Dashboard() {
           <button
             onClick={() => handleTabChange("investments")}
             className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "investments"
+              selectedTab === "investments"
                 ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
@@ -1544,7 +1657,7 @@ export default function Dashboard() {
 
 
         {/* -- Content -------------------------------------------------- */}
-        {activeTab === "gigs" ? (
+        {selectedTab === "gigs" ? (
           <>
             {/* -- Overview: Smart sorted performances ---------------------- */}
             {loading ? (
@@ -1725,7 +1838,7 @@ export default function Dashboard() {
               </div>
             )}
           </>
-        ) : activeTab === "all-gigs" ? (
+        ) : selectedTab === "all-gigs" ? (
           <Suspense fallback={<TabLoader />}>
             <AllGigsTab 
               gigs={gigs}
@@ -1734,7 +1847,7 @@ export default function Dashboard() {
               loading={loading}
             />
           </Suspense>
-        ) : activeTab === "analytics" ? (
+        ) : selectedTab === "analytics" ? (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 p-2">
               <button
@@ -1766,33 +1879,37 @@ export default function Dashboard() {
               )}
             </Suspense>
           </div>
-        ) : activeTab === "investments" ? (
+        ) : selectedTab === "investments" ? (
           <Suspense fallback={<TabLoader />}>
             <InvestmentsTab fmtCurrency={fmtCurrency} />
           </Suspense>
-        ) : activeTab === "band-members" ? (
+        ) : selectedTab === "band-members" ? (
           <Suspense fallback={<TabLoader />}>
             <BandMembers fmtCurrency={fmtCurrency} gigs={gigs} />
           </Suspense>
-        ) : activeTab === "setlists" ? (
+        ) : selectedTab === "setlists" ? (
           <Suspense fallback={<TabLoader />}>
             <SetlistsTab />
           </Suspense>
-        ) : activeTab === "songs" ? (
+        ) : selectedTab === "songs" ? (
           <Suspense fallback={<TabLoader />}>
             <SongsTab />
           </Suspense>
-        ) : activeTab === "shared-links" ? (
+        ) : selectedTab === "shared-links" ? (
           <Suspense fallback={<TabLoader />}>
             <SharedLinksTab />
           </Suspense>
-        ) : activeTab === "calendar" ? (
+        ) : selectedTab === "calendar" ? (
           <Suspense fallback={<TabLoader />}>
             <CalendarView 
               fmtCurrency={fmtCurrency} 
               gigs={gigs}
               onEditGig={handleEditGigById} 
             />
+          </Suspense>
+        ) : selectedTab === "superadmin" ? (
+          <Suspense fallback={<TabLoader />}>
+            <SuperAdminTab />
           </Suspense>
         ) : null}
       </main>

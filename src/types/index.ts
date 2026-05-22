@@ -43,6 +43,7 @@ export interface User {
   supabaseId: string;
   email: string;
   name: string | null;
+  superAdmin: boolean;
   createdAt: string;
   updatedAt: string;
 }

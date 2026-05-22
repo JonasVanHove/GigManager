@@ -101,6 +101,7 @@ model User {
   supabaseId       String                  @unique
   email            String                  @unique
   name             String?
+  superAdmin       Boolean                 @default(false)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   bandMembers      BandMember[]
