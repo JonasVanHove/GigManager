@@ -2,8 +2,11 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useAuth } from "./AuthProvider";
 import LoadingSpinner from "./LoadingSpinner";
+
+const SuperAdminUserDetail = dynamic(() => import("./SuperAdminUserDetail"), { ssr: false });
 
 interface SuperAdminUserRow {
   id: string;
@@ -28,20 +31,23 @@ export default function SuperAdminTab() {
   const [users, setUsers] = useState<SuperAdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedUser, setSelectedUser] = useState<SuperAdminUserRow | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const loadUsers = async () => {
       try {
-        const token = await getAccessToken();
-        if (!token) {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
           throw new Error("Missing access token");
         }
+        setToken(accessToken);
 
         const response = await fetch("/api/superadmin/users", {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         });
 
@@ -92,7 +98,7 @@ export default function SuperAdminTab() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">Superadmin</p>
         <h2 className="mt-2 text-2xl font-bold">User overview</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          All registered users with their profile image, account data, and usage counts.
+          All registered users with their profile image, account data, and usage counts. Click on any user to see detailed analytics.
         </p>
       </div>
 
@@ -123,7 +129,11 @@ export default function SuperAdminTab() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {users.map((user) => (
-                <tr key={user.id} className="align-top hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                <tr
+                  key={user.id}
+                  onClick={() => setSelectedUser(user)}
+                  className="align-top hover:bg-blue-50/50 dark:hover:bg-blue-950/30 cursor-pointer transition-colors"
+                >
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100">
@@ -166,6 +176,17 @@ export default function SuperAdminTab() {
           </table>
         </div>
       </div>
+
+      {selectedUser && token && (
+        <SuperAdminUserDetail
+          userId={selectedUser.id}
+          userName={selectedUser.name}
+          userEmail={selectedUser.email}
+          userAvatar={selectedUser.avatarUrl}
+          token={token}
+          onClose={() => setSelectedUser(null)}
+        />
+      )}
     </div>
   );
 }
