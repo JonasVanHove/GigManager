@@ -6,7 +6,7 @@ import LoadingSpinner from "./LoadingSpinner";
 
 interface UserDetailProps {
   userId: string;
-  userName: string;
+  userName: string | null;
   userEmail: string;
   userAvatar: string | null;
   token: string;
@@ -154,7 +154,7 @@ export default function SuperAdminUserDetail({
             <div className="flex items-center gap-4">
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-white/20 shadow-lg">
                 {userAvatar ? (
-                  <Image src={userAvatar} alt={userName} width={80} height={80} className="h-full w-full object-cover" />
+                  <Image src={userAvatar} alt={userName || userEmail} width={80} height={80} className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-4xl font-bold text-white">{(userName || userEmail || "?").charAt(0).toUpperCase()}</span>
                 )}
