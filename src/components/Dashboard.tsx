@@ -143,6 +143,12 @@ export default function Dashboard() {
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [totalGigCount, setTotalGigCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [investmentOverview, setInvestmentOverview] = useState({
+    totalInvested: 0,
+    totalInvestments: 0,
+    sharedInvestments: 0,
+    loading: true,
+  });
   const [showForm, setShowForm] = useState(false);
   const [editGig, setEditGig] = useState<Gig | null>(null);
   const [deleteGig, setDeleteGig] = useState<Gig | null>(null);
@@ -173,6 +179,7 @@ export default function Dashboard() {
   const effectiveWideView = isWideView && supportsWideLayout;
   const isDutch = locale.startsWith("nl");
   const fetchGigsInFlightRef = useRef(false);
+  const fetchInvestmentsInFlightRef = useRef(false);
   const noSessionLoggedRef = useRef(false);
   const gigsRef = useRef<Gig[]>([]);
   const fetchRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -653,9 +660,74 @@ export default function Dashboard() {
     }
   }, [authLoading, session?.user, getAccessToken, gigsCacheKey, toast]);
 
+  const fetchInvestmentOverview = useCallback(async () => {
+    if (fetchInvestmentsInFlightRef.current) {
+      return;
+    }
+
+    if (authLoading) {
+      return;
+    }
+
+    if (!session?.user) {
+      setInvestmentOverview({
+        totalInvested: 0,
+        totalInvestments: 0,
+        sharedInvestments: 0,
+        loading: false,
+      });
+      return;
+    }
+
+    try {
+      fetchInvestmentsInFlightRef.current = true;
+      setInvestmentOverview((prev) => ({ ...prev, loading: true }));
+
+      const token = await getAccessToken();
+      if (!token) {
+        setInvestmentOverview((prev) => ({ ...prev, loading: false }));
+        return;
+      }
+
+      const response = await fetch("/api/investments", {
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        setInvestmentOverview((prev) => ({ ...prev, loading: false }));
+        return;
+      }
+
+      const payload = await response.json();
+      const investments = Array.isArray(payload) ? payload : [];
+      const totalInvested = investments.reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+      const sharedInvestments = investments.filter((item) => Boolean(item?.sharedWithMusician)).length;
+
+      setInvestmentOverview({
+        totalInvested,
+        totalInvestments: investments.length,
+        sharedInvestments,
+        loading: false,
+      });
+    } catch (error) {
+      console.error("[fetchInvestmentOverview] Error:", error);
+      setInvestmentOverview((prev) => ({ ...prev, loading: false }));
+    } finally {
+      fetchInvestmentsInFlightRef.current = false;
+    }
+  }, [authLoading, session?.user, getAccessToken]);
+
   useEffect(() => {
     fetchGigs();
   }, [fetchGigs]);
+
+  useEffect(() => {
+    fetchInvestmentOverview();
+  }, [fetchInvestmentOverview]);
 
   // Filter gigs based on search query
   const filteredGigs = useMemo(() => {
@@ -1544,7 +1616,12 @@ export default function Dashboard() {
                 <OverviewKpiSkeleton />
               </div>
             ) : (
-              <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
+              <DashboardSummaryComponent
+                summary={summary}
+                gigs={gigs}
+                fmtCurrency={fmtCurrency}
+                investmentOverview={investmentOverview}
+              />
             )}
           </div>
         </div>

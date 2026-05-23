@@ -11,6 +11,12 @@ interface DashboardSummaryProps {
   summary: DashboardSummary;
   gigs: Gig[];
   fmtCurrency: (amount: number) => string;
+  investmentOverview?: {
+    totalInvested: number;
+    totalInvestments: number;
+    sharedInvestments: number;
+    loading: boolean;
+  };
 }
 
 /**
@@ -24,7 +30,7 @@ interface DashboardSummaryProps {
  * - XAI tooltips for explanation
  * - HCI-optimized spacing and hierarchy
  */
-export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummaryProps) {
+export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOverview }: DashboardSummaryProps) {
   const { language } = useSettings();
   const tr = (en: string, nl: string) => (language === "nl" ? nl : en);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
@@ -251,7 +257,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
                   {fmtCurrency(summary.totalEarningsReceived)}
                 </p>
                 <p className="mt-1 text-xs text-brand-600 dark:text-brand-400 hidden sm:block">
-                  {tr("Click to see breakdown", "Klik voor detail")} →
+                  {tr("Received + pending + investments", "Ontvangen + openstaand + investeringen")} →
                 </p>
               </div>
               <div className="flex-shrink-0">
@@ -272,7 +278,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
           {expandedCard === "earnings" && (
             <div className="mt-2 sm:mt-3 space-y-2 sm:space-y-3">
               {/* Summary row */}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-lg border-2 border-brand-500 bg-brand-500/10 p-2 sm:p-2.5 dark:border-brand-400 dark:bg-brand-500/20">
                   <p className="text-xs font-medium text-brand-700 dark:text-brand-300">
                     Total
@@ -295,6 +301,35 @@ export function DashboardSummary({ summary, gigs, fmtCurrency }: DashboardSummar
                   </p>
                   <p className="mt-0.5 font-bold text-orange-800 dark:text-orange-200 text-sm sm:text-base">
                     {fmtCurrency(summary.totalEarningsPending)}
+                  </p>
+                </div>
+                <div className="rounded-lg border-2 border-cyan-500 bg-cyan-500/10 p-2 sm:p-2.5 dark:border-cyan-400 dark:bg-cyan-500/20">
+                  <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                    Investments
+                  </p>
+                  <p className="mt-0.5 font-bold text-cyan-800 dark:text-cyan-200 text-sm sm:text-base">
+                    {investmentOverview?.loading ? tr("Loading...", "Laden...") : fmtCurrency(investmentOverview?.totalInvested ?? 0)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Net liquid position</p>
+                  <p className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-50">
+                    {fmtCurrency(summary.totalEarningsReceived - (investmentOverview?.totalInvested ?? 0))}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Received earnings minus total invested capital.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Investment mix</p>
+                  <p className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-50">
+                    {investmentOverview?.loading ? tr("Loading...", "Laden...") : `${investmentOverview?.sharedInvestments ?? 0}/${investmentOverview?.totalInvestments ?? 0}`}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Shared investments vs total investments.
                   </p>
                 </div>
               </div>
