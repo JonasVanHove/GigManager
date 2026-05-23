@@ -25,13 +25,24 @@ interface DetailData {
   };
   stats: {
     gigsThisMonth: number;
+    totalEarnings: number;
     myEarnings: number;
+    paidMyEarnings: number;
+    pendingMyEarnings: number;
+    averageMyEarningsPerGig: number;
     totalGigs: number;
     totalBandMembers: number;
     totalInvestments: number;
     totalInvested: number;
     totalSharedWithMusician: number;
+    investmentShareRate: number;
     totalSetlists: number;
+    biggestGig: {
+      id: string;
+      eventName: string;
+      date: string;
+      myEarnings: number;
+    } | null;
   };
   recentGigs: Array<{
     id: string;
@@ -132,8 +143,10 @@ export default function SuperAdminUserDetail({
 
   const formatCurrency = (amount: number) => {
     const currency = data.settings?.currency || "EUR";
-    return new Intl.NumberFormat("nl-NL", { style: "currency", currency }).format(amount);
+    return new Intl.NumberFormat("nl-NL", { style: "currency", currency }).format(Number.isFinite(amount) ? amount : 0);
   };
+
+  const safeNumber = (value: number | null | undefined) => (Number.isFinite(value ?? NaN) ? (value as number) : 0);
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-black/50 backdrop-blur-sm">
@@ -188,6 +201,40 @@ export default function SuperAdminUserDetail({
 
           {/* Tabs Content */}
           <div className="space-y-8 p-6 sm:p-8">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 dark:border-cyan-900/40 dark:bg-cyan-950/20">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">Paid My Earnings</p>
+                <p className="mt-2 text-2xl font-bold text-cyan-950 dark:text-cyan-100">{formatCurrency(data.stats.paidMyEarnings)}</p>
+                <p className="mt-1 text-sm text-cyan-800/80 dark:text-cyan-200/80">Earnings already received from paid gigs.</p>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Pending My Earnings</p>
+                <p className="mt-2 text-2xl font-bold text-amber-950 dark:text-amber-100">{formatCurrency(data.stats.pendingMyEarnings)}</p>
+                <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">Still outstanding from unpaid gigs.</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Average per Gig</p>
+                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-50">{formatCurrency(data.stats.averageMyEarningsPerGig)}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Average personal earnings per gig.</p>
+              </div>
+            </div>
+
+            {data.stats.biggestGig && (
+              <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-5 text-white shadow-xl dark:border-slate-800">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">Top Gig</p>
+                    <h3 className="mt-2 text-2xl font-bold">{data.stats.biggestGig.eventName}</h3>
+                    <p className="mt-1 text-sm text-slate-300">{new Date(data.stats.biggestGig.date).toLocaleDateString()}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-300">My Earnings</p>
+                    <p className="mt-1 text-2xl font-bold">{formatCurrency(data.stats.biggestGig.myEarnings)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Recent Gigs */}
             {data.recentGigs.length > 0 && (
               <div>
@@ -246,6 +293,7 @@ export default function SuperAdminUserDetail({
                     <div>
                       <p className="text-sm text-slate-600 dark:text-slate-400">Shared with Musician</p>
                       <p className="mt-1 text-2xl font-bold text-cyan-600 dark:text-cyan-400">{data.stats.totalSharedWithMusician}</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{Math.round(safeNumber(data.stats.investmentShareRate) * 100)}% of investments</p>
                     </div>
                   </div>
                 </div>
