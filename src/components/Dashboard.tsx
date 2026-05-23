@@ -80,6 +80,39 @@ const TabLoader = () => (
   <LoadingSpinner size="lg" message="Loading section..." />
 );
 
+const OverviewKpiSkeleton = () => (
+  <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/50">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={`overview-skeleton-${index}`}
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="animate-pulse space-y-3">
+            <div className="h-3 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-8 w-20 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-32 rounded-full bg-slate-100 dark:bg-slate-800" />
+          </div>
+        </div>
+      ))}
+    </div>
+    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div
+          key={`overview-skeleton-detail-${index}`}
+          className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70"
+        >
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 w-28 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-slate-800" />
+            <div className="h-3 w-5/6 rounded-full bg-slate-100 dark:bg-slate-800" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 async function parseApiError(res: Response): Promise<string> {
   const bodyText = await res.text();
   const contentType = res.headers.get("content-type") || "";
@@ -1498,14 +1531,17 @@ export default function Dashboard() {
             }`}
           >
             {loading && gigs.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/50">
-                <div className="flex items-center gap-4">
-                  <LoadingSpinner size="md" message="Loading overview..." />
-                  <div className="hidden sm:block space-y-2">
-                    <div className="h-4 w-40 rounded bg-slate-200/70 dark:bg-slate-700/70" />
-                    <div className="h-3 w-64 rounded bg-slate-200/60 dark:bg-slate-700/60" />
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-4 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <LoadingSpinner size="md" message="Loading overview..." />
+                    <div className="hidden sm:block space-y-1">
+                      <div className="h-4 w-44 rounded-full bg-slate-200/70 dark:bg-slate-700/70" />
+                      <div className="h-3 w-72 rounded-full bg-slate-200/60 dark:bg-slate-700/60" />
+                    </div>
                   </div>
                 </div>
+                <OverviewKpiSkeleton />
               </div>
             ) : (
               <DashboardSummaryComponent summary={summary} gigs={gigs} fmtCurrency={fmtCurrency} />
