@@ -116,7 +116,48 @@ export default function SuperAdminTab() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="md:hidden space-y-3">
+        {users.map((user) => (
+          <button
+            key={user.id}
+            onClick={() => setSelectedUser(user)}
+            className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100">
+                {user.avatarUrl ? (
+                  <Image src={user.avatarUrl} alt={user.name || user.email} width={48} height={48} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-sm font-semibold">{(user.name || user.email || "?").charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="truncate font-semibold text-slate-900 dark:text-slate-50">{user.name || "Unnamed user"}</div>
+                  {user.superAdmin && (
+                    <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
+                      superadmin
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{user.email}</div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-slate-800/60">Gigs: {user.counts.gigs}</div>
+                  <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-slate-800/60">Investments: {user.counts.investments}</div>
+                  <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-slate-800/60">Band: {user.counts.bandMembers}</div>
+                  <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-slate-800/60">Setlists: {user.counts.setlists}</div>
+                </div>
+                <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  <div>Created {new Date(user.createdAt).toLocaleDateString()}</div>
+                  <div className="mt-1">Updated {new Date(user.updatedAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-950/50">

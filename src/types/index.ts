@@ -128,6 +128,8 @@ export interface Setlist {
 export interface GigCalculations {
   actualManagerBonus: number;
   totalReceived: number;
+  perfShare: number;
+  techShare: number;
   amountPerMusician: number;
   myEarnings: number;
   myEarningsAlreadyReceived: number; // Advance received from client

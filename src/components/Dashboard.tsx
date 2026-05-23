@@ -1094,9 +1094,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       {/* -- Navbar -------------------------------------------------------- */}
       <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
-        <div className={`mx-auto flex w-full items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
+        <div className={`mx-auto flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:flex-nowrap sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
           {/* Left: Hamburger (mobile) + Logo */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
             {/* Mobile hamburger */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -1146,11 +1146,11 @@ export default function Dashboard() {
           </div>
 
           {/* Right: Navigation toggles + Add + Profile (always visible) */}
-          <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+          <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2 md:gap-3 sm:ml-0">
             {/* Notes - visible on tablet+ with label, icon-only on mobile */}
             <button
               onClick={() => handleTabChange("songs")}
-              className={`inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
                 activeTab === "songs"
                   ? "border-cyan-400 bg-black text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.45),0_0_22px_rgba(34,211,238,0.25)]"
                   : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
@@ -1184,7 +1184,7 @@ export default function Dashboard() {
                 setEditGig(null);
                 setShowForm(true);
               }}
-              className="p-1.5 sm:p-0 sm:px-3 sm:py-2 rounded-lg bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-md hover:shadow-lg transition duration-200 hover:from-brand-700 hover:to-brand-800 active:shadow-inner flex-shrink-0"
+              className="min-w-0 flex-shrink-0 rounded-lg bg-gradient-to-br from-brand-600 to-brand-700 p-1.5 text-white shadow-md transition duration-200 hover:from-brand-700 hover:to-brand-800 hover:shadow-lg active:shadow-inner sm:p-0 sm:px-3 sm:py-2"
               title="Add Performance"
             >
               <Icons.Plus className="h-4 w-4 sm:hidden shrink-0" />
@@ -1214,7 +1214,7 @@ export default function Dashboard() {
                 )}
               </button>
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200/50 bg-white/95 backdrop-blur text-sm shadow-xl dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur overflow-hidden menu-enter">
+                <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-slate-200/50 bg-white/95 text-sm shadow-xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur menu-enter">
                   {/* Profile info header */}
                   <div className="border-b border-slate-200 dark:border-slate-700 p-3">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">

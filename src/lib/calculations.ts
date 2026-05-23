@@ -43,6 +43,8 @@ export function calculateGigFinancials(
     return {
       actualManagerBonus: 0,
       totalReceived: 0,
+      perfShare: 0,
+      techShare: 0,
       amountPerMusician: 0,
       myEarnings: 0,
       myEarningsAlreadyReceived: 0,
@@ -124,6 +126,8 @@ export function calculateGigFinancials(
   return {
     actualManagerBonus: round(actualManagerBonus),
     totalReceived: round(totalReceived),
+    perfShare: round(perfShare),
+    techShare: round(techShare),
     amountPerMusician: round(amountPerMusician),
     myEarnings: round(myEarnings),
     myEarningsAlreadyReceived: round(myEarningsAlreadyReceived),

@@ -26,7 +26,9 @@ interface DetailData {
   stats: {
     gigsThisMonth: number;
     totalEarnings: number;
-    myEarnings: number;
+    myEarnings: number; // now represents received amount
+    totalEarningsReceived?: number;
+    totalEarningsPending?: number;
     paidMyEarnings: number;
     pendingMyEarnings: number;
     averageMyEarningsPerGig: number;
@@ -43,6 +45,12 @@ interface DetailData {
       date: string;
       myEarnings: number;
     } | null;
+    breakdownReceived?: {
+      performance: number;
+      technical: number;
+      bonus: number;
+      advancesApplied: number;
+    };
   };
   recentGigs: Array<{
     id: string;
@@ -74,6 +82,12 @@ interface DetailData {
     claimPerformanceFee: boolean;
     claimTechnicalFee: boolean;
   } | null;
+  pendingGigs?: Array<{
+    id: string;
+    eventName: string;
+    date: string;
+    pendingAmount: number;
+  }>;
 }
 
 export default function SuperAdminUserDetail({
@@ -184,7 +198,7 @@ export default function SuperAdminUserDetail({
             {[
               { label: "Total Gigs", value: data.stats.totalGigs, icon: "🎵" },
               { label: "This Month", value: data.stats.gigsThisMonth, icon: "📅" },
-              { label: "My Earnings", value: formatCurrency(data.stats.myEarnings), icon: "💰" },
+              { label: "My Earnings (received)", value: formatCurrency(data.stats.myEarnings), icon: "💰" },
               { label: "Band Members", value: data.stats.totalBandMembers, icon: "👥" },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-4">
@@ -212,6 +226,36 @@ export default function SuperAdminUserDetail({
                 <p className="mt-2 text-2xl font-bold text-amber-950 dark:text-amber-100">{formatCurrency(data.stats.pendingMyEarnings)}</p>
                 <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">Still outstanding from unpaid gigs.</p>
               </div>
+              {data.stats.breakdownReceived && (
+                <div className="col-span-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Why received = this amount</p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">{formatCurrency(data.stats.myEarnings)} — received</p>
+                  <div className="mt-2 text-sm text-slate-600">
+                    <div className="flex justify-between"><span>Performance</span><span>{formatCurrency(data.stats.breakdownReceived.performance)}</span></div>
+                    <div className="flex justify-between"><span>Technical</span><span>{formatCurrency(data.stats.breakdownReceived.technical)}</span></div>
+                    <div className="flex justify-between"><span>Bonus</span><span>{formatCurrency(data.stats.breakdownReceived.bonus)}</span></div>
+                    <div className="flex justify-between"><span>Advances</span><span>{formatCurrency(data.stats.breakdownReceived.advancesApplied)}</span></div>
+                  </div>
+                </div>
+              )}
+              {data.pendingGigs && data.pendingGigs.length > 0 && (
+                <div className="mt-4 lg:mt-0 lg:col-span-3">
+                  <h4 className="text-sm font-semibold text-amber-700">Pending Payouts</h4>
+                  <div className="mt-3 space-y-2">
+                    {data.pendingGigs.map((pg) => (
+                      <div key={pg.id} className="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50 p-3">
+                        <div>
+                          <p className="font-medium text-amber-900">{pg.eventName}</p>
+                          <p className="text-xs text-amber-800">{new Date(pg.date).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-amber-900">{formatCurrency(pg.pendingAmount)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Average per Gig</p>
                 <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-50">{formatCurrency(data.stats.averageMyEarningsPerGig)}</p>

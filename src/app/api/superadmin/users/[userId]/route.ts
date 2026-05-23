@@ -50,7 +50,6 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
             managerPerformanceAmount: true,
           },
           orderBy: { date: "desc" },
-          take: 10,
         },
         bandMembers: {
           select: {
@@ -115,6 +114,9 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
         (gig.performanceDistribution as "equal" | "managerFixed" | "custom") || "equal",
         toFiniteNumber(gig.managerPerformanceAmount)
       );
+      const receivedForGig = gig.paymentReceived ? calculations.myEarnings : calculations.myEarningsAlreadyReceived;
+      const pendingForGig = gig.paymentReceived ? 0 : calculations.myEarningsStillOwed;
+
       return {
         id: gig.id,
         eventName: gig.eventName,
@@ -123,16 +125,24 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
         paymentReceived: gig.paymentReceived,
         totalReceived: calculations.totalReceived,
         amountOwedToOthers: calculations.amountOwedToOthers,
+        receivedForGig,
+        pendingForGig,
+        perfShare: calculations.perfShare,
+        techShare: calculations.techShare,
+        actualManagerBonus: calculations.actualManagerBonus,
+        myEarningsAlreadyReceived: calculations.myEarningsAlreadyReceived,
       };
     });
 
     const gigsThisMonth = earningsByGig.filter((gig) => new Date(gig.date) >= thirtyDaysAgo).length;
-    const myEarnings = earningsByGig.reduce((sum, gig) => sum + toFiniteNumber(gig.myEarnings), 0);
-    const paidMyEarnings = earningsByGig
-      .filter((gig) => gig.paymentReceived)
-      .reduce((sum, gig) => sum + toFiniteNumber(gig.myEarnings), 0);
-    const pendingMyEarnings = Math.max(0, myEarnings - paidMyEarnings);
-    const averageMyEarningsPerGig = user.gigs.length > 0 ? myEarnings / user.gigs.length : 0;
+    const totalMyEarnings = earningsByGig.reduce((sum, gig) => sum + toFiniteNumber(gig.myEarnings), 0);
+    const totalMyEarningsReceived = earningsByGig.reduce((sum, gig) => sum + toFiniteNumber((gig as any).receivedForGig), 0);
+    const totalMyEarningsPending = earningsByGig.reduce((sum, gig) => sum + toFiniteNumber((gig as any).pendingForGig), 0);
+    const averageMyEarningsPerGig = user.gigs.length > 0 ? totalMyEarnings / user.gigs.length : 0;
+
+    const pendingGigs = earningsByGig
+      .filter((gig) => !gig.paymentReceived)
+      .map((gig) => ({ id: gig.id, eventName: gig.eventName, date: gig.date, pendingAmount: toFiniteNumber((gig as any).pendingForGig) }));
     const biggestGig = earningsByGig.reduce<null | (typeof earningsByGig)[number]>((best, gig) => {
       if (!best || gig.myEarnings > best.myEarnings) return gig;
       return best;
@@ -142,6 +152,36 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
     const sharedInvestments = user.investments.filter((inv) => inv.sharedWithMusician).length;
     const totalSharedWithMusician = sharedInvestments;
     const investmentShareRate = user.investments.length > 0 ? sharedInvestments / user.investments.length : 0;
+
+    // Build breakdown explaining why the received total equals the shown My Earnings
+    const breakdownReceived = {
+      performance: 0,
+      technical: 0,
+      bonus: 0,
+      advancesApplied: 0,
+    };
+
+    for (const g of earningsByGig) {
+      const perf = toFiniteNumber((g as any).perfShare);
+      const tech = toFiniteNumber((g as any).techShare);
+      const bonus = toFiniteNumber((g as any).actualManagerBonus);
+      const advance = toFiniteNumber((g as any).myEarningsAlreadyReceived);
+
+      if (g.paymentReceived) {
+        breakdownReceived.performance += perf;
+        breakdownReceived.technical += tech;
+        breakdownReceived.bonus += bonus;
+        breakdownReceived.advancesApplied += advance;
+      } else {
+        // For unpaid gigs, only the advance (if any) contributes to received
+        breakdownReceived.advancesApplied += advance;
+      }
+    }
+
+    // Round breakdown values
+    for (const k of Object.keys(breakdownReceived)) {
+      (breakdownReceived as any)[k] = Math.round(((breakdownReceived as any)[k] || 0) * 100) / 100;
+    }
 
     return NextResponse.json({
       user: {
@@ -155,10 +195,13 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
       },
       stats: {
         gigsThisMonth,
-        totalEarnings: myEarnings,
-        myEarnings,
-        paidMyEarnings,
-        pendingMyEarnings,
+        totalEarnings: totalMyEarnings,
+        myEarnings: totalMyEarningsReceived,
+        breakdownReceived,
+        totalEarningsReceived: totalMyEarningsReceived,
+        totalEarningsPending: totalMyEarningsPending,
+        paidMyEarnings: totalMyEarningsReceived,
+        pendingMyEarnings: totalMyEarningsPending,
         averageMyEarningsPerGig,
         totalGigs: user.gigs.length,
         totalBandMembers: user.bandMembers.length,
@@ -177,6 +220,7 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
           : null,
       },
       recentGigs: earningsByGig.slice(0, 5),
+      pendingGigs,
       bandMembers: user.bandMembers.slice(0, 8),
       investments: user.investments.slice(0, 5),
       topSetlists: user.setlists.slice(0, 3),
