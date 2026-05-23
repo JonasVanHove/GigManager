@@ -25,7 +25,7 @@ interface DetailData {
   };
   stats: {
     gigsThisMonth: number;
-    totalEarnings: number;
+    myEarnings: number;
     totalGigs: number;
     totalBandMembers: number;
     totalInvestments: number;
@@ -37,8 +37,7 @@ interface DetailData {
     id: string;
     eventName: string;
     date: string;
-    performanceFee: number | null;
-    technicalFee: number | null;
+    myEarnings: number;
     paymentReceived: boolean;
   }>;
   bandMembers: Array<{
@@ -172,7 +171,7 @@ export default function SuperAdminUserDetail({
             {[
               { label: "Total Gigs", value: data.stats.totalGigs, icon: "🎵" },
               { label: "This Month", value: data.stats.gigsThisMonth, icon: "📅" },
-              { label: "Total Earnings", value: formatCurrency(data.stats.totalEarnings), icon: "💰" },
+              { label: "My Earnings", value: formatCurrency(data.stats.myEarnings), icon: "💰" },
               { label: "Band Members", value: data.stats.totalBandMembers, icon: "👥" },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-4">
@@ -202,7 +201,7 @@ export default function SuperAdminUserDetail({
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-slate-900 dark:text-slate-50">
-                          {formatCurrency((gig.performanceFee || 0) + (gig.technicalFee || 0))}
+                          {formatCurrency(gig.myEarnings)}
                         </p>
                         <p className={`text-sm ${gig.paymentReceived ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
                           {gig.paymentReceived ? "✓ Paid" : "⏳ Pending"}

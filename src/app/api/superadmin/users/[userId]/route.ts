@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { calculateGigFinancials } from "@/lib/calculations";
 import { requireSuperAdminUser } from "@/lib/superadmin-access";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +31,19 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
             date: true,
             performanceFee: true,
             technicalFee: true,
+            managerBonusType: true,
+            managerBonusAmount: true,
             paymentReceived: true,
             paymentReceivedDate: true,
             numberOfMusicians: true,
+            claimPerformanceFee: true,
+            claimTechnicalFee: true,
+            technicalFeeClaimAmount: true,
+            advanceReceivedByManager: true,
+            advanceToMusicians: true,
+            isCharity: true,
+            performanceDistribution: true,
+            managerPerformanceAmount: true,
           },
           orderBy: { date: "desc" },
           take: 10,
@@ -86,8 +97,22 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
 
     const gigsThisMonth = user.gigs.filter((gig) => new Date(gig.date) >= thirtyDaysAgo).length;
     const totalEarnings = user.gigs.reduce((sum, gig) => {
-      const base = (gig.performanceFee || 0) + (gig.technicalFee || 0);
-      return sum + base;
+      const calculations = calculateGigFinancials(
+        gig.performanceFee,
+        gig.technicalFee,
+        gig.managerBonusType as "fixed" | "percentage",
+        gig.managerBonusAmount,
+        gig.numberOfMusicians,
+        gig.claimPerformanceFee,
+        gig.claimTechnicalFee,
+        gig.technicalFeeClaimAmount,
+        gig.advanceReceivedByManager,
+        gig.advanceToMusicians,
+        gig.isCharity,
+        (gig.performanceDistribution as "equal" | "managerFixed" | "custom") || "equal",
+        gig.managerPerformanceAmount
+      );
+      return sum + calculations.myEarnings;
     }, 0);
     const totalInvested = user.investments.reduce((sum, inv) => sum + inv.amount, 0);
     const totalSharedWithMusician = user.investments.filter((inv) => inv.sharedWithMusician).length;
@@ -112,7 +137,31 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
         totalSharedWithMusician,
         totalSetlists: user.setlists.length,
       },
-      recentGigs: user.gigs.slice(0, 5),
+      recentGigs: user.gigs.slice(0, 5).map((gig) => {
+        const calculations = calculateGigFinancials(
+          gig.performanceFee,
+          gig.technicalFee,
+          gig.managerBonusType as "fixed" | "percentage",
+          gig.managerBonusAmount,
+          gig.numberOfMusicians,
+          gig.claimPerformanceFee,
+          gig.claimTechnicalFee,
+          gig.technicalFeeClaimAmount,
+          gig.advanceReceivedByManager,
+          gig.advanceToMusicians,
+          gig.isCharity,
+          (gig.performanceDistribution as "equal" | "managerFixed" | "custom") || "equal",
+          gig.managerPerformanceAmount
+        );
+
+        return {
+          id: gig.id,
+          eventName: gig.eventName,
+          date: gig.date,
+          myEarnings: calculations.myEarnings,
+          paymentReceived: gig.paymentReceived,
+        };
+      }),
       bandMembers: user.bandMembers.slice(0, 8),
       investments: user.investments.slice(0, 5),
       topSetlists: user.setlists.slice(0, 3),
