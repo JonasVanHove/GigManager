@@ -96,6 +96,23 @@ model SetlistItem {
   @@index([setlistId, order])
 }
 
+model SetlistItemAttachment {
+  id           String      @id @default(cuid())
+  setlistItemId String
+  url          String      @db.Text
+  type         String
+  title        String?
+  description  String?
+  mimeType     String?
+  fileSize     Int?
+  order        Int         @default(1)
+  uploadedAt   DateTime    @default(now())
+
+  setlistItem  SetlistItem @relation(fields: [setlistItemId], references: [id], onDelete: Cascade)
+
+  @@index([setlistItemId, order])
+}
+
 model User {
   id               String                  @id @default(cuid())
   supabaseId       String                  @unique

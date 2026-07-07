@@ -27,7 +27,7 @@ type Stroke = {
 const PHOTO_EXPORT_WIDTH = 1400;
 const PHOTO_EXPORT_HEIGHT = 933;
 
-export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob: Blob) => void; persistId?: string | null }) {
+export function PhotoAnnotationEditor({ onExport, persistId, concertMode }: { onExport: (blob: Blob) => void; persistId?: string | null; concertMode?: boolean }) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const photoImageRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<{
@@ -53,6 +53,9 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
   const [linkedBand, setLinkedBand] = useState<string | null>(null);
   const [availableBands, setAvailableBands] = useState<string[]>([]);
   const [fullscreenDrawMode, setFullscreenDrawMode] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerLoadingLocal, setViewerLoadingLocal] = useState(false);
+  const [localConcertMode, setLocalConcertMode] = useState<boolean>(!!concertMode);
   const [isSaving, setIsSaving] = useState(false);
   const { getAccessToken } = useAuth();
   const toast = useToast();
@@ -91,6 +94,18 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
       photoImageRef.current = null;
     };
   }, [photoUrl]);
+
+  useEffect(() => {
+    // derive local concert mode from prop or localStorage
+    if (concertMode === undefined) {
+      try {
+        const v = typeof window !== 'undefined' ? localStorage.getItem('defaultPerformanceMode') : null;
+        setLocalConcertMode(v === 'concert');
+      } catch {}
+    } else {
+      setLocalConcertMode(!!concertMode);
+    }
+  }, [concertMode]);
 
   // Load available bands
   useEffect(() => {
@@ -238,7 +253,8 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
     const x = stage ? Math.max(16, stage.width / 2 - width / 2) : 32;
     const y = stage ? Math.max(16, stage.height / 2 - height / 2) : 32;
     const id = crypto.randomUUID();
-    setNotes((prev) => [...prev, { id, text: "Nieuwe notitie", x, y, width, height }]);
+    if (localConcertMode) return; // don't allow adding notes in concert/view mode
+    setNotes((prev) => [...prev, { id, text: "", x, y, width, height }]);
     setSelectedNoteId(id);
   };
 
@@ -475,59 +491,63 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
           <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{isDutch ? "Foto annoteren" : "Annotate photo"}</div>
           <div className="text-xs text-slate-500 dark:text-slate-400">{isDutch ? "Sleep, schaal en zet notities op de foto." : "Drag, scale, and place notes on the photo."}</div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5h10.5a4.5 4.5 0 0 0 4.5-4.5V9a4.5 4.5 0 0 0-4.5-4.5h-1.19a2.25 2.25 0 0 1-1.6-.66l-.84-.84A2.25 2.25 0 0 0 12 2.25H9.19a2.25 2.25 0 0 0-1.6.66l-.84.84a2.25 2.25 0 0 1-1.6.66H4.5A2.25 2.25 0 0 0 2.25 6.75V15Z" />
-              <path d="M12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" />
-            </svg>
-            <span>{isDutch ? "Afbeelding / PDF" : "Image / PDF"}</span>
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)} />
-          </label>
-          <button
-            type="button"
-            onClick={addNote}
-            disabled={!photoUrl}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            {isDutch ? "Notitie toevoegen" : "Add note"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setDrawMode((v) => !v)}
-            disabled={!photoUrl}
-            className={`rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 ${drawMode ? "bg-amber-50" : ""}`}
-          >
-            <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 22l4-4 10-10a4 4 0 0 0-5.66-5.66L6.34 12.34 2 22z" />
-            </svg>
-            {isDutch ? "Teken" : "Draw"}
-          </button>
-          <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium dark:border-slate-700">
-            <input type="color" value={inkColor} onChange={(e) => setInkColor(e.target.value)} className="h-6 w-10 p-0" />
-          </label>
-          <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium dark:border-slate-700">
-            <input type="range" min="1" max="12" value={inkWidth} onChange={(e) => setInkWidth(Number(e.target.value))} />
-          </label>
-          <button
-            type="button"
-            onClick={() => setStrokes((s) => s.slice(0, -1))}
-            disabled={!strokes.length}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
-          >
-            {isDutch ? "Ongedaan maken" : "Undo"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setStrokes([])}
-            disabled={!strokes.length}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
-          >
-            {isDutch ? "Ink wissen" : "Clear ink"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+          {!localConcertMode && (
+            <>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5h10.5a4.5 4.5 0 0 0 4.5-4.5V9a4.5 4.5 0 0 0-4.5-4.5h-1.19a2.25 2.25 0 0 1-1.6-.66l-.84-.84A2.25 2.25 0 0 0 12 2.25H9.19a2.25 2.25 0 0 0-1.6.66l-.84.84a2.25 2.25 0 0 1-1.6.66H4.5A2.25 2.25 0 0 0 2.25 6.75V15Z" />
+                  <path d="M12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" />
+                </svg>
+                <span>{isDutch ? "Afbeelding / PDF" : "Image / PDF"}</span>
+                <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)} />
+              </label>
+              <button
+                type="button"
+                onClick={addNote}
+                disabled={!photoUrl}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                {isDutch ? "Notitie toevoegen" : "Add note"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawMode((v) => !v)}
+                disabled={!photoUrl}
+                className={`rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 ${drawMode ? "bg-amber-50" : ""}`}
+              >
+                <svg className="mr-2 inline-block h-4 w-4 align-[-2px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 22l4-4 10-10a4 4 0 0 0-5.66-5.66L6.34 12.34 2 22z" />
+                </svg>
+                {isDutch ? "Teken" : "Draw"}
+              </button>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium dark:border-slate-700">
+                <input type="color" value={inkColor} onChange={(e) => setInkColor(e.target.value)} className="h-6 w-10 p-0" />
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium dark:border-slate-700">
+                <input type="range" min="1" max="12" value={inkWidth} onChange={(e) => setInkWidth(Number(e.target.value))} />
+              </label>
+              <button
+                type="button"
+                onClick={() => setStrokes((s) => s.slice(0, -1))}
+                disabled={!strokes.length}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
+              >
+                {isDutch ? "Ongedaan maken" : "Undo"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStrokes([])}
+                disabled={!strokes.length}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
+              >
+                {isDutch ? "Ink wissen" : "Clear ink"}
+              </button>
+            </>
+          )}
           {persistId && (
             <button
               type="button"
@@ -576,7 +596,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
         </div>
       </div>
 
-      {photoUrl && (
+      {photoUrl && !localConcertMode && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950/40">
           <div className="min-w-0 flex-1 truncate text-slate-600 dark:text-slate-300">{photoName}</div>
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -622,6 +642,7 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
             {photoBox && (
               <div
                 onPointerDown={(e) => {
+                  if (localConcertMode) return;
                   e.preventDefault();
                   const stage = stageRef.current?.getBoundingClientRect();
                   if (!stage) return;
@@ -632,27 +653,37 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
                   };
                   (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
                 }}
+                onClick={() => {
+                  if (!localConcertMode || !photoUrl) return;
+                  setViewerLoadingLocal(true);
+                  setViewerOpen(true);
+                  // small delay to simulate loading indicator if needed
+                  setTimeout(() => setViewerLoadingLocal(false), 200);
+                }}
                 onPointerMove={(e) => {
+                  if (localConcertMode) return;
                   if (dragRef.current?.kind === "photo") updatePhotoFromPointer(e.clientX, e.clientY);
                 }}
                 onPointerUp={() => {
+                  if (localConcertMode) return;
                   dragRef.current = null;
                 }}
                 onPointerCancel={() => {
+                  if (localConcertMode) return;
                   dragRef.current = null;
                 }}
-                className="absolute cursor-move select-none"
+                className={`absolute select-none ${localConcertMode ? "cursor-pointer" : "cursor-move"}`}
                 style={{ left: photoBox.x, top: photoBox.y, width: photoBox.width, height: photoBox.height }}
               >
                 <Image src={photoUrl} width={600} height={400} alt="Annotated photo" className="h-full w-full rounded-lg object-contain shadow-lg" draggable={false} />
               </div>
             )}
 
-            {notes.map((note) => (
+            {!localConcertMode && notes.map((note) => (
               <div
                 key={note.id}
                 onPointerDown={(e) => {
-                  setSelectedNoteId(note.id);
+                  if (!localConcertMode) setSelectedNoteId(note.id);
                   const stage = stageRef.current?.getBoundingClientRect();
                   if (!stage) return;
                   dragRef.current = {
@@ -676,51 +707,62 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
                 style={{ left: note.x, top: note.y, width: note.width, height: note.height, background: "rgba(255,248,196,0.96)" }}
               >
                 <div className="flex items-center justify-between rounded-t-xl bg-amber-200/90 px-3 py-1 text-[11px] font-semibold text-amber-900">
-                  <span>Notitie</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNotes((prev) => prev.filter((item) => item.id !== note.id));
-                    }}
-                    className="rounded px-1.5 py-0.5 hover:bg-amber-300/60"
-                  >
-                    ×
-                  </button>
+                  <span>Aantekening</span>
+                  {!localConcertMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNotes((prev) => prev.filter((item) => item.id !== note.id));
+                      }}
+                      className="rounded px-1.5 py-0.5 hover:bg-amber-300/60"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
-                <textarea
-                  value={note.text}
-                  onChange={(e) => setNotes((prev) => prev.map((item) => (item.id === note.id ? { ...item, text: e.target.value } : item)))}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="h-[calc(100%-28px)] w-full resize-none bg-transparent px-3 py-2 text-sm text-slate-900 outline-none"
-                />
+                {localConcertMode ? (
+                  <div className="h-[calc(100%-28px)] w-full overflow-auto px-3 py-2 text-sm text-slate-900">
+                    {note.text || ""}
+                  </div>
+                ) : (
+                  <textarea
+                    value={note.text}
+                    onChange={(e) => setNotes((prev) => prev.map((item) => (item.id === note.id ? { ...item, text: e.target.value } : item)))}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="h-[calc(100%-28px)] w-full resize-none bg-transparent px-3 py-2 text-sm text-slate-900 outline-none"
+                  />
+                )}
               </div>
             ))}
             {/* SVG overlay for strokes */}
-            <svg
-              className={`absolute inset-0 h-full w-full ${drawMode ? "pointer-events-auto" : "pointer-events-none"}`}
-              onPointerDown={startStroke}
-              onPointerMove={moveStroke}
-              onPointerUp={endStroke}
-              onPointerCancel={endStroke}
-            >
-              {strokes.map((s) => (
-                <path
-                  key={s.id}
-                  d={s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')}
-                  stroke={s.color}
-                  strokeWidth={s.width}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                  opacity={0.95}
-                />
-              ))}
-            </svg>
+            {!localConcertMode && (
+              <svg
+                className={`absolute inset-0 h-full w-full ${drawMode ? "pointer-events-auto" : "pointer-events-none"}`}
+                onPointerDown={startStroke}
+                onPointerMove={moveStroke}
+                onPointerUp={endStroke}
+                onPointerCancel={endStroke}
+              >
+                {strokes.map((s) => (
+                  <path
+                    key={s.id}
+                    d={s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')}
+                    stroke={s.color}
+                    strokeWidth={s.width}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                    opacity={0.95}
+                  />
+                ))}
+              </svg>
+            )}
           </>
         )}
       </div>
 
+      {!localConcertMode && (
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -734,6 +776,23 @@ export function PhotoAnnotationEditor({ onExport, persistId }: { onExport: (blob
           Export annotatie
         </button>
       </div>
+      )}
+      {/* Image viewer for concert mode */}
+      {viewerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4">
+          <button
+            onClick={() => setViewerOpen(false)}
+            className="absolute top-4 right-4 z-50 rounded bg-black/40 px-3 py-2 text-sm text-white"
+          >
+            Close
+          </button>
+          {viewerLoadingLocal ? (
+            <div className="text-white">Loading…</div>
+          ) : (
+            <img src={photoUrl ?? ''} alt={photoName || 'Sheet'} className="max-h-[95vh] max-w-[95vw] object-contain" />
+          )}
+        </div>
+      )}
     </div>
     </>
   );

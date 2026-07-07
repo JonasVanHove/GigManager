@@ -9,9 +9,10 @@ interface PerformanceModeProps {
   gigName: string;
   startTime?: Date;
   onClose: () => void;
+  images?: string[];
 }
 
-export function PerformanceMode({ gigId, gigName, startTime, onClose }: PerformanceModeProps) {
+export function PerformanceMode({ gigId, gigName, startTime, onClose, images }: PerformanceModeProps & { images?: string[] }) {
   const [isActive, setIsActive] = useState(true);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [uiVisible, setUiVisible] = useState(true);
@@ -63,6 +64,15 @@ export function PerformanceMode({ gigId, gigName, startTime, onClose }: Performa
       if (uiTimeoutRef.current) clearTimeout(uiTimeoutRef.current);
     };
   }, [isActive, requestFullscreen, requestWakeLock, feedback]);
+
+  // Image viewer state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageOpen, setImageOpen] = useState(false);
+
+  const imagesList = images || [];
+
+  const showPrevImage = () => setCurrentImageIndex((i) => Math.max(0, i - 1));
+  const showNextImage = () => setCurrentImageIndex((i) => Math.min(imagesList.length - 1, i + 1));
 
   // Timer
   useEffect(() => {
@@ -167,6 +177,15 @@ export function PerformanceMode({ gigId, gigName, startTime, onClose }: Performa
           </button>
         </div>
 
+        {/* Image controls when provided */}
+        {imagesList.length > 0 && (
+          <div className={`absolute right-6 top-6 z-20 flex items-center gap-2 ${uiVisible ? 'opacity-100' : 'opacity-20'}`}>
+            <button onClick={showPrevImage} className="rounded bg-slate-800 px-3 py-2 text-white">‹</button>
+            <button onClick={() => setImageOpen(true)} className="rounded bg-slate-800 px-3 py-2 text-white">View</button>
+            <button onClick={showNextImage} className="rounded bg-slate-800 px-3 py-2 text-white">›</button>
+          </div>
+        )}
+
         {/* Minimal Status Info */}
         <div
           className={`absolute bottom-6 left-6 right-6 text-xs text-slate-500 transition-opacity duration-300 ${
@@ -175,6 +194,15 @@ export function PerformanceMode({ gigId, gigName, startTime, onClose }: Performa
         >
           <p>Tap screen to show controls • Long press to exit</p>
         </div>
+        {/* Fullscreen image viewer */}
+        {imageOpen && imagesList.length > 0 && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95">
+            <button className="absolute top-6 right-6 rounded bg-black/40 px-3 py-2 text-white" onClick={() => setImageOpen(false)}>Close</button>
+            <button className="absolute left-6 text-white text-3xl" onClick={showPrevImage}>‹</button>
+            <img src={imagesList[currentImageIndex]} alt={`Sheet ${currentImageIndex + 1}`} className="max-h-[95vh] max-w-[95vw] object-contain" />
+            <button className="absolute right-6 text-white text-3xl" onClick={showNextImage}>›</button>
+          </div>
+        )}
       </div>
 
       {/* Keyboard shortcut: ESC to exit */}

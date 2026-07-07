@@ -32,7 +32,7 @@ const FinancialReports = lazy(() => import("./FinancialReports"));
 const CalendarView = lazy(() => import("./CalendarView"));
 const SetlistsTab = lazy(() => import("./SetlistsTab"));
 const SharedLinksTab = lazy(() => import("./SharedLinksTab"));
-const SongsTab = lazy(() => import("./SongsTab"));
+const NotesPage = lazy(() => import("./NotesPage"));
 const SuperAdminTab = lazy(() => import("./SuperAdminTab"));
 
 type DashboardTab =
@@ -40,7 +40,7 @@ type DashboardTab =
   | "all-gigs"
   | "analytics"
   | "investments"
-  | "songs"
+  | "notes"
   | "band-members"
   | "calendar"
   | "setlists"
@@ -52,7 +52,7 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "all-gigs",
   "analytics",
   "investments",
-  "songs",
+  "notes",
   "band-members",
   "calendar",
   "setlists",
@@ -68,7 +68,7 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   "all-gigs": () => import("./AllGigsTab"),
   analytics: () => import("./AnalyticsPage"),
   investments: () => import("./InvestmentsTab"),
-  songs: () => import("./SongsTab"),
+  notes: () => import("./NotesPage"),
   "band-members": () => import("./BandMembers"),
   calendar: () => import("./CalendarView"),
   setlists: () => import("./SetlistsTab"),
@@ -322,7 +322,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [session?.user?.id, getAccessToken]);
+  }, [session?.user, getAccessToken]);
 
   useEffect(() => {
     if (!superAdminAccessChecked) return;
@@ -1149,9 +1149,9 @@ export default function Dashboard() {
           <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2 md:gap-3 sm:ml-0">
             {/* Notes - visible on tablet+ with label, icon-only on mobile */}
             <button
-              onClick={() => handleTabChange("songs")}
+              onClick={() => handleTabChange("notes")}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
-                activeTab === "songs"
+                activeTab === "notes"
                   ? "border-cyan-400 bg-black text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.45),0_0_22px_rgba(34,211,238,0.25)]"
                   : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
               }`}
@@ -1302,9 +1302,9 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("songs");
-                  }}
+                      setShowMobileMenu(false);
+                      handleTabChange("notes");
+                    }}
                   className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg border border-slate-200 bg-white px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
                   <Icons.Document className="h-4 w-4 shrink-0" />
@@ -1340,10 +1340,10 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => {
                     setShowMobileMenu(false);
-                    handleTabChange("songs");
+                    handleTabChange("notes");
                   }}
                   className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                      selectedTab === "songs"
+                      selectedTab === "notes"
                       ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   }`}
@@ -1356,7 +1356,7 @@ export default function Dashboard() {
 
               {/* Navigation */}
               <nav className="space-y-1">
-                {selectedTab !== "songs" && selectedTab !== "superadmin" && (
+                {selectedTab !== "notes" && selectedTab !== "superadmin" && (
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Overview
                 </div>
@@ -1437,10 +1437,10 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
-                    handleTabChange("songs");
+                    handleTabChange("notes");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "songs" 
+                    selectedTab === "notes" 
                       ? "bg-black text-cyan-300 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.45)]" 
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
@@ -1521,7 +1521,7 @@ export default function Dashboard() {
       )}
 
       <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen transition-colors ${
-        activeTab === "songs"
+        activeTab === "notes"
           ? "bg-black text-slate-100"
           : "dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950"
       } ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
@@ -1540,7 +1540,7 @@ export default function Dashboard() {
           </div>
         )}
         {/* -- Premium Summary Cards ----------------------------------- */}
-        {activeTab !== "songs" && (
+        {activeTab !== "notes" && (
         <div className="mb-4 sm:mb-8">
           {/* Overview collapse header with export actions */}
           <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
@@ -2004,9 +2004,9 @@ export default function Dashboard() {
           <Suspense fallback={<TabLoader />}>
             <SetlistsTab />
           </Suspense>
-        ) : selectedTab === "songs" ? (
+        ) : selectedTab === "notes" ? (
           <Suspense fallback={<TabLoader />}>
-            <SongsTab />
+            <NotesPage />
           </Suspense>
         ) : selectedTab === "shared-links" ? (
           <Suspense fallback={<TabLoader />}>

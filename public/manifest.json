@@ -67,7 +67,7 @@
       "name": "Notities",
       "short_name": "Notes",
       "description": "View and edit song notes and drawings",
-      "url": "/?tab=songs",
+      "url": "/?tab=notes",
       "icons": [
         {
           "src": "/icon-192x192.png",

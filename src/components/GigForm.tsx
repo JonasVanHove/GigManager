@@ -109,6 +109,21 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   const [selectedBandName, setSelectedBandName] = useState("");
   const [newBandName, setNewBandName] = useState("");
   const [showNotesEditor, setShowNotesEditor] = useState(false);
+  const [concertMode, setConcertMode] = useState(false);
+
+  const setPerformanceMode = (nextConcertMode: boolean) => {
+    setConcertMode(nextConcertMode);
+    try {
+      localStorage.setItem("defaultPerformanceMode", nextConcertMode ? "concert" : "rehearsal");
+    } catch {}
+  };
+
+  useEffect(() => {
+    try {
+      const v = typeof window !== 'undefined' ? localStorage.getItem('defaultPerformanceMode') : null;
+      if (v) setConcertMode(v === 'concert');
+    } catch {}
+  }, []);
 
   const parseNames = (value: string) =>
     value
@@ -1365,28 +1380,54 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
     </div>
 
     {showNotesEditor && gig && (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
-        <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
-          <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 py-6 backdrop-blur-sm sm:py-10">
+        <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
+          <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white px-5 py-4 dark:border-slate-700 dark:from-slate-950 dark:to-slate-900 sm:px-6">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {isDutch ? `Notities voor "${gig.eventName}"` : `Notes for "${gig.eventName}"`}
               </h2>
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                {isDutch ? "Voeg foto's en aantekeningen toe voor dit optreden." : "Add photos and notes for this performance."}
+              <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                {concertMode
+                  ? (isDutch
+                    ? "Concertmodus is alleen-lezen: tik op de afbeelding om deze fullscreen te openen."
+                    : "Concert mode is view-only: tap the image to open it fullscreen.")
+                  : (isDutch
+                    ? "Repetitiemodus is om foto’s, notities en tekeningen toe te voegen of aan te passen."
+                    : "Rehearsal mode lets you add or edit photos, notes, and drawings.")}
               </p>
             </div>
-            <button
-              onClick={() => setShowNotesEditor(false)}
-              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <Icons.Close className="h-6 w-6" />
-            </button>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => setPerformanceMode(false)}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${!concertMode ? "bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:text-slate-300"}`}
+                >
+                  {isDutch ? "Repetitie" : "Rehearsal"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPerformanceMode(true)}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${concertMode ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-300"}`}
+                >
+                  {isDutch ? "Concert" : "Concert"}
+                </button>
+              </div>
+              <button
+                onClick={() => setShowNotesEditor(false)}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <Icons.Close className="h-5 w-5" />
+                {isDutch ? "Sluiten" : "Close"}
+              </button>
+            </div>
           </div>
-          <div className="max-h-[75vh] overflow-y-auto px-6 py-5">
-            <PhotoAnnotationEditor 
-              onExport={() => {}} 
+          <div className="max-h-[78vh] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+            <PhotoAnnotationEditor
+              onExport={() => {}}
               persistId={gig.id}
+              concertMode={concertMode}
             />
           </div>
         </div>
