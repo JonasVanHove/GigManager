@@ -92,6 +92,7 @@ model SetlistItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   setlist   Setlist  @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  attachments SetlistItemAttachment[]
 
   @@index([setlistId, order])
 }
