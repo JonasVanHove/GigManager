@@ -31,6 +31,7 @@ const BandMembers = lazy(() => import("./BandMembers"));
 const FinancialReports = lazy(() => import("./FinancialReports"));
 const CalendarView = lazy(() => import("./CalendarView"));
 const SetlistsTab = lazy(() => import("./SetlistsTab"));
+const SongsTab = lazy(() => import("./SongsTab"));
 const SharedLinksTab = lazy(() => import("./SharedLinksTab"));
 const NotesPage = lazy(() => import("./NotesPage"));
 const SuperAdminTab = lazy(() => import("./SuperAdminTab"));
@@ -41,6 +42,7 @@ type DashboardTab =
   | "analytics"
   | "investments"
   | "notes"
+  | "songs"
   | "band-members"
   | "calendar"
   | "setlists"
@@ -53,6 +55,7 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "analytics",
   "investments",
   "notes",
+  "songs",
   "band-members",
   "calendar",
   "setlists",
@@ -69,6 +72,7 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   analytics: () => import("./AnalyticsPage"),
   investments: () => import("./InvestmentsTab"),
   notes: () => import("./NotesPage"),
+  songs: () => import("./SongsTab"),
   "band-members": () => import("./BandMembers"),
   calendar: () => import("./CalendarView"),
   setlists: () => import("./SetlistsTab"),
@@ -1356,7 +1360,7 @@ export default function Dashboard() {
 
               {/* Navigation */}
               <nav className="space-y-1">
-                {selectedTab !== "notes" && selectedTab !== "superadmin" && (
+                {selectedTab !== "notes" && selectedTab !== "songs" && selectedTab !== "superadmin" && (
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Overview
                 </div>
@@ -1433,6 +1437,20 @@ export default function Dashboard() {
                 >
                   <Icons.Music className="h-5 w-5 shrink-0" />
                   <span>Setlists</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleTabChange("songs");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    selectedTab === "songs"
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.Music className="h-5 w-5 shrink-0" />
+                  <span>Songs</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1540,7 +1558,7 @@ export default function Dashboard() {
           </div>
         )}
         {/* -- Premium Summary Cards ----------------------------------- */}
-        {activeTab !== "notes" && (
+        {activeTab !== "notes" && activeTab !== "songs" && (
         <div className="mb-4 sm:mb-8">
           {/* Overview collapse header with export actions */}
           <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
@@ -1703,6 +1721,20 @@ export default function Dashboard() {
             <span className="inline-flex items-center gap-1.5">
               <Icons.Music className="h-4 w-4" />
               <span className="hidden sm:inline">Setlists</span>
+            </span>
+          </button>
+          {/* Songs */}
+          <button
+            onClick={() => handleTabChange("songs")}
+            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
+              activeTab === "songs"
+                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Icons.Music className="h-4 w-4" />
+              <span className="hidden sm:inline">Songs</span>
             </span>
           </button>
           <div className="flex items-center px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
@@ -2003,6 +2035,10 @@ export default function Dashboard() {
         ) : selectedTab === "setlists" ? (
           <Suspense fallback={<TabLoader />}>
             <SetlistsTab />
+          </Suspense>
+        ) : selectedTab === "songs" ? (
+          <Suspense fallback={<TabLoader />}>
+            <SongsTab />
           </Suspense>
         ) : selectedTab === "notes" ? (
           <Suspense fallback={<TabLoader />}>

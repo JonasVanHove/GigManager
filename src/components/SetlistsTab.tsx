@@ -312,6 +312,13 @@ export default function SetlistsTab() {
     gearchiveerd: isDutch ? "Gearchiveerd" : "Archived",
   }), [isDutch]);
 
+  const statusIcons = useMemo(() => ({
+    alle: "◉",
+    concept: "✎",
+    klaar: "✓",
+    gearchiveerd: "🗂",
+  }), []);
+
   const songGroups = useMemo(() => {
     const query = songSearch.trim().toLowerCase();
     const songsByGroup = new Map<string, SongRow[]>();
@@ -1021,9 +1028,11 @@ export default function SetlistsTab() {
                 key={value}
                 type="button"
                 onClick={() => setStatusFilter(value as typeof statusFilter)}
-                className={`min-w-0 rounded-2xl px-2.5 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] sm:px-3 sm:text-xs ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
+                title={statusLabels[value as keyof typeof statusLabels]}
+                aria-label={statusLabels[value as keyof typeof statusLabels]}
+                className={`min-w-0 rounded-2xl px-2.5 py-2 text-base font-semibold sm:px-3 ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
               >
-                <span className="block truncate">{statusLabels[value as keyof typeof statusLabels]}</span>
+                <span aria-hidden className="block text-center leading-none">{statusIcons[value as keyof typeof statusIcons]}</span>
               </button>
             ))}
           </div>
