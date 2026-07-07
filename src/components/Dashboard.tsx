@@ -1435,7 +1435,7 @@ export default function Dashboard() {
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <Icons.Music className="h-5 w-5 shrink-0" />
+                  <Icons.ListView className="h-5 w-5 shrink-0" />
                   <span>Setlists</span>
                 </button>
                 <button
@@ -1449,7 +1449,7 @@ export default function Dashboard() {
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <Icons.Music className="h-5 w-5 shrink-0" />
+                  <Icons.Music2 className="h-5 w-5 shrink-0" />
                   <span>Songs</span>
                 </button>
                 <button
@@ -1719,7 +1719,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <Icons.Music className="h-4 w-4" />
+              <Icons.ListView className="h-4 w-4" />
               <span className="hidden sm:inline">Setlists</span>
             </span>
           </button>
@@ -1733,7 +1733,7 @@ export default function Dashboard() {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <Icons.Music className="h-4 w-4" />
+              <Icons.Music2 className="h-4 w-4" />
               <span className="hidden sm:inline">Songs</span>
             </span>
           </button>

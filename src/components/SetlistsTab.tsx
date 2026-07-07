@@ -283,7 +283,7 @@ export default function SetlistsTab() {
 
   const activeDraft = draft;
   const selectedSetlist = useMemo(() => (selectedId ? setlists.find((setlist) => setlist.id === selectedId) || null : null), [selectedId, setlists]);
-  const currentItems = useMemo(() => (draft?.items || selectedSetlist?.items || []).slice().sort((a, b) => a.label.localeCompare(b.label)), [draft?.items, selectedSetlist?.items]);
+  const currentItems = useMemo(() => (draft?.items || selectedSetlist?.items || []).slice(), [draft?.items, selectedSetlist?.items]);
   const activeSongMap = useMemo(() => new Map(songs.map((song) => [song.id, song])), [songs]);
   const songNoteMap = useMemo(() => {
     const map = new Map<string, LinkedNote[]>();
@@ -809,6 +809,15 @@ export default function SetlistsTab() {
     updateDraft({ items: copy });
   }, [draft, updateDraft]);
 
+  const moveItemById = useCallback((itemId: string, direction: -1 | 1) => {
+    if (!draft) return;
+    const index = draft.items.findIndex((item) => item.id === itemId);
+    if (index < 0) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= draft.items.length) return;
+    moveItem(index, nextIndex);
+  }, [draft, moveItem]);
+
   const autoGenerate = useCallback(() => {
     if (!draft) return;
     const songsOnly = draft.items.filter((item) => item.kind === "song");
@@ -937,6 +946,12 @@ export default function SetlistsTab() {
             ) : null}
           </div>
           <div className="flex shrink-0 flex-col gap-2">
+            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"} aria-label={isDutch ? "Omhoog" : "Move up"}>
+              ↑
+            </button>
+            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
+              ↓
+            </button>
             <button type="button" onClick={() => updateItem(item.id, { expanded: !item.expanded })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
               📝
             </button>
