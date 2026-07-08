@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { memo, useMemo, useState, useEffect } from "react";
 import type { Gig } from "@/types";
@@ -359,10 +359,18 @@ const GigCard = memo(function GigCard({
 
             {gig.managerHandlesDistribution && (
               <div>
-                <p className="font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  Owed to Band
+                <p className={`font-medium uppercase tracking-wider ${
+                  gig.bandPaid
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-amber-600 dark:text-amber-400"
+                }`}>
+                  {gig.bandPaid ? "✅ Band Paid" : "Owed to Band"}
                 </p>
-                <p className="mt-1.5 font-semibold text-amber-700 dark:text-amber-300">
+                <p className={`mt-1.5 font-semibold ${
+                  gig.bandPaid
+                    ? "text-green-700 dark:text-green-300"
+                    : "text-amber-700 dark:text-amber-300"
+                }`}>
                   {fmtCurrency(
                     gig.numberOfMusicians > 1
                       ? (gig.numberOfMusicians - 1) * (gig.performanceFee / gig.numberOfMusicians)
