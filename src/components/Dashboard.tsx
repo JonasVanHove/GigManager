@@ -80,6 +80,20 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   superadmin: () => import("./SuperAdminTab"),
 };
 
+const TAB_LABELS: Record<DashboardTab, string> = {
+  gigs: "Overview",
+  "all-gigs": "All Gigs",
+  analytics: "Insights",
+  investments: "Investments",
+  notes: "Notes",
+  songs: "Songs",
+  "band-members": "Band Members",
+  calendar: "Calendar",
+  setlists: "Setlists",
+  "shared-links": "Share",
+  superadmin: "Superadmin",
+};
+
 const TabLoader = () => (
   <LoadingSpinner size="lg" message="Loading section..." />
 );
@@ -1271,6 +1285,24 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Mobile/tablet: current section indicator */}
+        <div className="lg:hidden border-t border-slate-200/40 dark:border-slate-700/40">
+          <button
+            type="button"
+            onClick={() => setShowMobileMenu(true)}
+            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            aria-label="Open navigation menu"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Icons.Menu className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+              <span className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                {selectedTab === "notes" && isDutch ? "Notities" : TAB_LABELS[selectedTab]}
+              </span>
+            </span>
+            <Icons.ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+          </button>
+        </div>
       </header>
 
       {/* Mobile menu overlay - OUTSIDE header for full viewport coverage */}
@@ -1538,7 +1570,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen transition-colors ${
+      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen pb-safe transition-colors ${
         activeTab === "notes"
           ? "bg-black text-slate-100"
           : "dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950"

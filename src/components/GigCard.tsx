@@ -117,7 +117,7 @@ const GigCard = memo(function GigCard({
     }`}>
       <div className="h-1 w-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }} />
       {/* -- Header ------------------------------------------------------ */}
-      <div className={`flex items-start justify-between border-b transition-colors ${isSelected ? 'border-blue-200/60 bg-blue-100/20 dark:border-blue-800/40 dark:bg-blue-900/20' : 'border-slate-100/60 bg-slate-50/30 dark:border-slate-700/40 dark:bg-slate-800/30'} px-5 py-4`}>
+      <div className={`flex items-start justify-between border-b transition-colors ${isSelected ? 'border-blue-200/60 bg-blue-100/20 dark:border-blue-800/40 dark:bg-blue-900/20' : 'border-slate-100/60 bg-slate-50/30 dark:border-slate-700/40 dark:bg-slate-800/30'} px-3 py-3 sm:px-5 sm:py-4`}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {onSelect && (
@@ -235,7 +235,7 @@ const GigCard = memo(function GigCard({
       {effectiveIsExpanded && (
         <div className="animate-expand">
           {/* -- Financial breakdown ------------------------------------------ */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-5 py-4 text-sm sm:grid-cols-4 border-b border-slate-100 dark:border-slate-700/50 animate-fade-in">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-3 py-4 text-sm sm:grid-cols-4 sm:px-5 border-b border-slate-100 dark:border-slate-700/50 animate-fade-in">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Performance
@@ -283,7 +283,7 @@ const GigCard = memo(function GigCard({
       {/* -- Per-person breakdown ----------------------------------------- */}
       <div className="space-y-3 border-t border-slate-100 dark:border-slate-700/50 px-5 py-3">
         {/* Row 1: Per musician + My earnings */}
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Per Musician
@@ -324,7 +324,7 @@ const GigCard = memo(function GigCard({
 
         {/* Row 2: Fee claims + Breakdown of owed */}
         {calc.amountOwedToOthers > 0 && (
-          <div className="grid grid-cols-3 gap-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-xs">
+          <div className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-xs sm:grid-cols-3">
             <div>
               <p className="font-medium uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Claims{" "}

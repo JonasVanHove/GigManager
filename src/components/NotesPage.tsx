@@ -498,8 +498,8 @@ export default function NotesPage() {
 	}
 
 	return (
-		<div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-			<aside className="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/80">
+		<div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+			<aside className={`rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/80 ${draft ? "hidden lg:block" : ""}`}>
 				<div className="flex items-center justify-between gap-3">
 					<h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{copy.title}</h2>
 					<button type="button" onClick={createNewNote} className="rounded-full bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">{copy.new}</button>
@@ -569,7 +569,14 @@ export default function NotesPage() {
 					<div className="space-y-4">
 						<div className="flex items-start justify-between gap-3">
 							<div className="min-w-0 flex-1 space-y-3">
-								<input value={draft.titel} onChange={(e) => updateDraft({ titel: e.target.value })} placeholder={copy.titleLabel} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-2xl font-semibold tracking-tight text-slate-900 outline-none transition focus:border-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50" />
+								<button
+									type="button"
+									onClick={() => selectNote(null as unknown as StoredNote)}
+									className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 lg:hidden dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+								>
+									← {copy.all}
+								</button>
+								<input value={draft.titel} onChange={(e) => updateDraft({ titel: e.target.value })} placeholder={copy.titleLabel} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xl font-semibold tracking-tight text-slate-900 outline-none transition focus:border-brand-500 sm:text-2xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50" />
 								<div className="text-xs text-slate-500 dark:text-slate-400">{copy.updated}: {formatDateTime(draft.updatedAt, locale)}</div>
 							</div>
 							<div className="flex flex-col items-end gap-2">

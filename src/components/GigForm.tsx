@@ -467,10 +467,10 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm modal-backdrop-enter">
-        <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl modal-content-enter">
+      <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 sm:items-start sm:px-4 sm:py-10 backdrop-blur-sm modal-backdrop-enter">
+        <div className="modal-sheet-mobile w-full max-w-2xl max-h-[100dvh] overflow-y-auto rounded-t-2xl bg-white dark:bg-slate-900 shadow-2xl sm:max-h-none sm:rounded-2xl modal-content-enter">
         {/* Header */}
-        <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+        <div className="border-b border-slate-200 dark:border-slate-700 px-4 py-4 sm:px-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             {gig ? "Edit Performance" : "Add Performance"}
           </h2>
@@ -1067,7 +1067,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
                 Calculated Preview
               </p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2 md:grid-cols-4">
                 <div>
                   <span className="text-slate-500 dark:text-slate-400">Total</span>
                   <p className="font-bold text-slate-900 dark:text-slate-100">

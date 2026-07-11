@@ -88,8 +88,11 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
   const { getAccessToken } = useAuth();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(preloadedGigs === undefined);
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "agenda" : "month"
+  );
   const [date, setDate] = useState(new Date());
+  const [calendarHeight, setCalendarHeight] = useState(600);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [filterCharity, setFilterCharity] = useState(true);
   const [filterTentative, setFilterTentative] = useState(true);
@@ -291,6 +294,25 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
       setLoading(false);
     }
   }, [getAccessToken]);
+
+  useEffect(() => {
+    const updateCalendarHeight = () => {
+      const viewportHeight = window.innerHeight;
+      if (window.matchMedia("(max-width: 767px)").matches) {
+        setCalendarHeight(Math.max(360, Math.min(520, viewportHeight - 300)));
+        return;
+      }
+      if (window.matchMedia("(max-width: 1023px)").matches) {
+        setCalendarHeight(Math.max(420, Math.min(580, viewportHeight - 260)));
+        return;
+      }
+      setCalendarHeight(600);
+    };
+
+    updateCalendarHeight();
+    window.addEventListener("resize", updateCalendarHeight);
+    return () => window.removeEventListener("resize", updateCalendarHeight);
+  }, []);
 
   useEffect(() => {
     if (preloadedGigs !== undefined) {
@@ -746,20 +768,20 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
       </div>
 
       {/* Summary Stats */}
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 p-3 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Gigs</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{events.length}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">{events.length}</p>
           </div>
           <div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Earnings</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 sm:text-2xl">
               {fmtCurrency(events.reduce((sum, e) => sum + e.resource.myPayAmount, 0))}
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400">View</p>
           <p className="text-sm font-semibold text-slate-900 dark:text-white">{view === "month" ? "📅 Month" : "📋 Agenda"}</p>
         </div>
@@ -790,13 +812,13 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
 
       {/* Calendar */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="calendar-wrapper p-4">
+        <div className="calendar-wrapper responsive-scroll-x p-3 sm:p-4">
           <BigCalendar
             localizer={localizer}
             events={events}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: 600 }}
+            style={{ height: calendarHeight, minWidth: view === "month" ? 320 : undefined }}
             view={view}
             onView={setView}
             date={date}

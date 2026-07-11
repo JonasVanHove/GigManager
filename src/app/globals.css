@@ -544,3 +544,91 @@ input:focus, textarea:focus, select:focus {
   animation: underlineSlide 0.3s ease-out forwards;
 }
 
+/* ── Responsive layout utilities ─────────────────────────────────────── */
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(var(--safe-area-inset-bottom), 0.75rem);
+  }
+
+  .pt-safe {
+    padding-top: max(var(--safe-area-inset-top), 0px);
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Full-screen modals on small phones */
+@media (max-width: 639px) {
+  .modal-sheet-mobile {
+    max-height: 100dvh;
+    border-radius: 1rem 1rem 0 0;
+  }
+}
+
+/* Horizontal scroll containers for dense tables */
+.responsive-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Calendar responsive overrides */
+@media (max-width: 767px) {
+  .calendar-wrapper {
+    padding: 0.75rem !important;
+  }
+
+  .calendar-wrapper .rbc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .calendar-wrapper .rbc-toolbar .rbc-label {
+    font-size: 15px;
+    order: -1;
+  }
+
+  .calendar-wrapper .rbc-toolbar .rbc-btn-group {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .calendar-wrapper .rbc-toolbar .rbc-btn-group button {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .calendar-wrapper .rbc-header {
+    padding: 8px 2px;
+    font-size: 11px;
+  }
+
+  .calendar-wrapper .rbc-agenda-view table {
+    font-size: 13px;
+  }
+
+  .calendar-wrapper .rbc-agenda-view table tbody > tr > td {
+    padding: 10px 8px;
+  }
+
+  .calendar-wrapper .rbc-month-view {
+    min-width: 320px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .calendar-wrapper .rbc-month-view {
+    overflow-x: auto;
+  }
+}
+

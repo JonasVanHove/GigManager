@@ -38,9 +38,9 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
   minimumScale: 1,
-  userScalable: false,
+  userScalable: true,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
     { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
@@ -66,7 +66,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="GigsManager" />
         <meta name="msapplication-TileColor" content="#0f172a" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
-        <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui" />
+        <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, minimal-ui" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
