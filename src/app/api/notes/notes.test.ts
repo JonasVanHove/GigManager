@@ -103,7 +103,7 @@ describe('Notes API Endpoints', () => {
       const updates = {
         linkedBand: 'New Band',
         notes: ['Updated note'],
-        strokes: [{ points: [[0, 0]], color: '#000000', width: 2 }],
+        strokes: [{ points: [[0, 0] as [number, number]], color: '#000000', width: 2 }],
       };
 
       const mockUpdated: PhotoNote = {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -43,6 +44,7 @@ export async function GET(
   try {
     const includeChords = request.nextUrl.searchParams.get("includeChords") === "1";
     const includeTuning = request.nextUrl.searchParams.get("includeTuning") === "1";
+    const includeImages = request.nextUrl.searchParams.get("includeImages") !== "0";
 
     const setlist = await prisma.setlist.findFirst({
       where: { id: params.id, userId: user.id },
@@ -51,6 +53,35 @@ export async function GET(
 
     if (!setlist) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Fetch user songs and image attachments for setlist items
+    const userSongs = await prisma.$queryRaw<Array<{ id: string; title: string }>>(Prisma.sql`
+      SELECT id, title FROM songs WHERE "userId" = ${user.id} AND "deletedAt" IS NULL
+    `).catch(() => []);
+
+    const songAttachments = await prisma.$queryRaw<Array<{ songId: string; public_url: string; caption: string | null }>>(Prisma.sql`
+      SELECT sa."songId", sa.public_url, sa.caption
+      FROM song_attachments sa
+      INNER JOIN songs s ON s.id = sa."songId"
+      WHERE s."userId" = ${user.id} AND sa."deletedAt" IS NULL
+    `).catch(() => []);
+
+    const attachmentsBySongTitle = new Map<string, Array<{ public_url: string; caption: string | null }>>();
+    const attachmentsBySongId = new Map<string, Array<{ public_url: string; caption: string | null }>>();
+
+    for (const att of songAttachments) {
+      const listId = attachmentsBySongId.get(att.songId) ?? [];
+      listId.push(att);
+      attachmentsBySongId.set(att.songId, listId);
+
+      const songObj = userSongs.find((s) => s.id === att.songId);
+      if (songObj) {
+        const titleKey = songObj.title.toLowerCase().trim();
+        const listTitle = attachmentsBySongTitle.get(titleKey) ?? [];
+        listTitle.push(att);
+        attachmentsBySongTitle.set(titleKey, listTitle);
+      }
     }
 
     const paragraphs: Paragraph[] = [
@@ -71,6 +102,7 @@ export async function GET(
     paragraphs.push(new Paragraph({ text: "" }));
 
     const items = setlist.items as Array<{
+      id: string;
       type: string;
       title: string | null;
       notes: string | null;
@@ -137,6 +169,23 @@ export async function GET(
         );
       }
 
+      if (includeImages && title) {
+        const itemAttachments = attachmentsBySongId.get(item.id) ?? attachmentsBySongTitle.get(title.toLowerCase().trim()) ?? [];
+        if (itemAttachments.length > 0) {
+          itemAttachments.forEach((att, attIdx) => {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `  📷 Image Sheet #${attIdx + 1}: `, bold: true }),
+                  new TextRun({ text: att.public_url }),
+                  ...(att.caption ? [new TextRun({ text: ` (${att.caption})`, italics: true })] : []),
+                ],
+              })
+            );
+          });
+        }
+      }
+
       paragraphs.push(new Paragraph({ text: "" }));
     });
 
@@ -155,7 +204,7 @@ export async function GET(
     return new NextResponse(arrayBuffer, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename=\"${filename}\"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {

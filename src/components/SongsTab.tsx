@@ -69,6 +69,15 @@ const serializeSongNotes = (meta: SongMeta, body: string) => {
   return `${META_START}\n${JSON.stringify(meta)}\n${META_END}${cleanedBody ? `\n\n${cleanedBody}` : ""}`;
 };
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export default function SongsTab() {
   const { getAccessToken } = useAuth();
   const { locale } = useSettings();
@@ -97,25 +106,26 @@ export default function SongsTab() {
 
   const copy = useMemo(
     () => ({
-      title: isDutch ? "Notities" : "Notes",
-      newButton: isDutch ? "Nieuw" : "New",
+      title: isDutch ? "Repertoire & Songs" : "Repertoire & Songs",
+      newButton: isDutch ? "+ Nieuw nummer" : "+ New Song",
       save: isDutch ? "Opslaan" : "Save",
       cancel: isDutch ? "Annuleren" : "Cancel",
-      create: isDutch ? "Nieuwe notitie" : "New note",
-      placeholder: isDutch ? "Schrijf hier notities..." : "Write notes here...",
-      emptyState: isDutch ? "Nog geen notities" : "No notes yet",
-      searchPlaceholder: isDutch ? "Zoek in titel of notities..." : "Search title or notes...",
+      create: isDutch ? "Nieuw nummer toevoegen" : "Add new song",
+      placeholder: isDutch ? "Schrijf hier notities, akkoorden of tekst..." : "Write notes, chords or lyrics here...",
+      emptyState: isDutch ? "Nog geen nummers in repertoire" : "No songs in repertoire yet",
+      searchPlaceholder: isDutch ? "Zoek op titel, band, toonsoort of notities..." : "Search title, band, key or notes...",
       withNotesOnly: isDutch ? "Alleen met notities" : "Only with notes",
-      noBand: isDutch ? "Zonder band" : "No band",
+      noBand: isDutch ? "Geen band toegewezen" : "No band assigned",
       tags: isDutch ? "Tags" : "Tags",
-      attachments: isDutch ? "bijlagen" : "attachments",
-      bandProject: isDutch ? "Band / project" : "Band / project",
+      attachments: isDutch ? "bijlagen/afbeeldingen" : "attachments/images",
+      bandProject: isDutch ? "Band / Project" : "Band / Project",
       genre: isDutch ? "Genre" : "Genre",
-      keySignature: isDutch ? "Toonsoort" : "Key",
+      keySignature: isDutch ? "Toonsoort / Tuning" : "Key / Tuning",
       bpm: "BPM",
       comments: isDutch ? "Opmerkingen" : "Comments",
       addTag: isDutch ? "Tag toevoegen" : "Add tag",
-      attachmentHint: isDutch ? "Screenshots, partituren, chord sheets of lyrics" : "Screenshots, score sheets, chord sheets or lyrics",
+      attachmentHint: isDutch ? "Partituren, chord sheets, tabs of screenshots van nummers" : "Score sheets, chord sheets, tabs or screenshots of songs",
+      exportSong: isDutch ? "Exporteer PDF / Print" : "Export PDF / Print",
     }),
     [isDutch]
   );
@@ -198,7 +208,6 @@ export default function SongsTab() {
       const token = await getAccessToken();
       if (!token) throw new Error("No session token");
 
-      // Ensure the artist / bandProject is represented as a tag so songs can be filtered by artist
       const normalizedTags = tags.slice();
       const artist = (songMeta.bandProject || "").trim();
       if (artist && !normalizedTags.includes(artist)) normalizedTags.unshift(artist);
@@ -240,40 +249,100 @@ export default function SongsTab() {
     }
   };
 
+  const handleExportSong = (song: SongRecord) => {
+    const parsed = parseSongNotes(song.notes);
+    const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
+    if (!win) return;
+    const htmlParts: string[] = [];
+    htmlParts.push('<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(song.title) + '</title>');
+    htmlParts.push('<meta name="viewport" content="width=device-width,initial-scale=1" />');
+    htmlParts.push('<style>');
+    htmlParts.push('@page { size: A4; margin: 20mm; }');
+    htmlParts.push('html,body{height:100%;margin:0;padding:0;font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#fff; color:#0f172a;}');
+    htmlParts.push('.container{max-width:800px;margin:0 auto;padding:24px;}');
+    htmlParts.push('.title{font-size:26px;font-weight:800;margin-bottom:6px;color:#020617;}');
+    htmlParts.push('.meta-bar{display:flex;flex-wrap:wrap;gap:12px;color:#475569;font-size:13px;font-weight:600;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #e2e8f0;}');
+    htmlParts.push('.meta-item{background:#f1f5f9;padding:4px 10px;border-radius:6px;}');
+    htmlParts.push('.notes-box{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:10px;border:1px solid #cbd5e1;margin-bottom:24px;font-size:14px;line-height:1.6;}');
+    htmlParts.push('.image-box{margin-top:20px;page-break-inside:avoid;break-inside:avoid-column;text-align:center;}');
+    htmlParts.push('.image-box img{max-width:100%;height:auto;border-radius:8px;border:1px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.08);}');
+    htmlParts.push('.caption{font-size:12px;color:#64748b;margin-top:6px;font-style:italic;}');
+    htmlParts.push('@media print{body{margin:0} .container{padding:0} .image-box{page-break-inside:avoid;}}');
+    htmlParts.push('</style>');
+    htmlParts.push('<script>function printWhenLoaded(){const imgs = Array.from(document.images); if(imgs.length===0){window.focus();window.print();return;} let loaded=0; const done=()=>{loaded++; if(loaded===imgs.length){window.focus();window.print();}}; imgs.forEach(img=>{ if(img.complete){loaded++; } else { img.addEventListener("load", done); img.addEventListener("error", done); }}); setTimeout(()=>{window.focus();window.print();}, 3000);} window.addEventListener("load",()=>setTimeout(printWhenLoaded, 250));</script>');
+    htmlParts.push('</head><body><div class="container">');
+    htmlParts.push(`<div class="title">${escapeHtml(song.title)}</div>`);
+
+    const metaBadges: string[] = [];
+    if (parsed.meta.bandProject) metaBadges.push(`<span class="meta-item">Band: ${escapeHtml(parsed.meta.bandProject)}</span>`);
+    if (parsed.meta.genre) metaBadges.push(`<span class="meta-item">Genre: ${escapeHtml(parsed.meta.genre)}</span>`);
+    if (parsed.meta.keySignature) metaBadges.push(`<span class="meta-item">Toonsoort: ${escapeHtml(parsed.meta.keySignature)}</span>`);
+    if (parsed.meta.bpm) metaBadges.push(`<span class="meta-item">BPM: ${escapeHtml(parsed.meta.bpm)}</span>`);
+    if (metaBadges.length > 0) htmlParts.push(`<div class="meta-bar">${metaBadges.join('')}</div>`);
+
+    if (parsed.body.trim()) htmlParts.push(`<div class="notes-box">${escapeHtml(parsed.body)}</div>`);
+
+    if (song.attachments && song.attachments.length > 0) {
+      htmlParts.push('<div style="margin-top:24px;">');
+      htmlParts.push('<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Bijlagen & Afbeeldingen</h3>');
+      song.attachments.forEach((att) => {
+        htmlParts.push(`<div class="image-box"><img src="${escapeHtml(att.publicUrl)}" alt="${escapeHtml(att.caption || song.title)}" />${att.caption ? `<div class="caption">${escapeHtml(att.caption)}</div>` : ''}</div>`);
+      });
+      htmlParts.push('</div>');
+    }
+    htmlParts.push('</div></body></html>');
+    win.document.open();
+    win.document.write(htmlParts.join('\n'));
+    win.document.close();
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{copy.title}</h2>
-        <button type="button" onClick={() => openEditor()} className="rounded-lg bg-brand-600 px-3 py-2 text-white">
+    <div className="space-y-6 bg-black text-slate-100 p-4 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3 border-b border-neutral-800/80 pb-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-cyan-500 animate-pulse" />
+            {copy.title}
+          </h2>
+          <p className="text-xs text-neutral-400 mt-1">Beheer nummers, akkorden, notities en bladmuziek afbeeldingen</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => openEditor()}
+          className="rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]"
+        >
           {copy.newButton}
         </button>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+      {/* Filter and Search Bar */}
+      <div className="rounded-2xl border border-neutral-800 bg-neutral-950/90 p-4 shadow-xl backdrop-blur">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <input
             type="text"
             value={songSearch}
             onChange={(e) => setSongSearch(e.target.value)}
             placeholder={copy.searchPlaceholder}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-xl border border-neutral-800 bg-black px-4 py-2.5 text-sm text-slate-100 placeholder-neutral-500 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
           />
-          <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <label className="inline-flex items-center gap-2 text-sm text-neutral-300 cursor-pointer">
             <input
               type="checkbox"
               checked={showOnlyWithNotes}
               onChange={(e) => setShowOnlyWithNotes(e.target.checked)}
-              className="h-4 w-4 rounded"
+              className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-cyan-500 focus:ring-cyan-500"
             />
             {copy.withNotesOnly}
           </label>
         </div>
 
-        <div className="mt-4 grid gap-3">
+        {/* Songs List */}
+        <div className="mt-5 grid gap-3">
           {loading ? (
-            <div className="text-sm text-slate-500 dark:text-slate-400">Loading…</div>
+            <div className="py-12 text-center text-sm text-neutral-400">Repertoire laden...</div>
           ) : filteredSongs.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400">
               {copy.emptyState}
             </div>
           ) : (
@@ -281,34 +350,83 @@ export default function SongsTab() {
               const parsed = parseSongNotes(song.notes);
               const attachmentCount = song.attachments?.length || 0;
               return (
-                <div key={song.id} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-                  <div className="flex items-center justify-between gap-2">
+                <div
+                  key={song.id}
+                  className="rounded-2xl border border-neutral-800/90 bg-black p-4 transition duration-200 hover:border-neutral-700 hover:shadow-lg hover:shadow-cyan-950/20"
+                >
+                  <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{song.title}</div>
-                      <div className="truncate text-xs text-slate-500 dark:text-slate-400">{(song.bands || []).map((b) => b.name).join(", ") || copy.noBand}</div>
-                      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        {attachmentCount} {copy.attachments}
+                      <div className="truncate text-base font-bold text-white">{song.title}</div>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="truncate text-xs font-medium text-neutral-400">
+                          {(song.bands || []).map((b) => b.name).join(", ") || copy.noBand}
+                        </span>
+                        {parsed.meta.keySignature && (
+                          <span className="rounded-full bg-cyan-950/60 border border-cyan-800/50 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-300">
+                            {parsed.meta.keySignature}
+                          </span>
+                        )}
+                        {parsed.meta.bpm && (
+                          <span className="rounded-full bg-neutral-900 border border-neutral-800 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-300">
+                            {parsed.meta.bpm} BPM
+                          </span>
+                        )}
+                        <span className="text-[11px] text-neutral-400">
+                          {attachmentCount} {copy.attachments}
+                        </span>
                       </div>
                     </div>
-                    <button type="button" onClick={() => openEditor(song)} className="rounded bg-brand-600 px-2 py-1 text-sm text-white">
-                      {isDutch ? "Bewerken" : "Edit"}
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleExportSong(song)}
+                        className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 transition"
+                        title="Export song details and images to PDF/Print"
+                      >
+                        {copy.exportSong}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditor(song)}
+                        className="rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500 transition"
+                      >
+                        {isDutch ? "Bewerken" : "Edit"}
+                      </button>
+                    </div>
                   </div>
-                  {parsed.body.trim() && <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{parsed.body}</p>}
-                  {(song.attachments || []).length > 0 && (
-                    <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                          {song.attachments!.slice(0, 4).map((attachment, aIdx) => (
-                            <button key={attachment.id} type="button" onClick={() => {
-                              setViewerAttachments(song.attachments || []);
-                              setViewerIndex(aIdx);
-                              setViewerTitle(song.title);
-                              const parsedMeta = parseSongNotes(song.notes).meta;
-                              setViewerTuning(parsedMeta.keySignature || undefined);
-                              setViewerOpen(true);
-                            }} className="rounded overflow-hidden">
-                              <img src={attachment.publicUrl} alt={attachment.caption || song.title} className="h-20 w-20 rounded object-cover" />
-                            </button>
-                          ))}
+
+                  {parsed.body.trim() && (
+                    <p className="mt-3 text-xs text-neutral-300 line-clamp-3 bg-neutral-950 p-2.5 rounded-xl border border-neutral-900">
+                      {parsed.body}
+                    </p>
+                  )}
+
+                  {song.attachments && song.attachments.length > 0 && (
+                    <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+                      {song.attachments.map((attachment, aIdx) => (
+                        <button
+                          key={attachment.id}
+                          type="button"
+                          onClick={() => {
+                            setViewerAttachments(song.attachments || []);
+                            setViewerIndex(aIdx);
+                            setViewerTitle(song.title);
+                            const parsedMeta = parseSongNotes(song.notes).meta;
+                            setViewerTuning(parsedMeta.keySignature || undefined);
+                            setViewerOpen(true);
+                          }}
+                          className="group relative rounded-xl overflow-hidden border border-neutral-800 hover:border-cyan-500 transition shrink-0"
+                        >
+                          <img
+                            src={attachment.publicUrl}
+                            alt={attachment.caption || song.title}
+                            className="h-20 w-20 object-cover group-hover:scale-105 transition"
+                          />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-medium">
+                            Bekijk
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -318,25 +436,43 @@ export default function SongsTab() {
         </div>
       </div>
 
+      {/* Editor Modal */}
       {editorOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 sm:p-6">
-          <div className="mx-auto w-full max-w-4xl rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-900">
-            <div className="flex items-start justify-between gap-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex items-center justify-center">
+          <div className="w-full max-w-4xl rounded-3xl bg-neutral-950 border border-neutral-800 p-6 shadow-2xl text-slate-100 my-auto">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-800 pb-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{editingSong ? editingSong.title : copy.create}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{copy.attachmentHint}</p>
+                <h3 className="text-xl font-bold text-white">
+                  {editingSong ? editingSong.title : copy.create}
+                </h3>
+                <p className="text-xs text-neutral-400 mt-1">{copy.attachmentHint}</p>
               </div>
-              <button type="button" onClick={closeEditor} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">
-                {copy.cancel}
-              </button>
+              <div className="flex items-center gap-2">
+                {editingSong && (
+                  <button
+                    type="button"
+                    onClick={() => handleExportSong(editingSong)}
+                    className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-200 hover:bg-neutral-800 transition"
+                  >
+                    {copy.exportSong}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={closeEditor}
+                  className="rounded-xl border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 hover:text-white transition"
+                >
+                  {copy.cancel}
+                </button>
+              </div>
             </div>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-5 space-y-4">
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={isDutch ? "Titel" : "Title"}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                placeholder={isDutch ? "Titel van nummer" : "Song title"}
+                className="w-full rounded-xl border border-neutral-800 bg-black px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
               />
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -344,25 +480,25 @@ export default function SongsTab() {
                   value={songMeta.bandProject}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, bandProject: e.target.value }))}
                   placeholder={copy.bandProject}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <input
                   value={songMeta.genre}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, genre: e.target.value }))}
                   placeholder={copy.genre}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <input
                   value={songMeta.keySignature}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, keySignature: e.target.value }))}
                   placeholder={copy.keySignature}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <input
                   value={songMeta.bpm}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, bpm: e.target.value }))}
                   placeholder={copy.bpm}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
               </div>
 
@@ -370,7 +506,7 @@ export default function SongsTab() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={copy.placeholder}
-                className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                className="min-h-36 w-full rounded-xl border border-neutral-800 bg-black px-4 py-3 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
               />
 
               <div className="flex flex-wrap gap-2">
@@ -386,7 +522,7 @@ export default function SongsTab() {
                     }
                   }}
                   placeholder={copy.addTag}
-                  className="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  className="min-w-[220px] flex-1 rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <button
                   type="button"
@@ -395,7 +531,7 @@ export default function SongsTab() {
                     if (value && !tags.includes(value)) setTags((prev) => [...prev, value]);
                     setTagInput("");
                   }}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700"
+                  className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800"
                 >
                   {copy.addTag}
                 </button>
@@ -403,7 +539,12 @@ export default function SongsTab() {
 
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => (
-                  <button key={tag} type="button" onClick={() => setTags((prev) => prev.filter((entry) => entry !== tag))} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium dark:bg-slate-800">
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setTags((prev) => prev.filter((entry) => entry !== tag))}
+                    className="rounded-full bg-neutral-900 border border-neutral-800 px-3 py-1 text-xs font-semibold text-neutral-300 hover:border-rose-800 hover:text-rose-400"
+                  >
                     {tag} ×
                   </button>
                 ))}
@@ -411,11 +552,20 @@ export default function SongsTab() {
 
               <SongMediaManager attachments={attachments} onChange={setAttachments} />
 
-              <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-                <button type="button" onClick={closeEditor} className="rounded-lg border border-slate-300 px-4 py-2 text-sm dark:border-slate-700">
+              <div className="flex justify-end gap-3 border-t border-neutral-800 pt-4">
+                <button
+                  type="button"
+                  onClick={closeEditor}
+                  className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-300 hover:bg-neutral-800"
+                >
                   {copy.cancel}
                 </button>
-                <button type="button" onClick={handleSave} disabled={saving || !title.trim()} className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !title.trim()}
+                  className="rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 px-5 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-50"
+                >
                   {saving ? `${copy.save}...` : copy.save}
                 </button>
               </div>
@@ -423,6 +573,7 @@ export default function SongsTab() {
           </div>
         </div>
       )}
+
       <FullscreenMediaViewer
         isOpen={viewerOpen}
         attachments={viewerAttachments}

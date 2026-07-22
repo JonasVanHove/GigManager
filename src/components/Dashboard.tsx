@@ -33,7 +33,7 @@ const CalendarView = lazy(() => import("./CalendarView"));
 const SetlistsTab = lazy(() => import("./SetlistsTab"));
 const SongsTab = lazy(() => import("./SongsTab"));
 const SharedLinksTab = lazy(() => import("./SharedLinksTab"));
-const NotesPage = lazy(() => import("./NotesPage"));
+
 const SuperAdminTab = lazy(() => import("./SuperAdminTab"));
 
 type DashboardTab =
@@ -41,7 +41,6 @@ type DashboardTab =
   | "all-gigs"
   | "analytics"
   | "investments"
-  | "notes"
   | "songs"
   | "band-members"
   | "calendar"
@@ -54,7 +53,6 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "all-gigs",
   "analytics",
   "investments",
-  "notes",
   "songs",
   "band-members",
   "calendar",
@@ -71,7 +69,7 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   "all-gigs": () => import("./AllGigsTab"),
   analytics: () => import("./AnalyticsPage"),
   investments: () => import("./InvestmentsTab"),
-  notes: () => import("./NotesPage"),
+
   songs: () => import("./SongsTab"),
   "band-members": () => import("./BandMembers"),
   calendar: () => import("./CalendarView"),
@@ -85,7 +83,6 @@ const TAB_LABELS: Record<DashboardTab, string> = {
   "all-gigs": "All Gigs",
   analytics: "Insights",
   investments: "Investments",
-  notes: "Notes",
   songs: "Songs",
   "band-members": "Band Members",
   calendar: "Calendar",
@@ -1165,18 +1162,18 @@ export default function Dashboard() {
 
           {/* Right: Navigation toggles + Add + Profile (always visible) */}
           <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2 md:gap-3 sm:ml-0">
-            {/* Notes - visible on tablet+ with label, icon-only on mobile */}
+            {/* Setlists & Songs - visible on tablet+ with label, icon-only on mobile */}
             <button
-              onClick={() => handleTabChange("notes")}
+              onClick={() => handleTabChange("setlists")}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
-                activeTab === "notes"
-                  ? "border-cyan-400 bg-black text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.45),0_0_22px_rgba(34,211,238,0.25)]"
+                activeTab === "setlists" || activeTab === "songs"
+                  ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
                   : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
               }`}
-              title={isDutch ? "Notities" : "Notes"}
+              title={isDutch ? "Setlists & Nummers" : "Setlists & Songs"}
             >
-              <Icons.Document className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
-              <span className="hidden md:inline whitespace-nowrap">{isDutch ? "Notities" : "Notes"}</span>
+              <Icons.ListView className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
+              <span className="hidden md:inline whitespace-nowrap">{isDutch ? "Setlists" : "Setlists"}</span>
             </button>
 
             {/* Layout toggle — desktop only (lg+); no effect on mobile */}
@@ -1297,7 +1294,7 @@ export default function Dashboard() {
             <span className="flex min-w-0 items-center gap-2">
               <Icons.Menu className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
               <span className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                {selectedTab === "notes" && isDutch ? "Notities" : TAB_LABELS[selectedTab]}
+                {TAB_LABELS[selectedTab]}
               </span>
             </span>
             <Icons.ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
@@ -1339,12 +1336,12 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                       setShowMobileMenu(false);
-                      handleTabChange("notes");
+                      handleTabChange("setlists");
                     }}
                   className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg border border-slate-200 bg-white px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
-                  <Icons.Document className="h-4 w-4 shrink-0" />
-                  <span className="hidden tablet:inline">Notes</span>
+                  <Icons.ListView className="h-4 w-4 shrink-0" />
+                  <span className="hidden tablet:inline">Setlists</span>
                 </button>
               </div>
               
@@ -1370,29 +1367,11 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Quick toggles (mobile menu — no fullscreen; desktop uses header toggle) */}
-              <div className="mb-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("notes");
-                  }}
-                  className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                      selectedTab === "notes"
-                      ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-                  }`}
-                  title={isDutch ? "Notities" : "Notes"}
-                >
-                  <Icons.Document className="h-4 w-4 shrink-0" />
-                  <span>{isDutch ? "Notities" : "Notes"}</span>
-                </button>
-              </div>
+
 
               {/* Navigation */}
               <nav className="space-y-1">
-                {selectedTab !== "notes" && selectedTab !== "songs" && selectedTab !== "superadmin" && (
+                {selectedTab !== "songs" && selectedTab !== "superadmin" && (
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Overview
                 </div>
@@ -1484,20 +1463,7 @@ export default function Dashboard() {
                   <Icons.Music2 className="h-5 w-5 shrink-0" />
                   <span>Songs</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("notes");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "notes" 
-                      ? "bg-black text-cyan-300 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.45)]" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Document className="h-5 w-5 shrink-0" />
-                  <span>{isDutch ? "Notities" : "Notes"}</span>
-                </button>
+
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
@@ -1570,11 +1536,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen pb-safe transition-colors ${
-        activeTab === "notes"
-          ? "bg-black text-slate-100"
-          : "dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950"
-      } ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
+      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen pb-safe transition-colors dark:bg-black ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
         {/* Search results indicator */}
         {searchQuery && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-brand-50 px-4 py-2 text-sm dark:bg-brand-950/30">
@@ -1590,7 +1552,7 @@ export default function Dashboard() {
           </div>
         )}
         {/* -- Premium Summary Cards ----------------------------------- */}
-        {activeTab !== "notes" && activeTab !== "songs" && (
+        {activeTab !== "songs" && (
         <div className="mb-4 sm:mb-8">
           {/* Overview collapse header with export actions */}
           <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
@@ -2072,10 +2034,7 @@ export default function Dashboard() {
           <Suspense fallback={<TabLoader />}>
             <SongsTab />
           </Suspense>
-        ) : selectedTab === "notes" ? (
-          <Suspense fallback={<TabLoader />}>
-            <NotesPage />
-          </Suspense>
+
         ) : selectedTab === "shared-links" ? (
           <Suspense fallback={<TabLoader />}>
             <SharedLinksTab />

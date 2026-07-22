@@ -1024,14 +1024,17 @@ export default function SetlistsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-6 bg-black text-slate-100 p-4 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)]">
+      <div className="flex items-center justify-between gap-3 border-b border-neutral-800/80 pb-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{copy.title}</h2>
-          {error && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-brand-500 animate-pulse" />
+            {copy.title}
+          </h2>
+          {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">{copy.newSetlist}</button>
+          <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{copy.newSetlist}</button>
         </div>
       </div>
 
@@ -1286,12 +1289,14 @@ export default function SetlistsTab() {
                     htmlParts.push(`<div class="song"><div class="song-title">${idx+1}. ${escapeHtml(item.specialLabel)}</div></div>`);
                     return;
                   }
-                  const song = songs.find(s => s.id === item.songId);
+                  const song = songs.find(s => s.id === item.songId || (s.title && s.title.toLowerCase() === item.label.toLowerCase()));
                   const title = song ? song.title : item.label;
-                  htmlParts.push(`<div class="song"><div class="song-title">${idx+1}. ${escapeHtml(title)}</div>`);
+                  const metaStr = [item.artist, item.tuning, item.key, item.tempo ? `${item.tempo} BPM` : ''].filter(Boolean).join(' · ');
+                  htmlParts.push(`<div class="song"><div class="song-title">${idx+1}. ${escapeHtml(title)}${metaStr ? ` <span style="font-size:13px;font-weight:400;color:#64748b;">(${escapeHtml(metaStr)})</span>` : ''}</div>`);
                   if (song && song.attachments && song.attachments.length > 0) {
-                    const att = song.attachments[0];
-                    htmlParts.push(`<div><img src="${escapeHtml(att.publicUrl)}" alt="${escapeHtml(title)}" /></div>`);
+                    song.attachments.forEach((att) => {
+                      htmlParts.push(`<div style="margin-top:6px;"><img src="${escapeHtml(att.publicUrl)}" alt="${escapeHtml(att.caption || title)}" />${att.caption ? `<div class="song-meta" style="font-style:italic;">${escapeHtml(att.caption)}</div>` : ''}</div>`);
+                    });
                   }
                   if (item.notitie) htmlParts.push(`<div class="song-meta">${escapeHtml(item.notitie)}</div>`);
                   htmlParts.push('</div>');

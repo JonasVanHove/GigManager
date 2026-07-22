@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function NotesRoute() {
-  redirect("/?tab=notes");
+  redirect("/?tab=setlists");
 }
