@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { Gig } from "@/types";
 import {
   calculateGigFinancials,
@@ -45,6 +46,7 @@ const GigCard = memo(function GigCard({
   onSelect,
   onRequestLocalToggle,
 }: GigCardProps) {
+  const router = useRouter();
   // Charity gigs start collapsed, others start expanded, but can be overridden by global state
   const [isExpanded, setIsExpanded] = useState(!gig.isCharity);
   const [hasPendingNotes, setHasPendingNotes] = useState(false);
@@ -221,6 +223,18 @@ const GigCard = memo(function GigCard({
 
         {/* Actions - tablet+: show edit button, mobile: hidden */}
         <div className="ml-4 flex shrink-0 gap-1">
+          {gig.setlistId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/?tab=setlists&setlist=${gig.setlistId}`);
+              }}
+              title={isDutch ? "Bekijk setlist" : "View setlist"}
+              className="rounded-lg p-2 text-cyan-600 transition-all duration-200 hover:bg-cyan-100/60 dark:hover:bg-cyan-900/30 dark:text-cyan-300 dark:hover:text-cyan-200"
+            >
+              <Icons.ListView className="h-4 w-4 shrink-0" />
+            </button>
+          )}
           <button
             onClick={() => onEdit(gig)}
             title="Edit"

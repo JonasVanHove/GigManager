@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         id: true,
         linkedBand: true,
         photoName: true,
+        notes: true,
         noteType: true,
         updatedAt: true,
         createdAt: true,

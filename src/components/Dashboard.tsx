@@ -91,6 +91,36 @@ const TAB_LABELS: Record<DashboardTab, string> = {
   superadmin: "Superadmin",
 };
 
+const PRIMARY_NAV_TABS: DashboardTab[] = ["gigs", "calendar", "setlists", "songs"];
+const SECONDARY_NAV_TABS: DashboardTab[] = ["all-gigs", "band-members", "shared-links", "analytics", "investments", "superadmin"];
+
+const renderTabIcon = (tab: DashboardTab, className = "h-4 w-4") => {
+  switch (tab) {
+    case "gigs":
+      return <Icons.GridView className={className} />;
+    case "all-gigs":
+      return <Icons.ListView className={className} />;
+    case "analytics":
+      return <Icons.Analytics className={className} />;
+    case "investments":
+      return <Icons.Wallet className={className} />;
+    case "songs":
+      return <Icons.Music2 className={className} />;
+    case "band-members":
+      return <Icons.People className={className} />;
+    case "calendar":
+      return <Icons.Calendar className={className} />;
+    case "setlists":
+      return <Icons.ListView className={className} />;
+    case "shared-links":
+      return <Icons.Link className={className} />;
+    case "superadmin":
+      return <Icons.Settings className={className} />;
+    default:
+      return <Icons.GridView className={className} />;
+  }
+};
+
 const TabLoader = () => (
   <LoadingSpinner size="lg" message="Loading section..." />
 );
@@ -179,6 +209,10 @@ export default function Dashboard() {
   const [, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
   const selectedTab = activeTab === "superadmin" && !canAccessSuperAdmin ? "gigs" : activeTab;
+  const secondaryProfileTabs = useMemo(
+    () => SECONDARY_NAV_TABS.filter((tab) => tab !== "superadmin" || canAccessSuperAdmin),
+    [canAccessSuperAdmin]
+  );
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
@@ -429,11 +463,13 @@ export default function Dashboard() {
     (nextTab: DashboardTab) => {
       if (nextTab === activeTab) {
         setShowMobileMenu(false);
+        setShowProfileMenu(false);
         return;
       }
 
       if (nextTab === "superadmin" && !canAccessSuperAdmin) {
         setShowMobileMenu(false);
+        setShowProfileMenu(false);
         return;
       }
 
@@ -445,6 +481,7 @@ export default function Dashboard() {
         setActiveTab(nextTab);
         router.push(`?tab=${nextTab}`, { scroll: false } as any);
         setShowMobileMenu(false);
+        setShowProfileMenu(false);
       });
     },
     [activeTab, canAccessSuperAdmin, startTransition, router]
@@ -1109,7 +1146,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       {/* -- Navbar -------------------------------------------------------- */}
       <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
-        <div className={`mx-auto flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:flex-nowrap sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
+        <div className={`mx-auto flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:flex-nowrap sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
           {/* Left: Hamburger (mobile) + Logo */}
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
             {/* Mobile hamburger */}
@@ -1137,8 +1174,49 @@ export default function Dashboard() {
             </h1>
           </div>
 
-          {/* Center: Search (desktop) */}
-          <div className="hidden md:block flex-1 max-w-md mx-4">
+          {/* Center: Primary navigation + search */}
+          <div className="hidden lg:flex min-w-0 items-center gap-3 flex-1 px-2">
+            <nav className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-800/40">
+              {PRIMARY_NAV_TABS.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => handleTabChange(tab)}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
+                    selectedTab === tab
+                      ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white"
+                  }`}
+                >
+                  {renderTabIcon(tab)}
+                  <span>{TAB_LABELS[tab]}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="min-w-0 flex-1 max-w-md">
+              <div className="relative">
+                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search gigs..."
+                  className="w-full rounded-full border border-slate-200 bg-slate-50/70 py-2 pl-9 pr-10 text-sm backdrop-blur focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900 transition duration-200"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                    title="Clear search"
+                  >
+                    <Icons.Close className="h-4 w-4 text-slate-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden md:block lg:hidden flex-1 max-w-md mx-4">
             <div className="relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
@@ -1160,39 +1238,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right: Navigation toggles + Add + Profile (always visible) */}
+          {/* Right: Add + current secondary section + profile */}
           <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2 md:gap-3 sm:ml-0">
-            {/* Setlists & Songs - visible on tablet+ with label, icon-only on mobile */}
-            <button
-              onClick={() => handleTabChange("setlists")}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
-                activeTab === "setlists" || activeTab === "songs"
-                  ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
-                  : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
-              }`}
-              title={isDutch ? "Setlists & Nummers" : "Setlists & Songs"}
-            >
-              <Icons.ListView className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
-              <span className="hidden md:inline whitespace-nowrap">{isDutch ? "Setlists" : "Setlists"}</span>
-            </button>
-
-            {/* Layout toggle — desktop only (lg+); no effect on mobile */}
-            <button
-              type="button"
-              onClick={handleToggleWideView}
-              className={`hidden lg:inline-flex items-center gap-1.5 md:gap-2 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm font-medium transition duration-200 ${
-                isWideView
-                  ? "border-brand-500 bg-brand-50/80 backdrop-blur text-brand-700 dark:border-brand-400 dark:bg-brand-950/40 dark:backdrop-blur dark:text-brand-300"
-                  : "border-slate-200/60 bg-white/50 backdrop-blur text-slate-700 hover:bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-800/30 dark:backdrop-blur dark:text-slate-200 dark:hover:bg-slate-700/30"
-              }`}
-              title={isWideView ? "Standard layout" : "Fullscreen layout"}
-            >
-              <Icons.Expand className="h-4 w-4 md:h-4 md:w-4 shrink-0" />
-              <span className="hidden md:inline whitespace-nowrap text-xs">{isWideView ? "Standard" : "Fullscreen"}</span>
-            </button>
-
-
-
             {/* Add Performance - icon only on mobile, button on desktop */}
             <button
               onClick={() => {
@@ -1208,6 +1255,13 @@ export default function Dashboard() {
                 Add
               </span>
             </button>
+
+            {!PRIMARY_NAV_TABS.includes(selectedTab) && (
+              <div className="hidden lg:flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-800/40 dark:text-slate-200">
+                {renderTabIcon(selectedTab)}
+                <span className="font-medium">{TAB_LABELS[selectedTab]}</span>
+              </div>
+            )}
 
             {/* Profile menu (merged with settings & sign out) */}
             <div className="relative" ref={profileMenuRef}>
@@ -1229,7 +1283,7 @@ export default function Dashboard() {
                 )}
               </button>
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-slate-200/50 bg-white/95 text-sm shadow-xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur menu-enter">
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 text-sm shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur menu-enter">
                   {/* Profile info header */}
                   <div className="border-b border-slate-200 dark:border-slate-700 p-3">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">
@@ -1241,30 +1295,67 @@ export default function Dashboard() {
                   </div>
                   {/* Menu items */}
                   <div className="py-2">
-                    <button
-                      onClick={() => {
-                        setShowSettings(true);
-                        setShowProfileMenu(false);
-                      }}
-                      className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <Icons.Settings className="h-4 w-4" />
-                        Settings
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowKeyboardShortcuts(true);
-                        setShowProfileMenu(false);
-                      }}
-                      className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <Icons.Keyboard className="h-4 w-4" />
-                        Keyboard shortcuts
-                      </span>
-                    </button>
+                    <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                      Workspace
+                    </div>
+                    <div className="grid gap-1 px-2">
+                      {secondaryProfileTabs.map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => handleTabChange(tab)}
+                          className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition ${
+                            selectedTab === tab
+                              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                              : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {renderTabIcon(tab)}
+                          <span className="font-medium">{TAB_LABELS[tab]}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+                      <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        Preferences
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleToggleWideView();
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Icons.Expand className="h-4 w-4" />
+                          {isWideView ? "Standard layout" : "Fullscreen layout"}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Icons.Settings className="h-4 w-4" />
+                          Settings
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowKeyboardShortcuts(true);
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Icons.Keyboard className="h-4 w-4" />
+                          Keyboard shortcuts
+                        </span>
+                      </button>
+                    </div>
                     <div className="border-t border-slate-200 dark:border-slate-700 mt-2 pt-2">
                       <button
                         onClick={async () => {
@@ -1638,162 +1729,6 @@ export default function Dashboard() {
           </div>
         </div>
         )}
-
-        {/* -- Tabs (desktop only) ----------------------------------------------------- */}
-        <div className="mb-6 hidden lg:flex gap-1 sm:gap-2 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
-          <div className="flex items-center px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-            Core
-          </div>
-          {/* Overview */}
-          <button
-            onClick={() => handleTabChange("gigs")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "gigs"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.GridView className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </span>
-          </button>
-          {/* All Gigs */}
-          <button
-            onClick={() => handleTabChange("all-gigs")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "all-gigs"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.ListView className="h-4 w-4" />
-              <span className="hidden sm:inline">All Gigs</span>
-            </span>
-          </button>
-          {/* Calendar */}
-          <button
-            onClick={() => handleTabChange("calendar")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "calendar"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Calendar</span>
-            </span>
-          </button>
-          <div className="flex items-center px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-            Band
-          </div>
-          {/* Band Members */}
-          <button
-            onClick={() => handleTabChange("band-members")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "band-members"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.People className="h-4 w-4" />
-              <span className="hidden sm:inline">Band</span>
-            </span>
-          </button>
-          {/* Setlists */}
-          <button
-            onClick={() => handleTabChange("setlists")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "setlists"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.ListView className="h-4 w-4" />
-              <span className="hidden sm:inline">Setlists</span>
-            </span>
-          </button>
-          {/* Songs */}
-          <button
-            onClick={() => handleTabChange("songs")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === "songs"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.Music2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Songs</span>
-            </span>
-          </button>
-          <div className="flex items-center px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-            Insights
-          </div>
-          {canAccessSuperAdmin && (
-            <button
-              onClick={() => handleTabChange("superadmin")}
-              className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-                selectedTab === "superadmin"
-                  ? "border-b-2 border-fuchsia-500 text-fuchsia-600 dark:border-fuchsia-400 dark:text-fuchsia-400"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Icons.Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Superadmin</span>
-              </span>
-            </button>
-          )}
-          {/* Shared Links */}
-          <button
-            onClick={() => handleTabChange("shared-links")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              selectedTab === "shared-links"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.Link className="h-4 w-4" />
-              <span className="hidden sm:inline">Shared Links</span>
-            </span>
-          </button>
-          {/* Insights */}
-          <button
-            onClick={() => handleTabChange("analytics")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              selectedTab === "analytics"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.Analytics className="h-4 w-4" />
-              <span className="hidden sm:inline">Insights</span>
-            </span>
-          </button>
-          {/* Investments */}
-          <button
-            onClick={() => handleTabChange("investments")}
-            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              selectedTab === "investments"
-                ? "border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Invest</span>
-            </span>
-          </button>
-        </div>
-
-
 
         {/* -- Content -------------------------------------------------- */}
         {selectedTab === "gigs" ? (

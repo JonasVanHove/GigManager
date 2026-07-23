@@ -139,7 +139,8 @@ export function FullscreenAttachmentViewer({
     const nextIndex = (displayIndex + 1) % attachments.length;
     const nextAttachment = attachments[nextIndex];
 
-    if (nextAttachment?.url) {
+    const nextIsImage = nextAttachment?.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)(?:[?#]|$)/i.test(nextAttachment?.url || '');
+    if (nextAttachment?.url && nextIsImage) {
       preloadImage(nextAttachment.url).catch(() => {
         // Preload errors are non-critical
       });
@@ -153,7 +154,9 @@ export function FullscreenAttachmentViewer({
   const current = attachments[displayIndex];
   if (!current) return null;
 
-  const isImage = current.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+  const isImage = current.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)(?:[?#]|$)/i.test(current.url);
+  const isPdf = current.type === 'pdf' || current.mimeType?.toLowerCase() === 'application/pdf' || /\.pdf(?:[?#]|$)/i.test(current.url);
+  const pdfViewerUrl = `${current.url}${current.url.includes('#') ? '&' : '#'}view=FitH`;
 
   return (
     <div
@@ -208,6 +211,24 @@ export function FullscreenAttachmentViewer({
               e.currentTarget.style.display = 'none';
             }}
           />
+        ) : isPdf ? (
+          <div className="flex h-full w-full max-w-6xl flex-col gap-3">
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">
+              <span className="font-medium">PDF preview</span>
+              <a
+                href={current.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors"
+              >
+                Open in new tab
+              </a>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white shadow-2xl">
+              <iframe src={pdfViewerUrl} className="h-full w-full" title={current.title || 'PDF attachment'} />
+            </div>
+            <p className="text-center text-xs text-gray-400">Rendered inline to preserve PDF sharpness at any zoom level.</p>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="text-5xl">📄</div>

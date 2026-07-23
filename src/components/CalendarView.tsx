@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Icons } from "./Icons";
 import { Calendar as BigCalendar, momentLocalizer, View } from "react-big-calendar";
 import moment from "moment";
@@ -86,6 +87,7 @@ type DateRangeFilter = "all" | "thisMonth" | "nextMonth" | "lastMonth" | "next3M
 
 export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGigs }: CalendarViewProps) {
   const { getAccessToken } = useAuth();
+  const router = useRouter();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(preloadedGigs === undefined);
   const [view, setView] = useState<View>(() =>

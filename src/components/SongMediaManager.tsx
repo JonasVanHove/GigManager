@@ -109,7 +109,18 @@ export function SongMediaManager({ attachments, onChange }: SongMediaManagerProp
           {attachments.map((attachment, index) => (
             <div key={attachment.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
               {attachment.contentType.startsWith("image/") ? (
-                <img src={attachment.publicUrl} alt={attachment.caption || "attachment"} className="h-36 w-full object-cover" />
+                <img 
+                  src={attachment.publicUrl} 
+                  alt={attachment.caption || "attachment"} 
+                  className="h-36 w-full object-cover" 
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.classList.add('bg-slate-100', 'dark:bg-slate-800');
+                    }
+                  }}
+                />
               ) : (
                 <div className="flex h-36 items-center justify-center bg-slate-100 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   PDF / document

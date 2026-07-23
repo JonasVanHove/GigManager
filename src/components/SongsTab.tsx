@@ -6,6 +6,8 @@ import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
 import { SongMediaManager } from "./SongMediaManager";
 import FullscreenMediaViewer from "./FullscreenMediaViewer";
+import { Icons } from "./Icons";
+import { createPrintDocument } from "@/lib/print-document";
 
 type SongAttachment = {
   id: string;
@@ -24,6 +26,12 @@ type SongRecord = {
   tags?: Array<{ id: string; name: string }>;
   bands?: Array<{ id: string; name: string }>;
 };
+
+const isImageAttachment = (attachment: SongAttachment) =>
+  attachment.contentType?.startsWith("image/") || /\.(avif|gif|jpe?g|png|webp)(?:[?#]|$)/i.test(attachment.publicUrl);
+
+const isPdfAttachment = (attachment: SongAttachment) =>
+  attachment.contentType?.toLowerCase() === "application/pdf" || /\.pdf(?:[?#]|$)/i.test(attachment.publicUrl);
 
 type SongMeta = {
   bandProject: string;
@@ -89,6 +97,10 @@ export default function SongsTab() {
   const [loading, setLoading] = useState(true);
   const [songSearch, setSongSearch] = useState("");
   const [showOnlyWithNotes, setShowOnlyWithNotes] = useState(false);
+  const [attachmentFilter, setAttachmentFilter] = useState<"all" | "with" | "without">("all");
+  const [tuningFilter, setTuningFilter] = useState<string>("");
+  const [tagFilter, setTagFilter] = useState<string>("");
+  const [keyFilter, setKeyFilter] = useState<string>("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<SongRecord | null>(null);
   const [title, setTitle] = useState("");
@@ -126,6 +138,14 @@ export default function SongsTab() {
       addTag: isDutch ? "Tag toevoegen" : "Add tag",
       attachmentHint: isDutch ? "Partituren, chord sheets, tabs of screenshots van nummers" : "Score sheets, chord sheets, tabs or screenshots of songs",
       exportSong: isDutch ? "Exporteer PDF / Print" : "Export PDF / Print",
+      filterAttachments: isDutch ? "Bijlagen" : "Attachments",
+      filterAttachmentsAll: isDutch ? "Alle" : "All",
+      filterAttachmentsWith: isDutch ? "Met bijlagen" : "With attachments",
+      filterAttachmentsWithout: isDutch ? "Zonder bijlagen" : "Without attachments",
+      filterTuning: isDutch ? "Tuning" : "Tuning",
+      filterTag: isDutch ? "Tag" : "Tag",
+      filterKey: isDutch ? "Toonsoort" : "Key",
+      resetFilters: isDutch ? "Filters wissen" : "Reset filters",
     }),
     [isDutch]
   );
@@ -156,6 +176,20 @@ export default function SongsTab() {
     return songs.filter((song) => {
       const parsed = parseSongNotes(song.notes);
       if (showOnlyWithNotes && !parsed.body.trim()) return false;
+      
+      // Attachment filter
+      if (attachmentFilter === "with" && (!song.attachments || song.attachments.length === 0)) return false;
+      if (attachmentFilter === "without" && song.attachments && song.attachments.length > 0) return false;
+      
+      // Tuning filter
+      if (tuningFilter && parsed.meta.keySignature.toLowerCase() !== tuningFilter.toLowerCase()) return false;
+      
+      // Tag filter
+      if (tagFilter && (!song.tags || !song.tags.some(t => t.name.toLowerCase() === tagFilter.toLowerCase()))) return false;
+      
+      // Key signature filter
+      if (keyFilter && parsed.meta.keySignature.toLowerCase() !== keyFilter.toLowerCase()) return false;
+      
       if (!query) return true;
       return (
         song.title.toLowerCase().includes(query) ||
@@ -253,46 +287,36 @@ export default function SongsTab() {
     const parsed = parseSongNotes(song.notes);
     const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
     if (!win) return;
-    const htmlParts: string[] = [];
-    htmlParts.push('<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(song.title) + '</title>');
-    htmlParts.push('<meta name="viewport" content="width=device-width,initial-scale=1" />');
-    htmlParts.push('<style>');
-    htmlParts.push('@page { size: A4; margin: 20mm; }');
-    htmlParts.push('html,body{height:100%;margin:0;padding:0;font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#fff; color:#0f172a;}');
-    htmlParts.push('.container{max-width:800px;margin:0 auto;padding:24px;}');
-    htmlParts.push('.title{font-size:26px;font-weight:800;margin-bottom:6px;color:#020617;}');
-    htmlParts.push('.meta-bar{display:flex;flex-wrap:wrap;gap:12px;color:#475569;font-size:13px;font-weight:600;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #e2e8f0;}');
-    htmlParts.push('.meta-item{background:#f1f5f9;padding:4px 10px;border-radius:6px;}');
-    htmlParts.push('.notes-box{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:10px;border:1px solid #cbd5e1;margin-bottom:24px;font-size:14px;line-height:1.6;}');
-    htmlParts.push('.image-box{margin-top:20px;page-break-inside:avoid;break-inside:avoid-column;text-align:center;}');
-    htmlParts.push('.image-box img{max-width:100%;height:auto;border-radius:8px;border:1px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.08);}');
-    htmlParts.push('.caption{font-size:12px;color:#64748b;margin-top:6px;font-style:italic;}');
-    htmlParts.push('@media print{body{margin:0} .container{padding:0} .image-box{page-break-inside:avoid;}}');
-    htmlParts.push('</style>');
-    htmlParts.push('<script>function printWhenLoaded(){const imgs = Array.from(document.images); if(imgs.length===0){window.focus();window.print();return;} let loaded=0; const done=()=>{loaded++; if(loaded===imgs.length){window.focus();window.print();}}; imgs.forEach(img=>{ if(img.complete){loaded++; } else { img.addEventListener("load", done); img.addEventListener("error", done); }}); setTimeout(()=>{window.focus();window.print();}, 3000);} window.addEventListener("load",()=>setTimeout(printWhenLoaded, 250));</script>');
-    htmlParts.push('</head><body><div class="container">');
-    htmlParts.push(`<div class="title">${escapeHtml(song.title)}</div>`);
+    const body: string[] = [];
+    body.push('<header class="document-header"><div class="document-eyebrow">GigManager · nummerfiche</div>');
+    body.push(`<h1 class="document-title">${escapeHtml(song.title)}</h1>`);
 
     const metaBadges: string[] = [];
     if (parsed.meta.bandProject) metaBadges.push(`<span class="meta-item">Band: ${escapeHtml(parsed.meta.bandProject)}</span>`);
     if (parsed.meta.genre) metaBadges.push(`<span class="meta-item">Genre: ${escapeHtml(parsed.meta.genre)}</span>`);
     if (parsed.meta.keySignature) metaBadges.push(`<span class="meta-item">Toonsoort: ${escapeHtml(parsed.meta.keySignature)}</span>`);
     if (parsed.meta.bpm) metaBadges.push(`<span class="meta-item">BPM: ${escapeHtml(parsed.meta.bpm)}</span>`);
-    if (metaBadges.length > 0) htmlParts.push(`<div class="meta-bar">${metaBadges.join('')}</div>`);
+    if (metaBadges.length > 0) body.push(`<div class="metadata">${metaBadges.join('')}</div>`);
+    body.push('</header>');
 
-    if (parsed.body.trim()) htmlParts.push(`<div class="notes-box">${escapeHtml(parsed.body)}</div>`);
+    if (parsed.body.trim()) body.push(`<section class="section"><h2 class="section-heading">Notities</h2><div class="note-content">${escapeHtml(parsed.body)}</div></section>`);
+    if (parsed.meta.comments.trim()) body.push(`<section class="section"><h2 class="section-heading">Opmerkingen</h2><div class="note-content">${escapeHtml(parsed.meta.comments)}</div></section>`);
 
+    // Include ALL image attachments in export (webp, jpeg, png, etc.)
     if (song.attachments && song.attachments.length > 0) {
-      htmlParts.push('<div style="margin-top:24px;">');
-      htmlParts.push('<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Bijlagen & Afbeeldingen</h3>');
-      song.attachments.forEach((att) => {
-        htmlParts.push(`<div class="image-box"><img src="${escapeHtml(att.publicUrl)}" alt="${escapeHtml(att.caption || song.title)}" />${att.caption ? `<div class="caption">${escapeHtml(att.caption)}</div>` : ''}</div>`);
-      });
-      htmlParts.push('</div>');
+      const imageAttachments = song.attachments.filter(isImageAttachment);
+      if (imageAttachments.length > 0) {
+        body.push('<section class="section"><h2 class="section-heading">Bijlagen</h2>');
+        imageAttachments.forEach((att, attIdx) => {
+          const caption = att.caption ? escapeHtml(att.caption) : (imageAttachments.length > 1 ? `${escapeHtml(song.title)} (${attIdx + 1})` : escapeHtml(song.title));
+          body.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="${caption}" loading="eager" style="max-width:100%;height:auto;display:block;margin:0 auto;" /><figcaption class="attachment-caption">${caption}</figcaption></figure>`);
+        });
+        body.push('</section>');
+      }
     }
-    htmlParts.push('</div></body></html>');
+    body.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> pagina <span class="page-number"></span></footer>');
     win.document.open();
-    win.document.write(htmlParts.join('\n'));
+    win.document.write(createPrintDocument(escapeHtml(song.title), body.join('\n')));
     win.document.close();
   };
 
@@ -335,6 +359,71 @@ export default function SongsTab() {
             />
             {copy.withNotesOnly}
           </label>
+        </div>
+        
+        {/* Additional Filters */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {/* Attachment Filter */}
+          <select
+            value={attachmentFilter}
+            onChange={(e) => setAttachmentFilter(e.target.value as "all" | "with" | "without")}
+            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+          >
+            <option value="all">{copy.filterAttachmentsAll}</option>
+            <option value="with">{copy.filterAttachmentsWith}</option>
+            <option value="without">{copy.filterAttachmentsWithout}</option>
+          </select>
+          
+          {/* Tuning Filter */}
+          <select
+            value={tuningFilter}
+            onChange={(e) => setTuningFilter(e.target.value)}
+            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+          >
+            <option value="">{copy.filterTuning}</option>
+            {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(tuning => (
+              <option key={tuning} value={tuning}>{tuning}</option>
+            ))}
+          </select>
+          
+          {/* Tag Filter */}
+          <select
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+          >
+            <option value="">{copy.filterTag}</option>
+            {Array.from(new Set(songs.flatMap(s => s.tags?.map(t => t.name) || []))).sort().map(tag => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
+          
+          {/* Key Filter */}
+          <select
+            value={keyFilter}
+            onChange={(e) => setKeyFilter(e.target.value)}
+            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+          >
+            <option value="">{copy.filterKey}</option>
+            {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(key => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
+          
+          {/* Reset Filters Button */}
+          {(attachmentFilter !== "all" || tuningFilter || tagFilter || keyFilter) && (
+            <button
+              onClick={() => {
+                setAttachmentFilter("all");
+                setTuningFilter("");
+                setTagFilter("");
+                setKeyFilter("");
+              }}
+              className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-neutral-800 transition"
+            >
+              {copy.resetFilters}
+            </button>
+          )}
         </div>
 
         {/* Songs List */}
@@ -417,11 +506,27 @@ export default function SongsTab() {
                           }}
                           className="group relative rounded-xl overflow-hidden border border-neutral-800 hover:border-cyan-500 transition shrink-0"
                         >
-                          <img
-                            src={attachment.publicUrl}
-                            alt={attachment.caption || song.title}
-                            className="h-20 w-20 object-cover group-hover:scale-105 transition"
-                          />
+                          {isImageAttachment(attachment) ? (
+                            <img
+                              src={attachment.publicUrl}
+                              alt={attachment.caption || song.title}
+                              className="h-20 w-20 object-cover group-hover:scale-105 transition"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement?.classList.add('bg-neutral-900');
+                              }}
+                            />
+                          ) : isPdfAttachment(attachment) ? (
+                            <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-950/70 to-neutral-950 px-2 text-white">
+                              <Icons.Document className="h-6 w-6" />
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-200">PDF</span>
+                            </div>
+                          ) : (
+                            <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 bg-neutral-900 px-2 text-white">
+                              <Icons.Document className="h-6 w-6" />
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-300">Doc</span>
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-medium">
                             Bekijk
                           </div>

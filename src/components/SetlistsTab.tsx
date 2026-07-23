@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
+import { createPrintDocument } from "@/lib/print-document";
 
 type SongRow = {
   id: string;
@@ -13,6 +14,9 @@ type SongRow = {
   date: string;
   attachments?: Array<{ id: string; publicUrl: string; contentType?: string; caption?: string | null }>;
 };
+
+const isImageAttachment = (attachment: NonNullable<SongRow["attachments"]>[number]) =>
+  attachment.contentType?.startsWith("image/") || /\.(avif|gif|jpe?g|png|webp)(?:[?#]|$)/i.test(attachment.publicUrl);
 
 type SongMeta = {
   bandProject: string;
@@ -60,6 +64,7 @@ type StoredSetlist = {
   naam: string;
   datum: string | null;
   locatie: string;
+  gigIds: string[];
   items: DraftItem[];
   notities: string;
   status: SetlistMeta["status"];
@@ -221,14 +226,37 @@ const buildExportText = (setlist: StoredSetlist, songs: SongRow[]) => {
   return lines.join("\n");
 };
 
+type GigOption = {
+  id: string;
+  eventName: string;
+  date?: string | null;
+};
+
+const normalizeGigOptions = (payload: unknown): GigOption[] => {
+  const rows = Array.isArray(payload)
+    ? payload
+    : (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown[] }).data))
+      ? (payload as { data: unknown[] }).data
+      : [];
+
+  return rows
+    .filter((row): row is { id: string; eventName?: string; date?: string | null } => Boolean(row && typeof row === "object" && typeof (row as { id?: unknown }).id === "string"))
+    .map((row) => ({
+      id: row.id,
+      eventName: typeof row.eventName === "string" && row.eventName.trim() ? row.eventName : "Untitled gig",
+      date: typeof row.date === "string" ? row.date : null,
+    }));
+};
+
 export default function SetlistsTab() {
   const { session, getAccessToken } = useAuth();
   const { locale } = useSettings();
   const toast = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [songs, setSongs] = useState<SongRow[]>([]);
-  const [gigsList, setGigsList] = useState<Array<{ id: string; eventName: string }>>([]);
+  const [gigsList, setGigsList] = useState<GigOption[]>([]);
   const [setlists, setSetlists] = useState<StoredSetlist[]>([]);
   const [notes, setNotes] = useState<LinkedNote[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -237,6 +265,7 @@ export default function SetlistsTab() {
   const [savingState, setSavingState] = useState<"saved" | "saving" | "dirty">("saved");
   const [statusFilter, setStatusFilter] = useState<"alle" | SetlistMeta["status"]>("alle");
   const [songSearch, setSongSearch] = useState("");
+  const [attachmentFilter, setAttachmentFilter] = useState<"all" | "with" | "without">("all");
   const [showPerformanceMode, setShowPerformanceMode] = useState(false);
   const [showGeneralNotes, setShowGeneralNotes] = useState(true);
   const [showTuningPanel, setShowTuningPanel] = useState(true);
@@ -249,6 +278,7 @@ export default function SetlistsTab() {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [drawerSongId, setDrawerSongId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftVersionRef = useRef(0);
 
   const isDutch = locale.startsWith("nl");
 
@@ -282,6 +312,13 @@ export default function SetlistsTab() {
   }), [isDutch]);
 
   const activeDraft = draft;
+  const songOccurrences = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of activeDraft?.items || []) {
+      if (item.kind === "song" && item.songId) counts.set(item.songId, (counts.get(item.songId) || 0) + 1);
+    }
+    return counts;
+  }, [activeDraft?.items]);
   const selectedSetlist = useMemo(() => (selectedId ? setlists.find((setlist) => setlist.id === selectedId) || null : null), [selectedId, setlists]);
   const currentItems = useMemo(() => (draft?.items || selectedSetlist?.items || []).slice(), [draft?.items, selectedSetlist?.items]);
   const activeSongMap = useMemo(() => new Map(songs.map((song) => [song.id, song])), [songs]);
@@ -326,9 +363,11 @@ export default function SetlistsTab() {
     for (const song of songs) {
       const parsed = parseSongNotes(song.notes);
       const tuning = parsed.meta.keySignature || "Onbekend";
+      const hasImages = Boolean(song.attachments?.some(isImageAttachment));
       if (query && !`${song.title} ${parsed.body} ${parsed.meta.bandProject} ${parsed.meta.genre} ${parsed.meta.keySignature} ${parsed.meta.bpm} ${parsed.meta.comments}`.toLowerCase().includes(query)) {
         continue;
       }
+      if ((attachmentFilter === "with" && !hasImages) || (attachmentFilter === "without" && hasImages)) continue;
       const list = songsByGroup.get(tuning) || [];
       list.push(song);
       songsByGroup.set(tuning, list);
@@ -337,7 +376,12 @@ export default function SetlistsTab() {
     return Array.from(songsByGroup.entries())
       .map(([tuning, list]) => [tuning, list.slice().sort((a, b) => a.title.localeCompare(b.title))] as const)
       .sort((a, b) => tuningIndex(a[0]) - tuningIndex(b[0]));
-  }, [songSearch, songs]);
+  }, [attachmentFilter, songSearch, songs]);
+
+  const repertoireImageStats = useMemo(() => {
+    const withImages = songs.filter((song) => song.attachments?.some(isImageAttachment)).length;
+    return { withImages, withoutImages: songs.length - withImages };
+  }, [songs]);
 
   const exportText = useMemo(() => (draft ? buildExportText(draft, songs) : ""), [draft, songs]);
 
@@ -377,23 +421,15 @@ export default function SetlistsTab() {
     if (!response.ok) return;
     const rows = (await response.json()) as Array<{ id: string; noteType?: string; photoName?: string | null; notes?: unknown; linkedBand?: string | null; createdAt: string; updatedAt: string }>;
     const textRows = rows.filter((row) => row.noteType === "text");
-
-    const details = await Promise.all(
-      textRows.map(async (row) => {
-        const detailResponse = await fetch(`/api/notes/${row.id}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!detailResponse.ok) return null;
-        const detail = (await detailResponse.json()) as { id: string; notes?: unknown; photoName?: string | null };
-        const raw = typeof detail.notes === "string" ? safeJson<NotePayload>(detail.notes, {}) : (detail.notes as NotePayload | undefined) || {};
-        return {
-          id: row.id,
-          titel: typeof raw.titel === "string" ? raw.titel : row.photoName || "",
-          inhoud: typeof raw.inhoud === "string" ? raw.inhoud : "",
-          tags: Array.isArray(raw.tags) ? raw.tags.filter((tag): tag is string => typeof tag === "string") : [],
-        } satisfies LinkedNote;
-      })
-    );
-
-    setNotes(details.filter((note): note is LinkedNote => Boolean(note)));
+    setNotes(textRows.map((row) => {
+      const raw = typeof row.notes === "string" ? safeJson<NotePayload>(row.notes, {}) : (row.notes as NotePayload | undefined) || {};
+      return {
+        id: row.id,
+        titel: typeof raw.titel === "string" ? raw.titel : row.photoName || "",
+        inhoud: typeof raw.inhoud === "string" ? raw.inhoud : "",
+        tags: Array.isArray(raw.tags) ? raw.tags.filter((tag): tag is string => typeof tag === "string") : [],
+      } satisfies LinkedNote;
+    }));
   }, [getAccessToken, session?.user]);
 
   const loadData = useCallback(async () => {
@@ -421,7 +457,8 @@ export default function SetlistsTab() {
       if (!setlistsResponse.ok) throw new Error(isDutch ? "Setlists laden mislukt" : "Failed to load setlists");
 
       const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; attachments?: any[] }>;
-      const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; createdAt: string; updatedAt: string }>;
+      const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; gigs?: Array<{ id: string; eventName?: string; date?: string | null }>; createdAt: string; updatedAt: string }>;
+      const songIdByTitle = new Map((Array.isArray(songPayload) ? songPayload : []).map((song) => [song.title.trim().toLocaleLowerCase(), song.id]));
 
       const currentUserId = session.user?.id;
       if (!currentUserId) throw new Error("Missing user id");
@@ -433,7 +470,10 @@ export default function SetlistsTab() {
               ? setlist.items.map((item) => ({
                   id: item.id,
                   kind: item.type === "song" ? "song" : "special",
-                  songId: item.type === "song" ? item.id : null,
+                  // The API stores a setlist item's title, not a song foreign
+                  // key. Restore the repertoire link so image badges, exports
+                  // and duplicate counters remain available after a reload.
+                  songId: item.type === "song" ? songIdByTitle.get((item.title || "").trim().toLocaleLowerCase()) || null : null,
                   label: item.title || "",
                   artist: "",
                   tuning: item.tuning || "Onbekend",
@@ -451,6 +491,7 @@ export default function SetlistsTab() {
               naam: setlist.title || "Untitled setlist",
               datum: meta.datum,
               locatie: meta.locatie,
+              gigIds: Array.isArray(setlist.gigs) ? setlist.gigs.map((gig) => gig.id) : [],
               items,
               notities: meta.notities,
               status: meta.status,
@@ -462,21 +503,7 @@ export default function SetlistsTab() {
         : [];
 
       setSongs(Array.isArray(songPayload) ? songPayload.map((song) => ({ id: song.id, title: song.title, notes: song.notes || null, date: song.date, attachments: song.attachments || [] })) : []);
-      // load gigs for possible assignment
-      try {
-        const token = await getAccessToken();
-        if (token) {
-          const gigsRes = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${token}` } });
-          if (gigsRes.ok) {
-            const gigsJson = await gigsRes.json();
-            setGigsList(Array.isArray(gigsJson) ? gigsJson.map((g: any) => ({ id: g.id, eventName: g.eventName })) : []);
-          }
-        }
-      } catch (e) {
-        // noop
-      }
       setSetlists(hydratedSetlists);
-      await loadNotes();
 
       if (!selectedId && hydratedSetlists[0]) {
         const first = hydratedSetlists[0];
@@ -484,6 +511,21 @@ export default function SetlistsTab() {
         setDraft(JSON.parse(JSON.stringify(first)) as StoredSetlist);
         setSavingState("saved");
       }
+
+      // These datasets are secondary to opening the setlist editor. Loading
+      // them in the background makes the initial editor render immediate.
+      void loadNotes();
+      void (async () => {
+        try {
+          const gigsRes = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${token}` } });
+          if (gigsRes.ok) {
+            const gigsJson = await gigsRes.json();
+            setGigsList(normalizeGigOptions(gigsJson));
+          }
+        } catch {
+          // A gig assignment can be retried later; it must not delay setlists.
+        }
+      })();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -497,6 +539,21 @@ export default function SetlistsTab() {
     loadData();
   }, [loadData]);
 
+  // Handle URL parameter to open specific setlist from gig card
+  useEffect(() => {
+    const setlistIdFromUrl = searchParams.get('setlist');
+    if (setlistIdFromUrl && setlists.length > 0) {
+      const targetSetlist = setlists.find(s => s.id === setlistIdFromUrl);
+      if (targetSetlist && selectedId !== setlistIdFromUrl) {
+        setSelectedId(setlistIdFromUrl);
+        setDraft(JSON.parse(JSON.stringify(targetSetlist)) as StoredSetlist);
+        setSavingState("saved");
+        // Clean up URL parameter
+        router.replace('/?tab=setlists', { scroll: false });
+      }
+    }
+  }, [searchParams, setlists, selectedId, router]);
+
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -504,6 +561,7 @@ export default function SetlistsTab() {
   }, []);
 
   const updateDraft = useCallback((patch: Partial<StoredSetlist>) => {
+    draftVersionRef.current += 1;
     setDraft((current) => {
       if (!current) return current;
       return { ...current, ...patch, updatedAt: new Date().toISOString() };
@@ -511,7 +569,18 @@ export default function SetlistsTab() {
     setSavingState("dirty");
   }, []);
 
+  const updateDraftItems = useCallback((update: (items: DraftItem[]) => DraftItem[]) => {
+    draftVersionRef.current += 1;
+    setDraft((current) => current ? {
+      ...current,
+      items: update(current.items),
+      updatedAt: new Date().toISOString(),
+    } : current);
+    setSavingState("dirty");
+  }, []);
+
   const selectSetlist = useCallback((setlist: StoredSetlist) => {
+    draftVersionRef.current += 1;
     setSelectedId(setlist.id);
     setDraft(JSON.parse(JSON.stringify(setlist)));
     setSavingState("saved");
@@ -519,7 +588,7 @@ export default function SetlistsTab() {
     setActiveItemId(null);
   }, []);
 
-  const saveDraft = useCallback(async (nextDraft: StoredSetlist) => {
+  const saveDraft = useCallback(async (nextDraft: StoredSetlist, version: number) => {
     if (!session?.user) return;
     setSavingState("saving");
     const token = await getAccessToken();
@@ -542,6 +611,7 @@ export default function SetlistsTab() {
         tuning: item.kind === "song" ? item.tuning || null : null,
         order: index + 1,
       })),
+      gigIds: nextDraft.gigIds,
     };
 
     const response = await fetch(`/api/setlists/${nextDraft.id}`, {
@@ -557,7 +627,7 @@ export default function SetlistsTab() {
       throw new Error(isDutch ? "Opslaan mislukt" : "Save failed");
     }
 
-    const refreshed = (await response.json()) as { id: string; title?: string; description?: string | null; createdAt: string; updatedAt: string };
+    const refreshed = (await response.json()) as { id: string; title?: string; description?: string | null; gigs?: Array<{ id: string }>; createdAt: string; updatedAt: string };
     const meta = parseSetlistMeta(refreshed.description);
     const saved: StoredSetlist = {
       id: refreshed.id,
@@ -565,6 +635,7 @@ export default function SetlistsTab() {
       naam: refreshed.title || nextDraft.naam,
       datum: meta.datum,
       locatie: meta.locatie,
+      gigIds: Array.isArray(refreshed.gigs) ? refreshed.gigs.map((gig) => gig.id) : nextDraft.gigIds,
       items: nextDraft.items.map(cloneItem),
       notities: meta.notities,
       status: meta.status,
@@ -573,17 +644,21 @@ export default function SetlistsTab() {
       updatedAt: refreshed.updatedAt,
     };
 
-    setSetlists((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
-    setDraft(JSON.parse(JSON.stringify(saved)));
-    setSelectedId(saved.id);
-    setSavingState("saved");
+    // Never replace the live editor with an older network response. This was
+    // the cause of quick additions/reorders appearing to undo themselves.
+    if (draftVersionRef.current === version) {
+      setSetlists((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
+      setSelectedId(saved.id);
+      setSavingState("saved");
+    }
   }, [getAccessToken, isDutch, session?.user]);
 
   useEffect(() => {
-    if (!draft || saveStateIsStable(savingState)) return;
+    if (!draft || savingState !== "dirty") return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const version = draftVersionRef.current;
     saveTimerRef.current = setTimeout(() => {
-      saveDraft(draft).catch((err) => toast.error(err instanceof Error ? err.message : String(err)));
+      saveDraft(draft, version).catch((err) => toast.error(err instanceof Error ? err.message : String(err)));
     }, 800);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -624,6 +699,7 @@ export default function SetlistsTab() {
         naam: created.title || newName.trim(),
         datum: meta.datum,
         locatie: meta.locatie,
+        gigIds: [],
         items: [],
         notities: meta.notities,
         status: meta.status,
@@ -685,6 +761,7 @@ export default function SetlistsTab() {
         naam: created.title || `${draft.naam} (kopie)`,
         datum: meta.datum,
         locatie: meta.locatie,
+        gigIds: [],
         items: draft.items.map(cloneItem),
         notities: meta.notities,
         status: meta.status,
@@ -706,52 +783,39 @@ export default function SetlistsTab() {
       const token = await getAccessToken();
       if (!token) return;
 
-      if (!gigId) {
-          // Unassign: find any gigs currently assigned to this setlist and clear them
-          try {
-            const allGigsRes = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${token}` } });
-            if (!allGigsRes.ok) return;
-            const allGigs = await allGigsRes.json();
-            const assigned = (allGigs || []).find((g: any) => g.setlistId === draft.id);
-            if (!assigned) return;
-            const unassignRes = await fetch(`/api/gigs/${assigned.id}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ setlistId: null }),
-            });
-            if (!unassignRes.ok) throw new Error(isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed');
-            toast.success(isDutch ? 'Setlist ontkoppeld' : 'Setlist unassigned');
-            // refresh gigs list
-            const gigsRes2 = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${await getAccessToken()}` } });
-            if (gigsRes2.ok) {
-              const gigsJson2 = await gigsRes2.json();
-              setGigsList(Array.isArray(gigsJson2) ? gigsJson2.map((g: any) => ({ id: g.id, eventName: g.eventName })) : []);
-            }
-          } catch (e) {
-            toast.error(e instanceof Error ? e.message : String(e));
-          }
-          return;
-        }
-
-        const res = await fetch(`/api/gigs/${gigId}`, {
-        method: 'PUT',
+      const nextGigIds = gigId ? [gigId] : [];
+      const res = await fetch(`/api/setlists/${draft.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ setlistId: draft.id, eventName: undefined }),
+        body: JSON.stringify({ gigIds: nextGigIds }),
       });
 
-      if (!res.ok) throw new Error(isDutch ? 'Toewijzen mislukt' : 'Assign failed');
-      toast.success(isDutch ? 'Setlist toegewezen' : 'Setlist assigned');
-      // refresh gigs list
+      if (!res.ok) throw new Error(gigId ? (isDutch ? 'Toewijzen mislukt' : 'Assign failed') : (isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed'));
+
+      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }> };
+      const resolvedGigIds = Array.isArray(refreshed.gigs) ? refreshed.gigs.map((gig) => gig.id) : nextGigIds;
+
+      setDraft((current) => current ? { ...current, gigIds: resolvedGigIds } : current);
+      setSetlists((prev) =>
+        prev.map((setlist) => {
+          if (setlist.id === draft.id) {
+            return { ...setlist, gigIds: resolvedGigIds };
+          }
+          return gigId && setlist.gigIds.includes(gigId)
+            ? { ...setlist, gigIds: setlist.gigIds.filter((id) => id !== gigId) }
+            : setlist;
+        })
+      );
+
+      toast.success(gigId ? (isDutch ? 'Setlist toegewezen' : 'Setlist assigned') : (isDutch ? 'Setlist ontkoppeld' : 'Setlist unassigned'));
+
       const gigsRes = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${await getAccessToken()}` } });
       if (gigsRes.ok) {
         const gigsJson = await gigsRes.json();
-        setGigsList(Array.isArray(gigsJson) ? gigsJson.map((g: any) => ({ id: g.id, eventName: g.eventName })) : []);
+        setGigsList(normalizeGigOptions(gigsJson));
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -778,45 +842,44 @@ export default function SetlistsTab() {
   }, [getAccessToken, isDutch, selectedId, toast]);
 
   const addSong = useCallback((song: SongRow) => {
-    if (!draft) return;
-    if (draft.items.some((item) => item.songId === song.id)) return;
-    updateDraft({ items: [...draft.items, createSongItem(song)] });
-  }, [draft, updateDraft]);
+    updateDraftItems((items) => [...items, createSongItem(song)]);
+  }, [updateDraftItems]);
 
   const addSpecial = useCallback((label: string) => {
-    if (!draft) return;
     const trimmed = label.trim();
     if (!trimmed) return;
-    updateDraft({ items: [...draft.items, createSpecialItem(trimmed)] });
-  }, [draft, updateDraft]);
+    updateDraftItems((items) => [...items, createSpecialItem(trimmed)]);
+  }, [updateDraftItems]);
 
   const updateItem = useCallback((itemId: string, patch: Partial<DraftItem>) => {
-    if (!draft) return;
-    updateDraft({ items: draft.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)) });
-  }, [draft, updateDraft]);
+    updateDraftItems((items) => items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)));
+  }, [updateDraftItems]);
 
   const removeItem = useCallback((itemId: string) => {
-    if (!draft) return;
-    updateDraft({ items: draft.items.filter((item) => item.id !== itemId) });
-  }, [draft, updateDraft]);
+    updateDraftItems((items) => items.filter((item) => item.id !== itemId));
+  }, [updateDraftItems]);
 
   const moveItem = useCallback((fromIndex: number, toIndex: number) => {
-    if (!draft) return;
-    if (toIndex < 0 || toIndex >= draft.items.length) return;
-    const copy = draft.items.slice();
-    const [item] = copy.splice(fromIndex, 1);
-    copy.splice(toIndex, 0, item);
-    updateDraft({ items: copy });
-  }, [draft, updateDraft]);
+    updateDraftItems((items) => {
+      if (fromIndex < 0 || toIndex < 0 || fromIndex >= items.length || toIndex >= items.length) return items;
+      const copy = items.slice();
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  }, [updateDraftItems]);
 
   const moveItemById = useCallback((itemId: string, direction: -1 | 1) => {
-    if (!draft) return;
-    const index = draft.items.findIndex((item) => item.id === itemId);
-    if (index < 0) return;
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= draft.items.length) return;
-    moveItem(index, nextIndex);
-  }, [draft, moveItem]);
+    updateDraftItems((items) => {
+      const index = items.findIndex((item) => item.id === itemId);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= items.length) return items;
+      const copy = items.slice();
+      const [item] = copy.splice(index, 1);
+      copy.splice(nextIndex, 0, item);
+      return copy;
+    });
+  }, [updateDraftItems]);
 
   const autoGenerate = useCallback(() => {
     if (!draft) return;
@@ -849,19 +912,6 @@ export default function SetlistsTab() {
     setDrawerSongId((current) => (current === songId ? null : songId));
   };
 
-  const saveStateIsStable = (state: typeof savingState) => state === "saved";
-
-  useEffect(() => {
-    if (!draft || saveStateIsStable(savingState)) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      saveDraft(draft).catch((err) => toast.error(err instanceof Error ? err.message : String(err)));
-    }, 800);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [draft, saveDraft, savingState, toast]);
-
   const renderItem = (item: DraftItem, index: number, performance = false) => {
     if (item.kind === "special") {
       return (
@@ -874,6 +924,7 @@ export default function SetlistsTab() {
 
     const song = item.songId ? activeSongMap.get(item.songId) : null;
     const songNotes = item.songId ? linkedNotesForSong(item.songId) : [];
+    const hasImages = Boolean(song?.attachments?.some(isImageAttachment));
     const tuningChanged = index > 0 ? (currentItems[index - 1]?.kind === "song" ? (currentItems[index - 1].tuning || "Onbekend") !== (item.tuning || "Onbekend") : false) : false;
 
     if (performance) {
@@ -883,6 +934,7 @@ export default function SetlistsTab() {
             <div className="min-w-0">
               <div className="text-4xl font-black text-white/90">{index + 1}</div>
               <div className="mt-2 text-2xl font-semibold">{song?.title || item.label}</div>
+              {hasImages && <div className="mt-2 text-sm font-medium text-cyan-200">🖼️ {isDutch ? "Notitie-afbeelding beschikbaar" : "Image note available"}</div>}
               {item.artist && <div className="text-sm text-slate-300">{item.artist}</div>}
             </div>
             <div className="flex flex-col items-end gap-2 text-right">
@@ -934,6 +986,7 @@ export default function SetlistsTab() {
               <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
               {item.key && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.key}</span>}
               {item.tempo && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.tempo}</span>}
+              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️ {isDutch ? "Afbeelding" : "Image"}</span>}
               {tuningChanged && <span className="text-sm text-amber-600">⚠</span>}
             </div>
             {item.notitie && <div className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
@@ -1057,7 +1110,15 @@ export default function SetlistsTab() {
 
           <div className="space-y-2">
             {loading ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">Loading…</div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/40 animate-pulse">
+                    <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-2"></div>
+                    <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700 mb-2"></div>
+                    <div className="h-3 w-1/4 rounded bg-slate-200 dark:bg-slate-700"></div>
+                  </div>
+                ))}
+              </div>
             ) : filteredSetlists.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">{copy.noSetlists}</div>
             ) : filteredSetlists.map((setlist) => (
@@ -1105,10 +1166,10 @@ export default function SetlistsTab() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <select value={""} onChange={(e) => assignSetlistToGig(e.target.value)} className="max-w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                    <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="max-w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                       <option value="">{isDutch ? "Toewijzen aan performance..." : "Assign to performance..."}</option>
                       {gigsList.map((g) => (
-                        <option key={g.id} value={g.id}>{g.eventName}</option>
+                        <option key={g.id} value={g.id}>{g.date ? `${g.eventName} · ${new Date(g.date).toLocaleDateString(locale)}` : g.eventName}</option>
                       ))}
                     </select>
                     <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-rose-600">{isDutch ? "Ontkoppelen" : "Unassign"}</button>
@@ -1173,8 +1234,21 @@ export default function SetlistsTab() {
 
                 <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                   <div>
-                    <div className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.songPicker}</div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.songPicker}</div>
+                      <span className="rounded-full bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length} PDF</span>
+                    </div>
+                    <p className="mb-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{isDutch ? "Afbeeldingen zijn de tablatuur/notities die in de setlist-PDF worden opgenomen." : "Images are the tabs/notes included in the setlist PDF."}</p>
                     <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                    <div className="mt-2 grid grid-cols-3 gap-1.5" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
+                      {([
+                        ["all", isDutch ? `Alle (${songs.length})` : `All (${songs.length})`],
+                        ["with", isDutch ? `Met PDF-afbeelding (${repertoireImageStats.withImages})` : `With PDF image (${repertoireImageStats.withImages})`],
+                        ["without", isDutch ? `Zonder PDF-afbeelding (${repertoireImageStats.withoutImages})` : `Without PDF image (${repertoireImageStats.withoutImages})`],
+                      ] as const).map(([value, label]) => (
+                        <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-xl border px-2 py-2 text-[11px] font-semibold leading-tight transition ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
@@ -1183,16 +1257,28 @@ export default function SetlistsTab() {
                         <div className={`mb-2 inline-flex max-w-full rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
                         <div className="space-y-2">
                           {group.map((song) => {
-                            const alreadyAdded = activeDraft.items.some((item) => item.songId === song.id && item.kind === "song");
+                            const occurrenceCount = songOccurrences.get(song.id) || 0;
                             const meta = parseSongNotes(song.notes).meta;
+                            const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
+                            const documentCount = (song.attachments?.length || 0) - imageCount;
                             return (
-                              <button key={song.id} type="button" disabled={alreadyAdded} onClick={() => addSong(song)} className={`w-full rounded-2xl border px-3 py-2 text-left text-sm transition ${alreadyAdded ? "border-dashed border-slate-300 bg-slate-100 text-slate-400 opacity-60 dark:border-slate-700 dark:bg-slate-900" : "border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-900"}`}>
+                              <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="min-w-0 flex-1">
                                     <div className="break-words font-semibold leading-snug">{song.title}</div>
                                     <div className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
+                                    <div className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${imageCount ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                                      {imageCount
+                                        ? `🖼️ ${imageCount} ${isDutch ? (imageCount === 1 ? "afbeelding voor PDF" : "afbeeldingen voor PDF") : (imageCount === 1 ? "image for PDF" : "images for PDF")}`
+                                        : documentCount
+                                          ? `📎 ${documentCount} ${isDutch ? (documentCount === 1 ? "bijlage — niet in PDF" : "bijlagen — niet in PDF") : (documentCount === 1 ? "attachment — not in PDF" : "attachments — not in PDF")}`
+                                          : (isDutch ? "Geen afbeelding voor PDF" : "No image for PDF")}
+                                    </div>
                                   </div>
-                                  <span className="shrink-0 rounded-full bg-brand-600 px-2 py-1 text-xs font-semibold text-white">{alreadyAdded ? (isDutch ? "Toegevoegd" : "Added") : copy.addSong}</span>
+                                  <div className="flex shrink-0 flex-col items-end gap-1">
+                                    {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}× {isDutch ? "in setlist" : "in setlist"}</span>}
+                                    <span className="rounded-full bg-brand-600 px-2 py-1 text-xs font-semibold text-white">{copy.addSong}</span>
+                                  </div>
                                 </div>
                               </button>
                             );
@@ -1263,48 +1349,106 @@ export default function SetlistsTab() {
                 // Open printable view for PDF export
                 const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
                 if (!win) return;
+                
+                // Generate pastel colors for unique tunings
+                const tuningColors = new Map<string, string>();
+                const pastelColors = [
+                  '#e3f2fd', // pastel blue
+                  '#e8f5e9', // pastel green
+                  '#fff3e0', // pastel orange
+                  '#f3e5f5', // pastel purple
+                  '#fce4ec', // pastel pink
+                  '#e0f7fa', // pastel cyan
+                  '#fff9c4', // pastel yellow
+                  '#efebe9', // pastel brown
+                ];
+                let colorIndex = 0;
+                
+                const getTuningColor = (tuning: string) => {
+                  if (!tuningColors.has(tuning)) {
+                    tuningColors.set(tuning, pastelColors[colorIndex % pastelColors.length]);
+                    colorIndex++;
+                  }
+                  return tuningColors.get(tuning);
+                };
+                
                 const htmlParts: string[] = [];
-                htmlParts.push('<!doctype html><html><head><meta charset="utf-8"><title>Setlist</title>');
-                htmlParts.push('<meta name="viewport" content="width=device-width,initial-scale=1" />');
                 htmlParts.push('<style>');
-                htmlParts.push('@page { size: A4; margin: 20mm; }');
-                htmlParts.push('html,body{height:100%;margin:0;padding:0;font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}');
-                htmlParts.push('.container{max-width:800px;margin:0 auto;padding:0 8mm;}');
-                htmlParts.push('.title{font-size:20px;font-weight:700;margin-bottom:6px;}');
-                htmlParts.push('.meta{color:#444;margin-bottom:12px;}');
-                htmlParts.push('.song{margin-bottom:12px;page-break-inside:avoid;break-inside:avoid-column;padding-bottom:6px;border-bottom:1px solid #eee;}');
-                htmlParts.push('.song-title{font-weight:700;font-size:16px;margin:0 0 6px 0;}');
-                htmlParts.push('.song-meta{color:#666;font-size:13px;margin-top:6px;}');
-                htmlParts.push('img{max-width:100%;height:auto;display:block;margin-top:8px;border:0;padding:0;}');
-                htmlParts.push('@media print{body{margin:0} .container{padding:0} .song{page-break-inside:avoid;}}');
+                htmlParts.push('.setlist-item{border-bottom:1px solid #dbe3ee;break-inside:avoid;margin-bottom:4mm;padding-bottom:4mm}');
+                htmlParts.push('.setlist-item-title{color:#14213d;font-size:12pt;font-weight:750;margin:0}');
+                htmlParts.push('.setlist-item-number{color:#52709a;margin-right:2mm;font-weight:600}');
+                htmlParts.push('.setlist-item-meta{color:#64748b;font-size:9pt;margin:1.5mm 0 0}');
+                htmlParts.push('.setlist-item-note{background:#f8fafc;border-left:2px solid #9eb3ce;color:#334155;font-size:9.5pt;margin:3mm 0 0;padding:2.5mm 3mm;white-space:pre-wrap}');
+                htmlParts.push('.divider{text-align:center;color:#52709a;font-size:10pt;font-weight:700;letter-spacing:0.1em;margin:6mm 0;padding:2mm 0;border-top:1px dashed #dbe3ee;border-bottom:1px dashed #dbe3ee;text-transform:uppercase}');
+                htmlParts.push('.tuning-badge{display:inline-block;padding:1mm 2.5mm;margin:0 1mm;border-radius:99px;font-size:8pt;font-weight:600;color:#1e293b}');
+                htmlParts.push('.attachment-group{margin-top:3mm}');
+                htmlParts.push('.attachment{break-inside:avoid;margin:0 0 5mm;page-break-inside:avoid;text-align:center}');
+                htmlParts.push('.attachment img{display:block;height:auto;margin:0 auto;max-height:200mm;max-width:100%;object-fit:contain}');
                 htmlParts.push('</style>');
-                // Small script to wait for images to load before printing
-                htmlParts.push('<script>function waitForImagesAndPrint(timeoutMs=3000){const imgs = Array.from(document.images); if(imgs.length===0){window.focus();window.print();return;} let loaded=0; const done=()=>{loaded++; if(loaded===imgs.length){window.focus();window.print();}}; imgs.forEach(img=>{ if(img.complete){loaded++; } else { img.addEventListener("load", done); img.addEventListener("error", done); }}); setTimeout(()=>{window.focus();window.print();}, timeoutMs);} window.addEventListener("load",()=>setTimeout(()=>waitForImagesAndPrint(3000),250));</script>');
-                htmlParts.push('</head><body>');
-                htmlParts.push(`<h1>${escapeHtml(draft.naam)}</h1>`);
-                if (draft.datum || draft.locatie) htmlParts.push(`<div style="margin-bottom:12px;color:#444">${escapeHtml([draft.datum, draft.locatie].filter(Boolean).join(' · '))}</div>`);
-                htmlParts.push('<div class="container">');
-                draft.items.forEach((item, idx) => {
+                
+                // Header with bold title and status
+                htmlParts.push('<header class="document-header">');
+                htmlParts.push(`<h1 class="document-title" style="font-weight:800;font-size:18pt;margin:0 0 2mm 0;color:#14213d;">${escapeHtml(draft.naam)}</h1>`);
+                htmlParts.push(`<p style="font-size:10pt;color:#64748b;margin:0;">Status: ${draft.status || 'concept'}</p>`);
+                if (draft.datum || draft.locatie) htmlParts.push(`<p style="font-size:9pt;color:#94a3b8;margin:1mm 0 0;">${escapeHtml([draft.datum, draft.locatie].filter(Boolean).join(' · '))}</p>`);
+                htmlParts.push('</header><section class="section">');
+                
+                // Track song numbers separately (only for actual songs)
+                let songNumber = 0;
+                
+                draft.items.forEach((item) => {
                   if (item.kind === 'special') {
-                    htmlParts.push(`<div class="song"><div class="song-title">${idx+1}. ${escapeHtml(item.specialLabel)}</div></div>`);
+                    // Render as divider without number
+                    htmlParts.push(`<div class="divider">--- ${escapeHtml(item.specialLabel)} ---</div>`);
                     return;
                   }
+                  
+                  songNumber++;
                   const song = songs.find(s => s.id === item.songId || (s.title && s.title.toLowerCase() === item.label.toLowerCase()));
                   const title = song ? song.title : item.label;
-                  const metaStr = [item.artist, item.tuning, item.key, item.tempo ? `${item.tempo} BPM` : ''].filter(Boolean).join(' · ');
-                  htmlParts.push(`<div class="song"><div class="song-title">${idx+1}. ${escapeHtml(title)}${metaStr ? ` <span style="font-size:13px;font-weight:400;color:#64748b;">(${escapeHtml(metaStr)})</span>` : ''}</div>`);
-                  if (song && song.attachments && song.attachments.length > 0) {
-                    song.attachments.forEach((att) => {
-                      htmlParts.push(`<div style="margin-top:6px;"><img src="${escapeHtml(att.publicUrl)}" alt="${escapeHtml(att.caption || title)}" />${att.caption ? `<div class="song-meta" style="font-style:italic;">${escapeHtml(att.caption)}</div>` : ''}</div>`);
-                    });
+                  
+                  // Build tuning badges with pastel colors
+                  const badges: string[] = [];
+                  if (item.tuning) {
+                    const color = getTuningColor(item.tuning);
+                    badges.push(`<span class="tuning-badge" style="background:${color}">${escapeHtml(item.tuning)}</span>`);
                   }
-                  if (item.notitie) htmlParts.push(`<div class="song-meta">${escapeHtml(item.notitie)}</div>`);
-                  htmlParts.push('</div>');
+                  if (item.key) {
+                    const color = getTuningColor(item.key);
+                    badges.push(`<span class="tuning-badge" style="background:${color}">${escapeHtml(item.key)}</span>`);
+                  }
+                  if (item.tempo) {
+                    const color = getTuningColor(item.tempo + ' bpm');
+                    badges.push(`<span class="tuning-badge" style="background:${color}">${escapeHtml(item.tempo)} bpm</span>`);
+                  }
+                  
+                  const metaStr = badges.length > 0 ? badges.join(' · ') : '';
+                  
+                  htmlParts.push(`<article class="setlist-item">`);
+                  htmlParts.push(`<h3 class="setlist-item-title"><span class="setlist-item-number">${songNumber}.</span>${escapeHtml(title)}</h3>`);
+                  if (metaStr) htmlParts.push(`<p class="setlist-item-meta">${metaStr}</p>`);
+                  
+                  // Include ALL image attachments in export (webp, jpeg, png, etc.) - NO captions, NO borders
+                  if (song?.attachments && song.attachments.length > 0) {
+                    const imageAttachments = song.attachments.filter(isImageAttachment);
+                    if (imageAttachments.length > 0) {
+                      htmlParts.push('<div class="attachment-group">');
+                      imageAttachments.forEach((att) => {
+                        htmlParts.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="" loading="eager" /></figure>`);
+                      });
+                      htmlParts.push('</div>');
+                    }
+                  }
+                  
+                  if (item.notitie) htmlParts.push(`<div class="setlist-item-note">${escapeHtml(item.notitie)}</div>`);
+                  htmlParts.push('</article>');
                 });
-                htmlParts.push('</div>');
-                htmlParts.push('</body></html>');
+                
+                htmlParts.push('</section>');
+                if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">Algemene notities</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
+                htmlParts.push('<footer class="document-footer">GigManager · pagina <span class="page-number"></span></footer>');
                 win.document.open();
-                win.document.write(htmlParts.join('\n'));
+                win.document.write(createPrintDocument(escapeHtml(draft.naam), htmlParts.join('\n')));
                 win.document.close();
                 // Printing is handled by the small script that waits for images to load
               }} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Print as PDF</button>
