@@ -30,6 +30,7 @@ interface Gig {
   clientPaymentReceived: boolean;
   bandPaymentComplete: boolean;
   myPayAmount: number;
+  setlistId: string | null;
 }
 
 // Custom toolbar that shows the current month in month view and the active range in agenda view
@@ -266,6 +267,7 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
         clientPaymentReceived: gig.paymentReceived,
         bandPaymentComplete: gig.bandPaid,
         myPayAmount: calc.myEarnings,
+        setlistId: gig.setlistId,
       };
     });
   }, []);
@@ -885,6 +887,20 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
                   {selectedEvent.resource.isCharity ? "Charity Event" : <BandTag name={selectedEvent.resource.performers} variant="solid" />}
                 </span>
               </div>
+
+              {/* Setlist Link */}
+              {selectedEvent.resource.setlistId && (
+                <button
+                  onClick={() => {
+                    router.push(`/?tab=setlists&setlist=${selectedEvent.resource.setlistId}`);
+                    handleCloseModal();
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-900/30 dark:bg-cyan-900/10 dark:text-cyan-300 dark:hover:bg-cyan-900/20"
+                >
+                  <Icons.ListView className="h-4 w-4" />
+                  View Setlist
+                </button>
+              )}
 
               {/* Payment Info */}
               {!selectedEvent.resource.isCharity && (
