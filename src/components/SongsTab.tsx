@@ -200,7 +200,7 @@ export default function SongsTab() {
           .includes(query)
       );
     });
-  }, [songs, songSearch, showOnlyWithNotes]);
+  }, [songs, songSearch, showOnlyWithNotes, attachmentFilter, tuningFilter, tagFilter, keyFilter]);
 
   const openEditor = (song?: SongRecord) => {
     if (!song) {
