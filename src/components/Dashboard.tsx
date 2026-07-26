@@ -1147,21 +1147,8 @@ export default function Dashboard() {
       {/* -- Navbar -------------------------------------------------------- */}
       <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
         <div className={`mx-auto flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:flex-nowrap sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
-          {/* Left: Hamburger (mobile) + Logo */}
+          {/* Left: Logo */}
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition flex-shrink-0"
-              title="Menu"
-            >
-              {showMobileMenu ? (
-                <Icons.Close className="h-5 w-5" />
-              ) : (
-                <Icons.Menu className="h-5 w-5" />
-              )}
-            </button>
-            
             <Image
               src="/favicon.png"
               alt="GigsManager"
@@ -1383,7 +1370,6 @@ export default function Dashboard() {
             aria-label="Open navigation menu"
           >
             <span className="flex min-w-0 items-center gap-2">
-              <Icons.Menu className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
               <span className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {TAB_LABELS[selectedTab]}
               </span>
@@ -1406,7 +1392,7 @@ export default function Dashboard() {
                   onClick={() => setShowMobileMenu(false)}
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
-                  <Icons.Close className="h-5 w-5" />
+                  <Icons.Close className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                 </button>
               </div>
 
@@ -1452,7 +1438,6 @@ export default function Dashboard() {
                       onClick={() => setSearchQuery("")}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition"
                     >
-                      <Icons.Close className="h-4 w-4 text-slate-400" />
                     </button>
                   )}
                 </div>
@@ -1823,7 +1808,6 @@ export default function Dashboard() {
                                       title="Clear selection"
                                       className="rounded px-1.5 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 text-xs"
                                     >
-                                      <Icons.Close className="h-4 w-4" />
                                     </button>
                                   </>
                                 )}
