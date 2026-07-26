@@ -146,6 +146,8 @@ export default function SongsTab() {
       filterTag: isDutch ? "Tag" : "Tag",
       filterKey: isDutch ? "Toonsoort" : "Key",
       resetFilters: isDutch ? "Filters wissen" : "Reset filters",
+      deleteSong: isDutch ? "Verwijderen" : "Delete",
+      deleteConfirm: isDutch ? "Weet je zeker dat je dit nummer wilt verwijderen?" : "Are you sure you want to delete this song?",
     }),
     [isDutch]
   );
@@ -166,6 +168,23 @@ export default function SongsTab() {
       setLoading(false);
     }
   }, [getAccessToken, toast]);
+
+  const deleteSong = useCallback(async (songId: string) => {
+    if (!confirm(copy.deleteConfirm)) return;
+    
+    try {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/songs/${songId}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) throw new Error("Failed to delete song");
+      toast.success(isDutch ? "Nummer verwijderd" : "Song deleted");
+      fetchSongs();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete song");
+    }
+  }, [getAccessToken, toast, copy.deleteConfirm, isDutch, fetchSongs]);
 
   useEffect(() => {
     fetchSongs();
@@ -480,6 +499,14 @@ export default function SongsTab() {
                         className="rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500 transition"
                       >
                         {isDutch ? "Bewerken" : "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteSong(song.id)}
+                        className="rounded-xl border border-rose-900/50 bg-rose-950/30 px-3 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/50 transition"
+                        title={copy.deleteSong}
+                      >
+                        ×
                       </button>
                     </div>
                   </div>
