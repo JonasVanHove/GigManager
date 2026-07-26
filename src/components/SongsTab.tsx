@@ -25,6 +25,7 @@ type SongRecord = {
   attachments?: SongAttachment[];
   tags?: Array<{ id: string; name: string }>;
   bands?: Array<{ id: string; name: string }>;
+  createdAt: string;
 };
 
 const isImageAttachment = (attachment: SongAttachment) =>
@@ -101,6 +102,8 @@ export default function SongsTab() {
   const [tuningFilter, setTuningFilter] = useState<string>("");
   const [tagFilter, setTagFilter] = useState<string>("");
   const [keyFilter, setKeyFilter] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"title" | "date" | "attachments">("title");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<SongRecord | null>(null);
   const [title, setTitle] = useState("");
@@ -148,6 +151,10 @@ export default function SongsTab() {
       resetFilters: isDutch ? "Filters wissen" : "Reset filters",
       deleteSong: isDutch ? "Verwijderen" : "Delete",
       deleteConfirm: isDutch ? "Weet je zeker dat je dit nummer wilt verwijderen?" : "Are you sure you want to delete this song?",
+      sortBy: isDutch ? "Sorteren op" : "Sort by",
+      sortTitle: isDutch ? "Titel" : "Title",
+      sortDate: isDutch ? "Datum" : "Date",
+      sortAttachments: isDutch ? "Bijlagen" : "Attachments",
     }),
     [isDutch]
   );
@@ -174,7 +181,7 @@ export default function SongsTab() {
     
     try {
       const token = await getAccessToken();
-      const res = await fetch(`/api/songs/${songId}`, {
+      const res = await fetch(`/api/songs?id=${songId}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
@@ -192,7 +199,7 @@ export default function SongsTab() {
 
   const filteredSongs = useMemo(() => {
     const query = songSearch.trim().toLowerCase();
-    return songs.filter((song) => {
+    let result = songs.filter((song) => {
       const parsed = parseSongNotes(song.notes);
       if (showOnlyWithNotes && !parsed.body.trim()) return false;
       
@@ -219,7 +226,22 @@ export default function SongsTab() {
           .includes(query)
       );
     });
-  }, [songs, songSearch, showOnlyWithNotes, attachmentFilter, tuningFilter, tagFilter, keyFilter]);
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === "title") {
+        comparison = a.title.localeCompare(b.title);
+      } else if (sortBy === "date") {
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortBy === "attachments") {
+        comparison = (a.attachments?.length || 0) - (b.attachments?.length || 0);
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [songs, songSearch, showOnlyWithNotes, attachmentFilter, tuningFilter, tagFilter, keyFilter, sortBy, sortOrder]);
 
   const openEditor = (song?: SongRecord) => {
     if (!song) {
@@ -381,53 +403,103 @@ export default function SongsTab() {
         </div>
         
         {/* Additional Filters */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {/* Attachment Filter */}
-          <select
-            value={attachmentFilter}
-            onChange={(e) => setAttachmentFilter(e.target.value as "all" | "with" | "without")}
-            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-          >
-            <option value="all">{copy.filterAttachmentsAll}</option>
-            <option value="with">{copy.filterAttachmentsWith}</option>
-            <option value="without">{copy.filterAttachmentsWithout}</option>
-          </select>
-          
-          {/* Tuning Filter */}
-          <select
-            value={tuningFilter}
-            onChange={(e) => setTuningFilter(e.target.value)}
-            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-          >
-            <option value="">{copy.filterTuning}</option>
-            {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(tuning => (
-              <option key={tuning} value={tuning}>{tuning}</option>
-            ))}
-          </select>
-          
-          {/* Tag Filter */}
-          <select
-            value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
-            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-          >
-            <option value="">{copy.filterTag}</option>
-            {Array.from(new Set(songs.flatMap(s => s.tags?.map(t => t.name) || []))).sort().map(tag => (
-              <option key={tag} value={tag}>{tag}</option>
-            ))}
-          </select>
-          
-          {/* Key Filter */}
-          <select
-            value={keyFilter}
-            onChange={(e) => setKeyFilter(e.target.value)}
-            className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-          >
-            <option value="">{copy.filterKey}</option>
-            {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(key => (
-              <option key={key} value={key}>{key}</option>
-            ))}
-          </select>
+        <div className="mt-3 flex flex-col gap-3">
+          {/* Attachment Filter - Prominent */}
+          <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-black p-2">
+            <span className="text-xs font-medium text-neutral-400">{copy.filterAttachments}:</span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setAttachmentFilter("all")}
+                className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                  attachmentFilter === "all"
+                    ? "bg-cyan-600 text-white"
+                    : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
+                }`}
+              >
+                {copy.filterAttachmentsAll}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAttachmentFilter("with")}
+                className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                  attachmentFilter === "with"
+                    ? "bg-cyan-600 text-white"
+                    : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
+                }`}
+              >
+                {copy.filterAttachmentsWith}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAttachmentFilter("without")}
+                className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                  attachmentFilter === "without"
+                    ? "bg-cyan-600 text-white"
+                    : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
+                }`}
+              >
+                {copy.filterAttachmentsWithout}
+              </button>
+            </div>
+          </div>
+
+          {/* Secondary Filters Row */}
+          <div className="flex flex-wrap gap-2">
+            {/* Tuning Filter */}
+            <select
+              value={tuningFilter}
+              onChange={(e) => setTuningFilter(e.target.value)}
+              className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+            >
+              <option value="">{copy.filterTuning}</option>
+              {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(tuning => (
+                <option key={tuning} value={tuning}>{tuning}</option>
+              ))}
+            </select>
+            
+            {/* Tag Filter */}
+            <select
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+            >
+              <option value="">{copy.filterTag}</option>
+              {Array.from(new Set(songs.flatMap(s => s.tags?.map(t => t.name) || []))).sort().map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+            
+            {/* Key Filter */}
+            <select
+              value={keyFilter}
+              onChange={(e) => setKeyFilter(e.target.value)}
+              className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+            >
+              <option value="">{copy.filterKey}</option>
+              {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(key => (
+                <option key={key} value={key}>{key}</option>
+              ))}
+            </select>
+
+            {/* Sort Controls */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "title" | "date" | "attachments")}
+              className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+            >
+              <option value="title">{copy.sortTitle}</option>
+              <option value="date">{copy.sortDate}</option>
+              <option value="attachments">{copy.sortAttachments}</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 hover:bg-neutral-800 transition"
+            >
+              {sortOrder === "asc" ? "↑" : "↓"}
+            </button>
+          </div>
           
           {/* Reset Filters Button */}
           {(attachmentFilter !== "all" || tuningFilter || tagFilter || keyFilter) && (
@@ -438,7 +510,7 @@ export default function SongsTab() {
                 setTagFilter("");
                 setKeyFilter("");
               }}
-              className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-neutral-800 transition"
+              className="self-start rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-neutral-800 transition"
             >
               {copy.resetFilters}
             </button>
@@ -446,11 +518,11 @@ export default function SongsTab() {
         </div>
 
         {/* Songs List */}
-        <div className="mt-5 grid gap-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {loading ? (
-            <div className="py-12 text-center text-sm text-neutral-400">Repertoire laden...</div>
+            <div className="py-12 text-center text-sm text-neutral-400 col-span-full">Repertoire laden...</div>
           ) : filteredSongs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400">
+            <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400 col-span-full">
               {copy.emptyState}
             </div>
           ) : (
@@ -460,9 +532,9 @@ export default function SongsTab() {
               return (
                 <div
                   key={song.id}
-                  className="rounded-2xl border border-neutral-800/90 bg-black p-4 transition duration-200 hover:border-neutral-700 hover:shadow-lg hover:shadow-cyan-950/20"
+                  className="rounded-2xl border border-neutral-800/90 bg-black p-4 transition duration-200 hover:border-neutral-700 hover:shadow-lg hover:shadow-cyan-950/20 w-full"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-3">
                     <div className="min-w-0">
                       <div className="truncate text-base font-bold text-white">{song.title}</div>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -484,11 +556,11 @@ export default function SongsTab() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       <button
                         type="button"
                         onClick={() => handleExportSong(song)}
-                        className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 transition"
+                        className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 transition flex-1 min-w-[80px]"
                         title="Export song details and images to PDF/Print"
                       >
                         {copy.exportSong}
@@ -496,7 +568,7 @@ export default function SongsTab() {
                       <button
                         type="button"
                         onClick={() => openEditor(song)}
-                        className="rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500 transition"
+                        className="rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500 transition flex-1 min-w-[60px]"
                       >
                         {isDutch ? "Bewerken" : "Edit"}
                       </button>
