@@ -134,8 +134,8 @@ export default function BandsTab() {
       const ext = file.name.split(".").pop() || "png";
       const fileName = `band-logo-${Date.now()}-${crypto.randomUUID()}.${ext}`;
       
-      console.log("Uploading logo to Supabase:", fileName);
-      const { error, data } = await supabaseClient.storage.from("bands").upload(fileName, file, { upsert: true });
+      console.log("Uploading logo to Supabase songs bucket:", fileName);
+      const { error, data } = await supabaseClient.storage.from("songs").upload(fileName, file, { upsert: true });
       
       if (error) {
         console.error("Supabase upload error:", error);
@@ -149,12 +149,12 @@ export default function BandsTab() {
         });
         setLogoPreview(fallbackUrl);
         setFormData({ ...formData, logoUrl: fallbackUrl });
-        toast.warning(language === "nl" ? "Logo opgeslagen lokaal (Supabase bucket niet beschikbaar)" : "Logo saved locally (Supabase bucket not available)");
+        toast.warning(language === "nl" ? "Logo opgeslagen lokaal (Supabase niet beschikbaar)" : "Logo saved locally (Supabase not available)");
         return;
       }
       
       console.log("Upload successful:", data);
-      const { data: publicUrlData } = supabaseClient.storage.from("bands").getPublicUrl(fileName);
+      const { data: publicUrlData } = supabaseClient.storage.from("songs").getPublicUrl(fileName);
       console.log("Public URL:", publicUrlData.publicUrl);
       setLogoPreview(publicUrlData.publicUrl);
       setFormData({ ...formData, logoUrl: publicUrlData.publicUrl });
@@ -246,7 +246,9 @@ export default function BandsTab() {
   };
 
   const getBandMembers = (bandId: string) => {
-    return members.filter((member) => member.bands?.includes(bandId));
+    const band = bands.find(b => b.id === bandId);
+    if (!band) return [];
+    return members.filter((member) => member.bands?.includes(band.name));
   };
 
   if (loading) {
