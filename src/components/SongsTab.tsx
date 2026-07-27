@@ -329,33 +329,48 @@ export default function SongsTab() {
     const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
     if (!win) return;
     const body: string[] = [];
-    body.push('<header class="document-header"><div class="document-eyebrow">GigManager · nummerfiche</div>');
+    
+    // Header with centered title
+    body.push('<header class="document-header"><div class="document-eyebrow">GigManager · Song Sheet</div>');
     body.push(`<h1 class="document-title">${escapeHtml(song.title)}</h1>`);
 
+    // Metadata badges
     const metaBadges: string[] = [];
-    if (parsed.meta.bandProject) metaBadges.push(`<span class="meta-item">Band: ${escapeHtml(parsed.meta.bandProject)}</span>`);
-    if (parsed.meta.genre) metaBadges.push(`<span class="meta-item">Genre: ${escapeHtml(parsed.meta.genre)}</span>`);
-    if (parsed.meta.keySignature) metaBadges.push(`<span class="meta-item">Toonsoort: ${escapeHtml(parsed.meta.keySignature)}</span>`);
-    if (parsed.meta.bpm) metaBadges.push(`<span class="meta-item">BPM: ${escapeHtml(parsed.meta.bpm)}</span>`);
+    if (parsed.meta.bandProject) metaBadges.push(`<span class="metadata-item">Band: ${escapeHtml(parsed.meta.bandProject)}</span>`);
+    if (parsed.meta.genre) metaBadges.push(`<span class="metadata-item">Genre: ${escapeHtml(parsed.meta.genre)}</span>`);
+    if (parsed.meta.keySignature) metaBadges.push(`<span class="metadata-item">Key: ${escapeHtml(parsed.meta.keySignature)}</span>`);
+    if (parsed.meta.bpm) metaBadges.push(`<span class="metadata-item">BPM: ${escapeHtml(parsed.meta.bpm)}</span>`);
     if (metaBadges.length > 0) body.push(`<div class="metadata">${metaBadges.join('')}</div>`);
     body.push('</header>');
 
-    if (parsed.body.trim()) body.push(`<section class="section"><h2 class="section-heading">Notities</h2><div class="note-content">${escapeHtml(parsed.body)}</div></section>`);
-    if (parsed.meta.comments.trim()) body.push(`<section class="section"><h2 class="section-heading">Opmerkingen</h2><div class="note-content">${escapeHtml(parsed.meta.comments)}</div></section>`);
+    // Notes section
+    if (parsed.body.trim()) {
+      body.push('<section class="section"><h2 class="section-heading">Notes</h2>');
+      body.push(`<div class="note-content">${escapeHtml(parsed.body)}</div>`);
+      body.push('</section>');
+    }
 
-    // Include ALL image attachments in export (webp, jpeg, png, etc.)
+    // Comments section
+    if (parsed.meta.comments.trim()) {
+      body.push('<section class="section"><h2 class="section-heading">Comments</h2>');
+      body.push(`<div class="note-content">${escapeHtml(parsed.meta.comments)}</div>`);
+      body.push('</section>');
+    }
+
+    // Attachments section - remove redundant metadata, show images cleanly
     if (song.attachments && song.attachments.length > 0) {
       const imageAttachments = song.attachments.filter(isImageAttachment);
       if (imageAttachments.length > 0) {
-        body.push('<section class="section"><h2 class="section-heading">Bijlagen</h2>');
+        body.push('<section class="section"><h2 class="section-heading">Attachments</h2>');
         imageAttachments.forEach((att, attIdx) => {
           const caption = att.caption ? escapeHtml(att.caption) : (imageAttachments.length > 1 ? `${escapeHtml(song.title)} (${attIdx + 1})` : escapeHtml(song.title));
-          body.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="${caption}" loading="eager" style="max-width:100%;height:auto;display:block;margin:0 auto;" /><figcaption class="attachment-caption">${caption}</figcaption></figure>`);
+          body.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="${caption}" loading="eager" /><figcaption class="attachment-caption">${caption}</figcaption></figure>`);
         });
         body.push('</section>');
       }
     }
-    body.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> pagina <span class="page-number"></span></footer>');
+    
+    body.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
     win.document.open();
     win.document.write(createPrintDocument(escapeHtml(song.title), body.join('\n')));
     win.document.close();

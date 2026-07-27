@@ -1350,47 +1350,19 @@ export default function SetlistsTab() {
                 const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
                 if (!win) return;
                 
-                // Generate pastel colors for unique tunings
-                const tuningColors = new Map<string, string>();
-                const pastelColors = [
-                  '#e3f2fd', // pastel blue
-                  '#e8f5e9', // pastel green
-                  '#fff3e0', // pastel orange
-                  '#f3e5f5', // pastel purple
-                  '#fce4ec', // pastel pink
-                  '#e0f7fa', // pastel cyan
-                  '#fff9c4', // pastel yellow
-                  '#efebe9', // pastel brown
-                ];
-                let colorIndex = 0;
-                
-                const getTuningColor = (tuning: string) => {
-                  if (!tuningColors.has(tuning)) {
-                    tuningColors.set(tuning, pastelColors[colorIndex % pastelColors.length]);
-                    colorIndex++;
-                  }
-                  return tuningColors.get(tuning);
-                };
-                
                 const htmlParts: string[] = [];
-                htmlParts.push('<style>');
-                htmlParts.push('.setlist-item{border-bottom:1px solid #dbe3ee;break-inside:avoid;margin-bottom:4mm;padding-bottom:4mm}');
-                htmlParts.push('.setlist-item-title{color:#14213d;font-size:12pt;font-weight:750;margin:0}');
-                htmlParts.push('.setlist-item-number{color:#52709a;margin-right:2mm;font-weight:600}');
-                htmlParts.push('.setlist-item-meta{color:#64748b;font-size:9pt;margin:1.5mm 0 0}');
-                htmlParts.push('.setlist-item-note{background:#f8fafc;border-left:2px solid #9eb3ce;color:#334155;font-size:9.5pt;margin:3mm 0 0;padding:2.5mm 3mm;white-space:pre-wrap}');
-                htmlParts.push('.divider{text-align:center;color:#52709a;font-size:10pt;font-weight:700;letter-spacing:0.1em;margin:6mm 0;padding:2mm 0;border-top:1px dashed #dbe3ee;border-bottom:1px dashed #dbe3ee;text-transform:uppercase}');
-                htmlParts.push('.tuning-badge{display:inline-block;padding:1mm 2.5mm;margin:0 1mm;border-radius:99px;font-size:8pt;font-weight:600;color:#1e293b}');
-                htmlParts.push('.attachment-group{margin-top:3mm}');
-                htmlParts.push('.attachment{break-inside:avoid;margin:0 0 5mm;page-break-inside:avoid;text-align:center}');
-                htmlParts.push('.attachment img{display:block;height:auto;margin:0 auto;max-height:200mm;max-width:100%;object-fit:contain}');
-                htmlParts.push('</style>');
                 
-                // Header with bold title and status
+                // Header with centered title and metadata
                 htmlParts.push('<header class="document-header">');
-                htmlParts.push(`<h1 class="document-title" style="font-weight:800;font-size:18pt;margin:0 0 2mm 0;color:#14213d;">${escapeHtml(draft.naam)}</h1>`);
-                htmlParts.push(`<p style="font-size:10pt;color:#64748b;margin:0;">Status: ${draft.status || 'concept'}</p>`);
-                if (draft.datum || draft.locatie) htmlParts.push(`<p style="font-size:9pt;color:#94a3b8;margin:1mm 0 0;">${escapeHtml([draft.datum, draft.locatie].filter(Boolean).join(' · '))}</p>`);
+                htmlParts.push('<div class="document-eyebrow">GigManager · Setlist</div>');
+                htmlParts.push(`<h1 class="document-title">${escapeHtml(draft.naam)}</h1>`);
+                
+                // Metadata badges
+                const metaBadges: string[] = [];
+                if (draft.status) metaBadges.push(`<span class="metadata-item">Status: ${escapeHtml(draft.status)}</span>`);
+                if (draft.datum) metaBadges.push(`<span class="metadata-item">Date: ${escapeHtml(draft.datum)}</span>`);
+                if (draft.locatie) metaBadges.push(`<span class="metadata-item">Location: ${escapeHtml(draft.locatie)}</span>`);
+                if (metaBadges.length > 0) htmlParts.push(`<div class="metadata">${metaBadges.join('')}</div>`);
                 htmlParts.push('</header><section class="section">');
                 
                 // Track song numbers separately (only for actual songs)
@@ -1399,7 +1371,7 @@ export default function SetlistsTab() {
                 draft.items.forEach((item) => {
                   if (item.kind === 'special') {
                     // Render as divider without number
-                    htmlParts.push(`<div class="divider">--- ${escapeHtml(item.specialLabel)} ---</div>`);
+                    htmlParts.push(`<div class="setlist-item" style="text-align:center;color:#64748b;font-size:11pt;font-weight:600;letter-spacing:0.1em;padding:4mm 0;border-top:1px dashed #e2e8f0;border-bottom:1px dashed #e2e8f0;text-transform:uppercase;">--- ${escapeHtml(item.specialLabel)} ---</div>`);
                     return;
                   }
                   
@@ -1407,46 +1379,36 @@ export default function SetlistsTab() {
                   const song = songs.find(s => s.id === item.songId || (s.title && s.title.toLowerCase() === item.label.toLowerCase()));
                   const title = song ? song.title : item.label;
                   
-                  // Build tuning badges with pastel colors
+                  // Build metadata badges
                   const badges: string[] = [];
-                  if (item.tuning) {
-                    const color = getTuningColor(item.tuning);
-                    badges.push(`<span class="tuning-badge" style="background:${color}">${escapeHtml(item.tuning)}</span>`);
-                  }
-                  if (item.key) {
-                    const color = getTuningColor(item.key);
-                    badges.push(`<span class="tuning-badge" style="background:${color}">${escapeHtml(item.key)}</span>`);
-                  }
-                  if (item.tempo) {
-                    const color = getTuningColor(item.tempo + ' bpm');
-                    badges.push(`<span class="tuning-badge" style="background:${color}">${escapeHtml(item.tempo)} bpm</span>`);
-                  }
+                  if (item.tuning) badges.push(`<span class="metadata-item">${escapeHtml(item.tuning)}</span>`);
+                  if (item.key) badges.push(`<span class="metadata-item">Key: ${escapeHtml(item.key)}</span>`);
+                  if (item.tempo) badges.push(`<span class="metadata-item">${escapeHtml(item.tempo)} BPM</span>`);
                   
-                  const metaStr = badges.length > 0 ? badges.join(' · ') : '';
+                  const metaStr = badges.length > 0 ? `<div class="metadata" style="justify-content:flex-start;margin-top:2mm;">${badges.join('')}</div>` : '';
                   
                   htmlParts.push(`<article class="setlist-item">`);
                   htmlParts.push(`<h3 class="setlist-item-title"><span class="setlist-item-number">${songNumber}.</span>${escapeHtml(title)}</h3>`);
-                  if (metaStr) htmlParts.push(`<p class="setlist-item-meta">${metaStr}</p>`);
+                  if (metaStr) htmlParts.push(metaStr);
                   
-                  // Include ALL image attachments in export (webp, jpeg, png, etc.) - NO captions, NO borders
+                  // Include image attachments with captions
                   if (song?.attachments && song.attachments.length > 0) {
                     const imageAttachments = song.attachments.filter(isImageAttachment);
                     if (imageAttachments.length > 0) {
-                      htmlParts.push('<div class="attachment-group">');
-                      imageAttachments.forEach((att) => {
-                        htmlParts.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="" loading="eager" /></figure>`);
+                      imageAttachments.forEach((att, attIdx) => {
+                        const caption = att.caption ? escapeHtml(att.caption) : (imageAttachments.length > 1 ? `${escapeHtml(title)} (${attIdx + 1})` : escapeHtml(title));
+                        htmlParts.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="${caption}" loading="eager" /><figcaption class="attachment-caption">${caption}</figcaption></figure>`);
                       });
-                      htmlParts.push('</div>');
                     }
                   }
                   
-                  if (item.notitie) htmlParts.push(`<div class="setlist-item-note">${escapeHtml(item.notitie)}</div>`);
+                  if (item.notitie) htmlParts.push(`<div class="note-content" style="margin-top:3mm;">${escapeHtml(item.notitie)}</div>`);
                   htmlParts.push('</article>');
                 });
                 
                 htmlParts.push('</section>');
-                if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">Algemene notities</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
-                htmlParts.push('<footer class="document-footer">GigManager · pagina <span class="page-number"></span></footer>');
+                if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">General Notes</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
+                htmlParts.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
                 win.document.open();
                 win.document.write(createPrintDocument(escapeHtml(draft.naam), htmlParts.join('\n')));
                 win.document.close();
