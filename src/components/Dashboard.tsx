@@ -28,6 +28,7 @@ const AnalyticsPage = lazy(() => import("./AnalyticsPage"));
 const InvestmentsTab = lazy(() => import("./InvestmentsTab"));
 const AllGigsTab = lazy(() => import("./AllGigsTab"));
 const BandMembers = lazy(() => import("./BandMembers"));
+const BandsTab = lazy(() => import("./BandsTab"));
 const FinancialReports = lazy(() => import("./FinancialReports"));
 const CalendarView = lazy(() => import("./CalendarView"));
 const SetlistsTab = lazy(() => import("./SetlistsTab"));
@@ -42,6 +43,7 @@ type DashboardTab =
   | "analytics"
   | "investments"
   | "songs"
+  | "bands"
   | "band-members"
   | "calendar"
   | "setlists"
@@ -54,6 +56,7 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "analytics",
   "investments",
   "songs",
+  "bands",
   "band-members",
   "calendar",
   "setlists",
@@ -71,6 +74,7 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   investments: () => import("./InvestmentsTab"),
 
   songs: () => import("./SongsTab"),
+  bands: () => import("./BandsTab"),
   "band-members": () => import("./BandMembers"),
   calendar: () => import("./CalendarView"),
   setlists: () => import("./SetlistsTab"),
@@ -84,6 +88,7 @@ const TAB_LABELS: Record<DashboardTab, string> = {
   analytics: "Insights",
   investments: "Investments",
   songs: "Songs",
+  bands: "Bands",
   "band-members": "Band Members",
   calendar: "Calendar",
   setlists: "Setlists",
@@ -91,7 +96,7 @@ const TAB_LABELS: Record<DashboardTab, string> = {
   superadmin: "Superadmin",
 };
 
-const PRIMARY_NAV_TABS: DashboardTab[] = ["gigs", "calendar", "setlists", "songs"];
+const PRIMARY_NAV_TABS: DashboardTab[] = ["gigs", "calendar", "setlists", "songs", "bands"];
 const SECONDARY_NAV_TABS: DashboardTab[] = ["all-gigs", "band-members", "shared-links", "analytics", "investments", "superadmin"];
 
 const renderTabIcon = (tab: DashboardTab, className = "h-4 w-4") => {
@@ -106,6 +111,8 @@ const renderTabIcon = (tab: DashboardTab, className = "h-4 w-4") => {
       return <Icons.Wallet className={className} />;
     case "songs":
       return <Icons.Music2 className={className} />;
+    case "bands":
+      return <Icons.People className={className} />;
     case "band-members":
       return <Icons.People className={className} />;
     case "calendar":
@@ -1952,6 +1959,10 @@ export default function Dashboard() {
         ) : selectedTab === "songs" ? (
           <Suspense fallback={<TabLoader />}>
             <SongsTab />
+          </Suspense>
+        ) : selectedTab === "bands" ? (
+          <Suspense fallback={<TabLoader />}>
+            <BandsTab />
           </Suspense>
 
         ) : selectedTab === "shared-links" ? (

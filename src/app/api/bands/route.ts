@@ -61,3 +61,23 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Failed to update band" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = await getUserIdFromHeader(request);
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const url = new URL(request.url);
+    const id = url.pathname.split('/').pop();
+    if (!id) return NextResponse.json({ error: "Band ID required" }, { status: 400 });
+
+    const user = await prisma.user.findUnique({ where: { supabaseId: userId }, select: { id: true } });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    await prisma.$executeRaw`DELETE FROM bands WHERE id = ${id} AND "userId" = ${user.id}`;
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("DELETE /api/bands error:", err);
+    return NextResponse.json({ error: "Failed to delete band" }, { status: 500 });
+  }
+}
