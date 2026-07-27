@@ -70,14 +70,17 @@ model Setlist {
   title       String
   description String?
   userId      String
+  bandId      String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   gigs        Gig[]
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items       SetlistItem[]
+  band        bands?        @relation(fields: [bandId], references: [id])
 
   @@index([userId])
   @@index([createdAt])
+  @@index([bandId])
 }
 
 model SetlistItem {
@@ -418,8 +421,10 @@ model bands {
   id        String    @id
   name      String
   userId    String
+  logoUrl   String?
   createdAt DateTime? @default(now()) @db.Timestamptz(6)
   updatedAt DateTime? @default(now()) @db.Timestamptz(6)
+  setlists  Setlist[]
 }
 
 model song_attachments {

@@ -7,6 +7,7 @@ import { useAuth } from "./AuthProvider";
 import { useToast } from "./ToastContainer";
 import { useSettings } from "./SettingsProvider";
 import { Icons } from "./Icons";
+import { supabaseClient } from "@/lib/supabase-client";
 
 interface BandMemberGig {
   gigId: string;
@@ -60,6 +61,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
   const [gigEndDate, setGigEndDate] = useState("");
   const [formBands, setFormBands] = useState<string[]>([]);
   const [newBandName, setNewBandName] = useState("");
+  const [newBandLogo, setNewBandLogo] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -444,13 +447,57 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
     );
   };
 
-  const addNewBand = () => {
+  const addNewBand = async () => {
     const trimmed = newBandName.trim();
     if (!trimmed) return;
-    if (!formBands.includes(trimmed)) {
-      setFormBands((prev) => [...prev, trimmed]);
+    
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
+      
+      let logoUrl = newBandLogo;
+      
+      // Upload logo if provided
+      if (newBandLogo) {
+        setUploadingLogo(true);
+        const ext = newBandLogo.split(';')[0].split('/')[1] || 'png';
+        const fileName = `band-logo-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+        
+        // Convert base64 to blob
+        const response = await fetch(newBandLogo);
+        const blob = await response.blob();
+        const file = new File([blob], fileName, { type: `image/${ext}` });
+        
+        const { error } = await supabaseClient.storage.from("bands").upload(fileName, file, { upsert: true });
+        if (error) throw new Error("Failed to upload logo");
+        
+        const { data } = supabaseClient.storage.from("bands").getPublicUrl(fileName);
+        logoUrl = data.publicUrl;
+        setUploadingLogo(false);
+      }
+      
+      const apiResponse = await fetch("/api/bands", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: trimmed, logoUrl }),
+      });
+
+      if (!apiResponse.ok) throw new Error("Failed to create band");
+      
+      if (!formBands.includes(trimmed)) {
+        setFormBands((prev) => [...prev, trimmed]);
+      }
+      setNewBandName("");
+      setNewBandLogo(null);
+      toast.success("Band added");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add band");
+    } finally {
+      setUploadingLogo(false);
     }
-    setNewBandName("");
   };
 
   if (loading) {
@@ -561,14 +608,43 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                   placeholder="Add new band"
                   className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 />
+                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                  {uploadingLogo ? "Uploading..." : "Logo"}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => setNewBandLogo(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }} 
+                    className="hidden" 
+                  />
+                </label>
                 <button
                   type="button"
                   onClick={addNewBand}
-                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+                  disabled={uploadingLogo}
+                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50"
                 >
                   Add
                 </button>
               </div>
+              {newBandLogo && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={newBandLogo} alt="Logo preview" className="h-8 w-8 rounded object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setNewBandLogo(null)}
+                    className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
               {formBands.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {formBands.map((band) => (

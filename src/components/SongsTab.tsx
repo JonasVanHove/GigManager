@@ -357,14 +357,13 @@ export default function SongsTab() {
       body.push('</section>');
     }
 
-    // Attachments section - remove redundant metadata, show images cleanly
+    // Attachments section - no captions by default
     if (song.attachments && song.attachments.length > 0) {
       const imageAttachments = song.attachments.filter(isImageAttachment);
       if (imageAttachments.length > 0) {
         body.push('<section class="section"><h2 class="section-heading">Attachments</h2>');
-        imageAttachments.forEach((att, attIdx) => {
-          const caption = att.caption ? escapeHtml(att.caption) : (imageAttachments.length > 1 ? `${escapeHtml(song.title)} (${attIdx + 1})` : escapeHtml(song.title));
-          body.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="${caption}" loading="eager" /><figcaption class="attachment-caption">${caption}</figcaption></figure>`);
+        imageAttachments.forEach((att) => {
+          body.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="" loading="eager" /></figure>`);
         });
         body.push('</section>');
       }

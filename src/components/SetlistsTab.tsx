@@ -69,6 +69,7 @@ type StoredSetlist = {
   notities: string;
   status: SetlistMeta["status"];
   pauseOnTuningChange: boolean;
+  bandId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -257,6 +258,7 @@ export default function SetlistsTab() {
 
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [gigsList, setGigsList] = useState<GigOption[]>([]);
+  const [bandsList, setBandsList] = useState<Array<{ id: string; name: string; logoUrl?: string }>>([]);
   const [setlists, setSetlists] = useState<StoredSetlist[]>([]);
   const [notes, setNotes] = useState<LinkedNote[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -448,9 +450,10 @@ export default function SetlistsTab() {
       const token = await getAccessToken();
       if (!token) return;
 
-      const [songsResponse, setlistsResponse] = await Promise.all([
+      const [songsResponse, setlistsResponse, bandsResponse] = await Promise.all([
         fetch("/api/songs", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/setlists", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       if (!songsResponse.ok) throw new Error(isDutch ? "Songs laden mislukt" : "Failed to load songs");
@@ -458,6 +461,9 @@ export default function SetlistsTab() {
 
       const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; attachments?: any[] }>;
       const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; gigs?: Array<{ id: string; eventName?: string; date?: string | null }>; createdAt: string; updatedAt: string }>;
+      const bandsPayload = (await bandsResponse.json()) as Array<{ id: string; name: string; logoUrl?: string }>;
+      
+      setBandsList(bandsPayload || []);
       const songIdByTitle = new Map((Array.isArray(songPayload) ? songPayload : []).map((song) => [song.title.trim().toLocaleLowerCase(), song.id]));
 
       const currentUserId = session.user?.id;
@@ -496,6 +502,7 @@ export default function SetlistsTab() {
               notities: meta.notities,
               status: meta.status,
               pauseOnTuningChange: meta.pauseOnTuningChange,
+              bandId: null,
               createdAt: setlist.createdAt,
               updatedAt: setlist.updatedAt,
             };
@@ -640,6 +647,7 @@ export default function SetlistsTab() {
       notities: meta.notities,
       status: meta.status,
       pauseOnTuningChange: meta.pauseOnTuningChange,
+      bandId: nextDraft.bandId || null,
       createdAt: refreshed.createdAt,
       updatedAt: refreshed.updatedAt,
     };
@@ -704,6 +712,7 @@ export default function SetlistsTab() {
         notities: meta.notities,
         status: meta.status,
         pauseOnTuningChange: meta.pauseOnTuningChange,
+        bandId: null,
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
       };
@@ -766,6 +775,7 @@ export default function SetlistsTab() {
         notities: meta.notities,
         status: meta.status,
         pauseOnTuningChange: meta.pauseOnTuningChange,
+        bandId: draft.bandId || null,
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
       };
@@ -1186,13 +1196,19 @@ export default function SetlistsTab() {
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-4">
                 <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                 <input value={activeDraft.locatie} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                 <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                   <option value="concept">{isDutch ? "concept" : "Draft"}</option>
                   <option value="klaar">{isDutch ? "klaar" : "Ready"}</option>
                   <option value="gearchiveerd">{isDutch ? "gearchiveerd" : "Archived"}</option>
+                </select>
+                <select value={activeDraft.bandId || ""} onChange={(e) => updateDraft({ bandId: e.target.value || null })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                  <option value="">{isDutch ? "Selecteer band..." : "Select band..."}</option>
+                  {bandsList.map((band) => (
+                    <option key={band.id} value={band.id}>{band.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -1350,15 +1366,45 @@ export default function SetlistsTab() {
                 const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
                 if (!win) return;
                 
+                // Generate pastel colors for unique tunings
+                const tuningColors = new Map<string, string>();
+                const pastelColors = [
+                  '#e3f2fd', // pastel blue
+                  '#e8f5e9', // pastel green
+                  '#fff3e0', // pastel orange
+                  '#f3e5f5', // pastel purple
+                  '#fce4ec', // pastel pink
+                  '#e0f7fa', // pastel cyan
+                  '#fff9c4', // pastel yellow
+                  '#efebe9', // pastel brown
+                ];
+                let colorIndex = 0;
+                
+                const getTuningColor = (tuning: string) => {
+                  if (!tuningColors.has(tuning)) {
+                    tuningColors.set(tuning, pastelColors[colorIndex % pastelColors.length]);
+                    colorIndex++;
+                  }
+                  return tuningColors.get(tuning);
+                };
+                
                 const htmlParts: string[] = [];
+                
+                // Get band logo if band is selected
+                const selectedBand = draft.bandId ? bandsList.find(b => b.id === draft.bandId) : null;
+                const bandLogo = selectedBand?.logoUrl;
                 
                 // Header with centered title and metadata
                 htmlParts.push('<header class="document-header">');
+                if (bandLogo) {
+                  htmlParts.push(`<div class="band-logo"><img src="${escapeHtml(bandLogo)}" alt="Band Logo" /></div>`);
+                }
                 htmlParts.push('<div class="document-eyebrow">GigManager · Setlist</div>');
                 htmlParts.push(`<h1 class="document-title">${escapeHtml(draft.naam)}</h1>`);
                 
                 // Metadata badges
                 const metaBadges: string[] = [];
+                if (selectedBand) metaBadges.push(`<span class="metadata-item">Band: ${escapeHtml(selectedBand.name)}</span>`);
                 if (draft.status) metaBadges.push(`<span class="metadata-item">Status: ${escapeHtml(draft.status)}</span>`);
                 if (draft.datum) metaBadges.push(`<span class="metadata-item">Date: ${escapeHtml(draft.datum)}</span>`);
                 if (draft.locatie) metaBadges.push(`<span class="metadata-item">Location: ${escapeHtml(draft.locatie)}</span>`);
@@ -1379,11 +1425,20 @@ export default function SetlistsTab() {
                   const song = songs.find(s => s.id === item.songId || (s.title && s.title.toLowerCase() === item.label.toLowerCase()));
                   const title = song ? song.title : item.label;
                   
-                  // Build metadata badges
+                  // Build metadata badges with pastel colors
                   const badges: string[] = [];
-                  if (item.tuning) badges.push(`<span class="metadata-item">${escapeHtml(item.tuning)}</span>`);
-                  if (item.key) badges.push(`<span class="metadata-item">Key: ${escapeHtml(item.key)}</span>`);
-                  if (item.tempo) badges.push(`<span class="metadata-item">${escapeHtml(item.tempo)} BPM</span>`);
+                  if (item.tuning) {
+                    const color = getTuningColor(item.tuning);
+                    badges.push(`<span class="metadata-item" style="background:${color}">${escapeHtml(item.tuning)}</span>`);
+                  }
+                  if (item.key) {
+                    const color = getTuningColor(item.key);
+                    badges.push(`<span class="metadata-item" style="background:${color}">Key: ${escapeHtml(item.key)}</span>`);
+                  }
+                  if (item.tempo) {
+                    const color = getTuningColor(item.tempo + ' bpm');
+                    badges.push(`<span class="metadata-item" style="background:${color}">${escapeHtml(item.tempo)} BPM</span>`);
+                  }
                   
                   const metaStr = badges.length > 0 ? `<div class="metadata" style="justify-content:flex-start;margin-top:2mm;">${badges.join('')}</div>` : '';
                   
@@ -1391,13 +1446,12 @@ export default function SetlistsTab() {
                   htmlParts.push(`<h3 class="setlist-item-title"><span class="setlist-item-number">${songNumber}.</span>${escapeHtml(title)}</h3>`);
                   if (metaStr) htmlParts.push(metaStr);
                   
-                  // Include image attachments with captions
+                  // Include image attachments without captions
                   if (song?.attachments && song.attachments.length > 0) {
                     const imageAttachments = song.attachments.filter(isImageAttachment);
                     if (imageAttachments.length > 0) {
-                      imageAttachments.forEach((att, attIdx) => {
-                        const caption = att.caption ? escapeHtml(att.caption) : (imageAttachments.length > 1 ? `${escapeHtml(title)} (${attIdx + 1})` : escapeHtml(title));
-                        htmlParts.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="${caption}" loading="eager" /><figcaption class="attachment-caption">${caption}</figcaption></figure>`);
+                      imageAttachments.forEach((att) => {
+                        htmlParts.push(`<figure class="attachment"><img src="${escapeHtml(att.publicUrl)}" alt="" loading="eager" /></figure>`);
                       });
                     }
                   }

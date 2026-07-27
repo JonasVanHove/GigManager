@@ -19,6 +19,8 @@ export function createPrintDocument(title: string, content: string) {
       
       /* Header */
       .document-header { text-align: center; border-bottom: 2px solid #e2e8f0; padding: 5mm 0 8mm; margin-bottom: 10mm; }
+      .band-logo { margin-bottom: 4mm; }
+      .band-logo img { max-height: 25mm; max-width: 80mm; object-fit: contain; }
       .document-eyebrow { color: #64748b; font-size: 8pt; font-weight: 600; letter-spacing: 0.15em; margin-bottom: 3mm; text-transform: uppercase; }
       .document-title { color: #0f172a; font-size: 28pt; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 0; overflow-wrap: anywhere; }
       .document-subtitle { color: #64748b; font-size: 11pt; margin: 4mm 0 0; font-weight: 500; }
