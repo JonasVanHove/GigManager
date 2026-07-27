@@ -134,14 +134,33 @@ export default function BandsTab() {
       const ext = file.name.split(".").pop() || "png";
       const fileName = `band-logo-${Date.now()}-${crypto.randomUUID()}.${ext}`;
       
-      const { error } = await supabaseClient.storage.from("bands").upload(fileName, file, { upsert: true });
-      if (error) throw new Error("Failed to upload logo");
+      console.log("Uploading logo to Supabase:", fileName);
+      const { error, data } = await supabaseClient.storage.from("bands").upload(fileName, file, { upsert: true });
       
-      const { data } = supabaseClient.storage.from("bands").getPublicUrl(fileName);
-      setLogoPreview(data.publicUrl);
-      setFormData({ ...formData, logoUrl: data.publicUrl });
-    } catch (error) {
-      toast.error("Failed to upload logo");
+      if (error) {
+        console.error("Supabase upload error:", error);
+        // Fallback to base64 data URL if Supabase upload fails
+        console.log("Using fallback base64 encoding");
+        const fallbackUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => (typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Failed to read file")));
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+        setLogoPreview(fallbackUrl);
+        setFormData({ ...formData, logoUrl: fallbackUrl });
+        toast.warning(language === "nl" ? "Logo opgeslagen lokaal (Supabase bucket niet beschikbaar)" : "Logo saved locally (Supabase bucket not available)");
+        return;
+      }
+      
+      console.log("Upload successful:", data);
+      const { data: publicUrlData } = supabaseClient.storage.from("bands").getPublicUrl(fileName);
+      console.log("Public URL:", publicUrlData.publicUrl);
+      setLogoPreview(publicUrlData.publicUrl);
+      setFormData({ ...formData, logoUrl: publicUrlData.publicUrl });
+    } catch (error: any) {
+      console.error("Logo upload error:", error);
+      toast.error(error.message || "Failed to upload logo");
     } finally {
       setUploadingLogo(false);
     }
