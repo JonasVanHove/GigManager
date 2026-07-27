@@ -26,7 +26,7 @@ interface BandMember {
 }
 
 export default function BandsTab() {
-  const { getAccessToken } = useAuth();
+  const { getAccessToken, session } = useAuth();
   const { language } = useSettings();
   const toast = useToast();
 
@@ -119,6 +119,57 @@ export default function BandsTab() {
     }
   }, [getAccessToken]);
 
+  const loadUserAsMember = useCallback(async () => {
+    if (!session?.user) return;
+    
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const setlistsResponse = await fetch("/api/setlists", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!setlistsResponse.ok) return;
+      
+      const setlists = await setlistsResponse.json();
+      const userBandIds = new Set(
+        setlists
+          .filter((s: any) => s.bandId)
+          .map((s: any) => s.bandId)
+      );
+      
+      if (userBandIds.size > 0) {
+        const userBandNames = bands
+          .filter(b => userBandIds.has(b.id))
+          .map(b => b.name);
+        
+        if (userBandNames.length > 0) {
+          const userMember: BandMember = {
+            id: "current-user",
+            name: session.user.user_metadata?.name || session.user.email || "You",
+            email: session.user.email,
+            phone: null,
+            notes: null,
+            bands: userBandNames,
+            updatedAt: new Date().toISOString(),
+          };
+          
+          setMembers(prev => {
+            const existingIndex = prev.findIndex(m => m.id === "current-user");
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              updated[existingIndex] = userMember;
+              return updated;
+            }
+            return [...prev, userMember];
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load user as member:", error);
+    }
+  }, [session, getAccessToken, bands]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -127,6 +178,13 @@ export default function BandsTab() {
     };
     loadData();
   }, [loadBands, loadMembers]);
+
+  // Load user as member after bands are loaded
+  useEffect(() => {
+    if (bands.length > 0) {
+      loadUserAsMember();
+    }
+  }, [bands, loadUserAsMember]);
 
   const handleLogoUpload = async (file: File) => {
     setUploadingLogo(true);
