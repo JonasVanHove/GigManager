@@ -160,6 +160,17 @@ export interface UserSettingsData {
   claimPerformanceFee: boolean;
   claimTechnicalFee: boolean;
   theme: "light" | "dark" | "system";
+  // PDF Export Settings
+  pdfIncludeLogo?: boolean;
+  pdfFont?: string;
+  pdfPageSize?: string;
+  pdfPageBreakMode?: string;
+  pdfDarkMode?: boolean;
+  pdfShowHeaders?: boolean;
+  pdfShowMetadata?: boolean;
+  pdfImagesOnly?: boolean;
+  pdfShowPageNumbers?: boolean;
+  pdfMarginSize?: string;
 }
 
 export type AppLanguage = "system" | "en" | "nl";
@@ -169,6 +180,16 @@ export const DEFAULT_SETTINGS: UserSettingsData = {
   claimPerformanceFee: true,
   claimTechnicalFee: true,
   theme: "system",
+  pdfIncludeLogo: true,
+  pdfFont: "inter",
+  pdfPageSize: "a4",
+  pdfPageBreakMode: "auto",
+  pdfDarkMode: false,
+  pdfShowHeaders: true,
+  pdfShowMetadata: true,
+  pdfImagesOnly: false,
+  pdfShowPageNumbers: true,
+  pdfMarginSize: "medium",
 };
 
 // --- Investment entity ------------------------------------------------------

@@ -251,7 +251,7 @@ const normalizeGigOptions = (payload: unknown): GigOption[] => {
 
 export default function SetlistsTab() {
   const { session, getAccessToken } = useAuth();
-  const { locale } = useSettings();
+  const { locale, settings } = useSettings();
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1464,7 +1464,18 @@ export default function SetlistsTab() {
                 if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">General Notes</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
                 htmlParts.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
                 win.document.open();
-                win.document.write(createPrintDocument(escapeHtml(draft.naam), htmlParts.join('\n')));
+                win.document.write(createPrintDocument(escapeHtml(draft.naam), htmlParts.join('\n'), {
+                  includeLogo: settings.pdfIncludeLogo ?? true,
+                  font: settings.pdfFont ?? "inter",
+                  pageSize: settings.pdfPageSize ?? "a4",
+                  pageBreakMode: settings.pdfPageBreakMode ?? "auto",
+                  darkMode: settings.pdfDarkMode ?? false,
+                  showHeaders: settings.pdfShowHeaders ?? true,
+                  showMetadata: settings.pdfShowMetadata ?? true,
+                  imagesOnly: settings.pdfImagesOnly ?? false,
+                  showPageNumbers: settings.pdfShowPageNumbers ?? true,
+                  marginSize: settings.pdfMarginSize ?? "medium",
+                }));
                 win.document.close();
                 // Printing is handled by the small script that waits for images to load
               }} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Print as PDF</button>

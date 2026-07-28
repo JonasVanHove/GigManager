@@ -89,7 +89,7 @@ function escapeHtml(value: string) {
 
 export default function SongsTab() {
   const { getAccessToken } = useAuth();
-  const { locale } = useSettings();
+  const { locale, settings } = useSettings();
   const toast = useToast();
 
   const isDutch = locale.startsWith("nl");
@@ -371,7 +371,18 @@ export default function SongsTab() {
     
     body.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
     win.document.open();
-    win.document.write(createPrintDocument(escapeHtml(song.title), body.join('\n')));
+    win.document.write(createPrintDocument(escapeHtml(song.title), body.join('\n'), {
+      includeLogo: settings.pdfIncludeLogo ?? true,
+      font: settings.pdfFont ?? "inter",
+      pageSize: settings.pdfPageSize ?? "a4",
+      pageBreakMode: settings.pdfPageBreakMode ?? "auto",
+      darkMode: settings.pdfDarkMode ?? false,
+      showHeaders: settings.pdfShowHeaders ?? true,
+      showMetadata: settings.pdfShowMetadata ?? true,
+      imagesOnly: settings.pdfImagesOnly ?? false,
+      showPageNumbers: settings.pdfShowPageNumbers ?? true,
+      marginSize: settings.pdfMarginSize ?? "medium",
+    }));
     win.document.close();
   };
 

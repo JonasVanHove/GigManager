@@ -205,6 +205,17 @@ model UserSettings {
   updatedAt           DateTime @updatedAt
   theme               String   @default("system")
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // PDF Export Settings
+  pdfIncludeLogo      Boolean  @default(true)
+  pdfFont             String   @default("inter")
+  pdfPageSize         String   @default("a4")
+  pdfPageBreakMode    String   @default("auto")
+  pdfDarkMode         Boolean  @default(false)
+  pdfShowHeaders      Boolean  @default(true)
+  pdfShowMetadata     Boolean  @default(true)
+  pdfImagesOnly       Boolean  @default(false)
+  pdfShowPageNumbers  Boolean  @default(true)
+  pdfMarginSize       String   @default("medium")
 }
 
 model Investment {

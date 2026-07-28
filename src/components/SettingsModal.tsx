@@ -46,12 +46,34 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [error, setError] = useState("");
   const githubRepoUrl = "https://github.com/JonasVanHove/GigManager";
 
+  // PDF Export Settings
+  const [pdfIncludeLogo, setPdfIncludeLogo] = useState(settings.pdfIncludeLogo ?? true);
+  const [pdfFont, setPdfFont] = useState(settings.pdfFont ?? "inter");
+  const [pdfPageSize, setPdfPageSize] = useState(settings.pdfPageSize ?? "a4");
+  const [pdfPageBreakMode, setPdfPageBreakMode] = useState(settings.pdfPageBreakMode ?? "auto");
+  const [pdfDarkMode, setPdfDarkMode] = useState(settings.pdfDarkMode ?? false);
+  const [pdfShowHeaders, setPdfShowHeaders] = useState(settings.pdfShowHeaders ?? true);
+  const [pdfShowMetadata, setPdfShowMetadata] = useState(settings.pdfShowMetadata ?? true);
+  const [pdfImagesOnly, setPdfImagesOnly] = useState(settings.pdfImagesOnly ?? false);
+  const [pdfShowPageNumbers, setPdfShowPageNumbers] = useState(settings.pdfShowPageNumbers ?? true);
+  const [pdfMarginSize, setPdfMarginSize] = useState(settings.pdfMarginSize ?? "medium");
+
   const hasSettingsChanges =
     currency !== settings.currency ||
     claimPerf !== settings.claimPerformanceFee ||
     claimTech !== settings.claimTechnicalFee ||
     theme !== settings.theme ||
-    appLanguage !== language;
+    appLanguage !== language ||
+    pdfIncludeLogo !== (settings.pdfIncludeLogo ?? true) ||
+    pdfFont !== (settings.pdfFont ?? "inter") ||
+    pdfPageSize !== (settings.pdfPageSize ?? "a4") ||
+    pdfPageBreakMode !== (settings.pdfPageBreakMode ?? "auto") ||
+    pdfDarkMode !== (settings.pdfDarkMode ?? false) ||
+    pdfShowHeaders !== (settings.pdfShowHeaders ?? true) ||
+    pdfShowMetadata !== (settings.pdfShowMetadata ?? true) ||
+    pdfImagesOnly !== (settings.pdfImagesOnly ?? false) ||
+    pdfShowPageNumbers !== (settings.pdfShowPageNumbers ?? true) ||
+    pdfMarginSize !== (settings.pdfMarginSize ?? "medium");
 
   const hasProfileChanges =
     displayName !== (session?.user?.user_metadata?.name || "") ||
@@ -145,6 +167,16 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           claimPerformanceFee: claimPerf,
           claimTechnicalFee: claimTech,
           theme,
+          pdfIncludeLogo,
+          pdfFont,
+          pdfPageSize,
+          pdfPageBreakMode,
+          pdfDarkMode,
+          pdfShowHeaders,
+          pdfShowMetadata,
+          pdfImagesOnly,
+          pdfShowPageNumbers,
+          pdfMarginSize,
         });
         setLanguage(appLanguage);
       }
@@ -393,6 +425,170 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   </p>
                 </div>
               </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+              PDF Export Settings
+            </legend>
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+              Customize how your PDF exports are generated.
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+                <input
+                  type="checkbox"
+                  checked={pdfIncludeLogo}
+                  onChange={(e) => setPdfIncludeLogo(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Include band logo</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Show band logo in PDF header when available
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+                <input
+                  type="checkbox"
+                  checked={pdfShowHeaders}
+                  onChange={(e) => setPdfShowHeaders(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show headers</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Display section headers in PDF export
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+                <input
+                  type="checkbox"
+                  checked={pdfShowMetadata}
+                  onChange={(e) => setPdfShowMetadata(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show metadata</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Display tuning, key, and tempo badges
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+                <input
+                  type="checkbox"
+                  checked={pdfShowPageNumbers}
+                  onChange={(e) => setPdfShowPageNumbers(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show page numbers</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Display page numbers in footer
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+                <input
+                  type="checkbox"
+                  checked={pdfDarkMode}
+                  onChange={(e) => setPdfDarkMode(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Dark mode PDF</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Generate PDF with dark background
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+                <input
+                  type="checkbox"
+                  checked={pdfImagesOnly}
+                  onChange={(e) => setPdfImagesOnly(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Images only</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Export only images, no text content
+                  </p>
+                </div>
+              </label>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Font
+                </label>
+                <select
+                  value={pdfFont}
+                  onChange={(e) => setPdfFont(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                >
+                  <option value="inter">Inter (default)</option>
+                  <option value="arial">Arial</option>
+                  <option value="times">Times New Roman</option>
+                  <option value="georgia">Georgia</option>
+                  <option value="courier">Courier New</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Page size
+                </label>
+                <select
+                  value={pdfPageSize}
+                  onChange={(e) => setPdfPageSize(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                >
+                  <option value="a4">A4</option>
+                  <option value="letter">Letter</option>
+                  <option value="legal">Legal</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Page breaks
+                </label>
+                <select
+                  value={pdfPageBreakMode}
+                  onChange={(e) => setPdfPageBreakMode(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                >
+                  <option value="auto">Automatic</option>
+                  <option value="song">After each song</option>
+                  <option value="section">After each section</option>
+                  <option value="none">No page breaks</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Margin size
+                </label>
+                <select
+                  value={pdfMarginSize}
+                  onChange={(e) => setPdfMarginSize(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
             </div>
           </fieldset>
 
