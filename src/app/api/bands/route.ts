@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const bands = await prisma.$queryRaw<Array<any>>(Prisma.sql`
-      SELECT id, name, "logoUrl" FROM bands WHERE "userId" = ${user.id} ORDER BY name ASC
+      SELECT id, name, "logoUrl", color FROM bands WHERE "userId" = ${user.id} ORDER BY name ASC
     `);
     return NextResponse.json(bands);
   } catch (err) {
@@ -27,15 +27,15 @@ export async function POST(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { name, logoUrl } = body;
+    const { name, logoUrl, color } = body;
     if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
 
     const user = await prisma.user.findUnique({ where: { supabaseId: userId }, select: { id: true } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const id = crypto.randomUUID();
-    await prisma.$executeRaw`INSERT INTO bands (id, name, "logoUrl", "userId", "createdAt") VALUES (${id}, ${name}, ${logoUrl || null}, ${user.id}, NOW())`;
-    return NextResponse.json({ id, name, logoUrl }, { status: 201 });
+    await prisma.$executeRaw`INSERT INTO bands (id, name, "logoUrl", color, "userId", "createdAt") VALUES (${id}, ${name}, ${logoUrl || null}, ${color || '#6366f1'}, ${user.id}, NOW())`;
+    return NextResponse.json({ id, name, logoUrl, color }, { status: 201 });
   } catch (err) {
     console.error("POST /api/bands error:", err);
     return NextResponse.json({ error: "Failed to create band" }, { status: 500 });
@@ -48,13 +48,13 @@ export async function PATCH(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { id, logoUrl } = body;
+    const { id, logoUrl, color } = body;
     if (!id) return NextResponse.json({ error: "Band ID required" }, { status: 400 });
 
     const user = await prisma.user.findUnique({ where: { supabaseId: userId }, select: { id: true } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    await prisma.$executeRaw`UPDATE bands SET "logoUrl" = ${logoUrl || null}, "updatedAt" = NOW() WHERE id = ${id} AND "userId" = ${user.id}`;
+    await prisma.$executeRaw`UPDATE bands SET "logoUrl" = ${logoUrl || null}, color = ${color || '#6366f1'}, "updatedAt" = NOW() WHERE id = ${id} AND "userId" = ${user.id}`;
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("PATCH /api/bands error:", err);

@@ -341,6 +341,15 @@ export async function GET(request: NextRequest) {
             orderBy: { date: "desc" },
             take,
             skip,
+            include: {
+              band: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                },
+              },
+            },
           });
           console.log("[GET /api/gigs] findMany returned", gigs.length, "gigs");
           

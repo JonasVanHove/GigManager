@@ -54,6 +54,7 @@ model Gig {
   bandId                     String?         // Direct link to band
   setlist                    Setlist?        @relation(fields: [setlistId], references: [id])
   user                       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  band                       bands?          @relation(fields: [bandId], references: [id])
   bandMembers                GigBandMember[]
   shareLinks                 ShareLinkGig[]
 
@@ -440,9 +441,11 @@ model bands {
   name      String
   userId    String
   logoUrl   String?
+  color     String?   @default("#6366f1") // Default accent color
   createdAt DateTime? @default(now()) @db.Timestamptz(6)
   updatedAt DateTime? @default(now()) @db.Timestamptz(6)
   setlists  Setlist[]
+  gigs      Gig[]
 }
 
 model song_attachments {

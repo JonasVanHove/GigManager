@@ -32,6 +32,12 @@ export interface Gig {
   bookingDate: string; // ISO string - when booking was made
   userId: string; // belongs to this user
   setlistId: string | null;
+  bandId?: string | null;
+  band?: {
+    id: string;
+    name: string;
+    color?: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

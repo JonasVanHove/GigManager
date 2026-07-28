@@ -11,6 +11,7 @@ interface Band {
   id: string;
   name: string;
   logoUrl?: string | null;
+  color?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,7 +36,7 @@ export default function BandsTab() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingBand, setEditingBand] = useState<Band | null>(null);
-  const [formData, setFormData] = useState({ name: "", logoUrl: "" });
+  const [formData, setFormData] = useState({ name: "", logoUrl: "", color: "#6366f1" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -236,14 +237,14 @@ export default function BandsTab() {
       if (!token) throw new Error("No auth token");
 
       if (editingBand) {
-        // Update existing band (only logo can be edited)
+        // Update existing band (only logo and color can be edited)
         const response = await fetch("/api/bands", {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ id: editingBand.id, logoUrl: formData.logoUrl || null }),
+          body: JSON.stringify({ id: editingBand.id, logoUrl: formData.logoUrl || null, color: formData.color }),
         });
 
         if (!response.ok) throw new Error(copy.errorSave);
@@ -256,7 +257,7 @@ export default function BandsTab() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ name: formData.name.trim(), logoUrl: formData.logoUrl || null }),
+          body: JSON.stringify({ name: formData.name.trim(), logoUrl: formData.logoUrl || null, color: formData.color }),
         });
 
         if (!response.ok) throw new Error(copy.errorSave);
@@ -265,7 +266,7 @@ export default function BandsTab() {
 
       setShowForm(false);
       setEditingBand(null);
-      setFormData({ name: "", logoUrl: "" });
+      setFormData({ name: "", logoUrl: "", color: "#6366f1" });
       setLogoPreview(null);
       loadBands();
     } catch (error) {
@@ -275,7 +276,7 @@ export default function BandsTab() {
 
   const handleEdit = (band: Band) => {
     setEditingBand(band);
-    setFormData({ name: band.name, logoUrl: band.logoUrl || "" });
+    setFormData({ name: band.name, logoUrl: band.logoUrl || "", color: band.color || "#6366f1" });
     setLogoPreview(band.logoUrl || null);
     setShowForm(true);
   };
@@ -330,7 +331,7 @@ export default function BandsTab() {
         <button
           onClick={() => {
             setEditingBand(null);
-            setFormData({ name: "", logoUrl: "" });
+            setFormData({ name: "", logoUrl: "", color: "#6366f1" });
             setLogoPreview(null);
             setShowForm(true);
           }}
@@ -357,6 +358,21 @@ export default function BandsTab() {
                 className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                {language === "nl" ? "Accentkleur" : "Accent Color"}
+              </label>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="h-10 w-20 rounded-lg border border-slate-300 bg-white cursor-pointer focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+                />
+                <span className="text-sm text-slate-500 dark:text-slate-400">{formData.color}</span>
+              </div>
             </div>
 
             <div>
@@ -400,7 +416,7 @@ export default function BandsTab() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingBand(null);
-                  setFormData({ name: "", logoUrl: "" });
+                  setFormData({ name: "", logoUrl: "", color: "#6366f1" });
                   setLogoPreview(null);
                 }}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"

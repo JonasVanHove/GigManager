@@ -105,7 +105,7 @@ const GigCard = memo(function GigCard({
   );
 
   const formattedDate = useMemo(() => formatDate(gig.date), [gig.date]);
-  const bandStyles = useMemo(() => getBandColorStyles(gig.performers), [gig.performers]);
+  const bandStyles = useMemo(() => getBandColorStyles(gig.performers, gig.band?.color), [gig.performers, gig.band?.color]);
 
   return (
     <div className={`group overflow-hidden rounded-xl border animate-fade-in transition-all duration-300 ${

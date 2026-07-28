@@ -60,7 +60,27 @@ export function getBandHue(bandName: string) {
   return hashString(bandName.trim().toLowerCase()) % 360;
 }
 
-export function getBandColorStyles(bandName: string) {
+export function getBandColorStyles(bandName: string, bandColor?: string | null) {
+  // Use the custom band color if provided, otherwise fall back to hash-based color
+  if (bandColor) {
+    return {
+      solid: {
+        backgroundColor: bandColor,
+        borderColor: adjustColor(bandColor, -20),
+        color: "#ffffff",
+      },
+      soft: {
+        backgroundColor: adjustColor(bandColor, 90),
+        borderColor: adjustColor(bandColor, -10),
+        color: adjustColor(bandColor, -40),
+      },
+      line: {
+        borderColor: bandColor,
+        color: adjustColor(bandColor, -30),
+      },
+    } as const;
+  }
+
   const hue = getBandHue(bandName);
   return {
     solid: {
@@ -78,4 +98,13 @@ export function getBandColorStyles(bandName: string) {
       color: `hsl(${hue} 58% 28%)`,
     },
   } as const;
+}
+
+function adjustColor(hex: string, amount: number): string {
+  const color = hex.replace('#', '');
+  const num = parseInt(color, 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }

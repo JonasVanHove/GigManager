@@ -439,97 +439,99 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               Customize how your PDF exports are generated.
             </p>
 
-            <div className="space-y-3">
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
                 <input
                   type="checkbox"
                   checked={pdfIncludeLogo}
                   onChange={(e) => setPdfIncludeLogo(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Include band logo</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Show band logo in PDF header when available
+                    Show logo in PDF header
                   </p>
                 </div>
               </label>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
                 <input
                   type="checkbox"
                   checked={pdfShowHeaders}
                   onChange={(e) => setPdfShowHeaders(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show headers</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Display section headers in PDF export
+                    Display section headers
                   </p>
                 </div>
               </label>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
                 <input
                   type="checkbox"
                   checked={pdfShowMetadata}
                   onChange={(e) => setPdfShowMetadata(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show metadata</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Display tuning, key, and tempo badges
+                    Tuning, key, tempo
                   </p>
                 </div>
               </label>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
                 <input
                   type="checkbox"
                   checked={pdfShowPageNumbers}
                   onChange={(e) => setPdfShowPageNumbers(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show page numbers</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Page numbers</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Display page numbers in footer
+                    Display in footer
                   </p>
                 </div>
               </label>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
                 <input
                   type="checkbox"
                   checked={pdfDarkMode}
                   onChange={(e) => setPdfDarkMode(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Dark mode PDF</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Dark mode</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Generate PDF with dark background
+                    Dark background
                   </p>
                 </div>
               </label>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
                 <input
                   type="checkbox"
                   checked={pdfImagesOnly}
                   onChange={(e) => setPdfImagesOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Images only</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Export only images, no text content
+                    No text content
                   </p>
                 </div>
               </label>
+            </div>
 
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Font
@@ -539,17 +541,17 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   onChange={(e) => setPdfFont(e.target.value)}
                   className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
                 >
-                  <option value="inter">Inter (default)</option>
+                  <option value="inter">Inter</option>
                   <option value="arial">Arial</option>
-                  <option value="times">Times New Roman</option>
+                  <option value="times">Times</option>
                   <option value="georgia">Georgia</option>
-                  <option value="courier">Courier New</option>
+                  <option value="courier">Courier</option>
                 </select>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Page size
+                  Size
                 </label>
                 <select
                   value={pdfPageSize}
@@ -564,23 +566,23 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Page breaks
+                  Breaks
                 </label>
                 <select
                   value={pdfPageBreakMode}
                   onChange={(e) => setPdfPageBreakMode(e.target.value)}
                   className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
                 >
-                  <option value="auto">Automatic</option>
-                  <option value="song">After each song</option>
-                  <option value="section">After each section</option>
-                  <option value="none">No page breaks</option>
+                  <option value="auto">Auto</option>
+                  <option value="song">Song</option>
+                  <option value="section">Section</option>
+                  <option value="none">None</option>
                 </select>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Margin size
+                  Margin
                 </label>
                 <select
                   value={pdfMarginSize}
