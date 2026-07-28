@@ -19,6 +19,16 @@ const DEFAULT_SETTINGS = {
   claimPerformanceFee: true,
   claimTechnicalFee: true,
   theme: "system",
+  pdfIncludeLogo: true,
+  pdfFont: "inter",
+  pdfPageSize: "a4",
+  pdfPageBreakMode: "auto",
+  pdfDarkMode: false,
+  pdfShowHeaders: true,
+  pdfShowMetadata: true,
+  pdfImagesOnly: false,
+  pdfShowPageNumbers: true,
+  pdfMarginSize: "medium",
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -308,11 +318,22 @@ export async function GET(request: NextRequest) {
       }
 
       console.log("[GET /api/settings] Settings found, returning");
+      const settingsData: any = settings;
       return NextResponse.json({
         currency: settings.currency || DEFAULT_SETTINGS.currency,
         claimPerformanceFee: settings.claimPerformanceFee ?? DEFAULT_SETTINGS.claimPerformanceFee,
         claimTechnicalFee: settings.claimTechnicalFee ?? DEFAULT_SETTINGS.claimTechnicalFee,
         theme: settings.theme || DEFAULT_SETTINGS.theme,
+        pdfIncludeLogo: settingsData.pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
+        pdfFont: settingsData.pdfFont || DEFAULT_SETTINGS.pdfFont,
+        pdfPageSize: settingsData.pdfPageSize || DEFAULT_SETTINGS.pdfPageSize,
+        pdfPageBreakMode: settingsData.pdfPageBreakMode || DEFAULT_SETTINGS.pdfPageBreakMode,
+        pdfDarkMode: settingsData.pdfDarkMode ?? DEFAULT_SETTINGS.pdfDarkMode,
+        pdfShowHeaders: settingsData.pdfShowHeaders ?? DEFAULT_SETTINGS.pdfShowHeaders,
+        pdfShowMetadata: settingsData.pdfShowMetadata ?? DEFAULT_SETTINGS.pdfShowMetadata,
+        pdfImagesOnly: settingsData.pdfImagesOnly ?? DEFAULT_SETTINGS.pdfImagesOnly,
+        pdfShowPageNumbers: settingsData.pdfShowPageNumbers ?? DEFAULT_SETTINGS.pdfShowPageNumbers,
+        pdfMarginSize: settingsData.pdfMarginSize || DEFAULT_SETTINGS.pdfMarginSize,
       });
     } catch (dbErr) {
       const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
@@ -341,6 +362,10 @@ export async function GET(request: NextRequest) {
 
 const SUPPORTED_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "CAD", "AUD", "JPY"];
 const VALID_THEMES = ["light", "dark", "system"];
+const VALID_PDF_FONTS = ["inter", "arial", "times", "georgia", "courier"];
+const VALID_PDF_SIZES = ["a4", "letter", "legal"];
+const VALID_PDF_PAGE_BREAKS = ["auto", "song", "section", "none"];
+const VALID_PDF_MARGINS = ["small", "medium", "large"];
 
 export async function PUT(request: NextRequest) {
   console.log("[PUT /api/settings] Starting");
@@ -386,6 +411,18 @@ export async function PUT(request: NextRequest) {
     const claimTechnicalFee = typeof body.claimTechnicalFee === "boolean" ? body.claimTechnicalFee : undefined;
     const theme = typeof body.theme === "string" && VALID_THEMES.includes(body.theme) ? body.theme : undefined;
 
+    // PDF settings validation
+    const pdfIncludeLogo = typeof body.pdfIncludeLogo === "boolean" ? body.pdfIncludeLogo : undefined;
+    const pdfFont = typeof body.pdfFont === "string" && VALID_PDF_FONTS.includes(body.pdfFont) ? body.pdfFont : undefined;
+    const pdfPageSize = typeof body.pdfPageSize === "string" && VALID_PDF_SIZES.includes(body.pdfPageSize) ? body.pdfPageSize : undefined;
+    const pdfPageBreakMode = typeof body.pdfPageBreakMode === "string" && VALID_PDF_PAGE_BREAKS.includes(body.pdfPageBreakMode) ? body.pdfPageBreakMode : undefined;
+    const pdfDarkMode = typeof body.pdfDarkMode === "boolean" ? body.pdfDarkMode : undefined;
+    const pdfShowHeaders = typeof body.pdfShowHeaders === "boolean" ? body.pdfShowHeaders : undefined;
+    const pdfShowMetadata = typeof body.pdfShowMetadata === "boolean" ? body.pdfShowMetadata : undefined;
+    const pdfImagesOnly = typeof body.pdfImagesOnly === "boolean" ? body.pdfImagesOnly : undefined;
+    const pdfShowPageNumbers = typeof body.pdfShowPageNumbers === "boolean" ? body.pdfShowPageNumbers : undefined;
+    const pdfMarginSize = typeof body.pdfMarginSize === "string" && VALID_PDF_MARGINS.includes(body.pdfMarginSize) ? body.pdfMarginSize : undefined;
+
     // 5. Authenticate
     console.log("[PUT /api/settings] Authenticating...");
     const authResult = await requireAuth(request, supabaseAdmin, getOrCreateUser);
@@ -406,6 +443,16 @@ export async function PUT(request: NextRequest) {
     if (claimPerformanceFee !== undefined) updateData.claimPerformanceFee = claimPerformanceFee;
     if (claimTechnicalFee !== undefined) updateData.claimTechnicalFee = claimTechnicalFee;
     if (theme !== undefined) updateData.theme = theme;
+    if (pdfIncludeLogo !== undefined) updateData.pdfIncludeLogo = pdfIncludeLogo;
+    if (pdfFont !== undefined) updateData.pdfFont = pdfFont;
+    if (pdfPageSize !== undefined) updateData.pdfPageSize = pdfPageSize;
+    if (pdfPageBreakMode !== undefined) updateData.pdfPageBreakMode = pdfPageBreakMode;
+    if (pdfDarkMode !== undefined) updateData.pdfDarkMode = pdfDarkMode;
+    if (pdfShowHeaders !== undefined) updateData.pdfShowHeaders = pdfShowHeaders;
+    if (pdfShowMetadata !== undefined) updateData.pdfShowMetadata = pdfShowMetadata;
+    if (pdfImagesOnly !== undefined) updateData.pdfImagesOnly = pdfImagesOnly;
+    if (pdfShowPageNumbers !== undefined) updateData.pdfShowPageNumbers = pdfShowPageNumbers;
+    if (pdfMarginSize !== undefined) updateData.pdfMarginSize = pdfMarginSize;
 
     // 7. Upsert to database
     try {
@@ -419,15 +466,36 @@ export async function PUT(request: NextRequest) {
           claimPerformanceFee: claimPerformanceFee ?? DEFAULT_SETTINGS.claimPerformanceFee,
           claimTechnicalFee: claimTechnicalFee ?? DEFAULT_SETTINGS.claimTechnicalFee,
           theme: theme ?? DEFAULT_SETTINGS.theme,
+          pdfIncludeLogo: pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
+          pdfFont: pdfFont ?? DEFAULT_SETTINGS.pdfFont,
+          pdfPageSize: pdfPageSize ?? DEFAULT_SETTINGS.pdfPageSize,
+          pdfPageBreakMode: pdfPageBreakMode ?? DEFAULT_SETTINGS.pdfPageBreakMode,
+          pdfDarkMode: pdfDarkMode ?? DEFAULT_SETTINGS.pdfDarkMode,
+          pdfShowHeaders: pdfShowHeaders ?? DEFAULT_SETTINGS.pdfShowHeaders,
+          pdfShowMetadata: pdfShowMetadata ?? DEFAULT_SETTINGS.pdfShowMetadata,
+          pdfImagesOnly: pdfImagesOnly ?? DEFAULT_SETTINGS.pdfImagesOnly,
+          pdfShowPageNumbers: pdfShowPageNumbers ?? DEFAULT_SETTINGS.pdfShowPageNumbers,
+          pdfMarginSize: pdfMarginSize ?? DEFAULT_SETTINGS.pdfMarginSize,
         },
       });
 
       console.log("[PUT /api/settings] Settings updated successfully");
+      const settingsData: any = settings;
       return NextResponse.json({
         currency: settings.currency,
         claimPerformanceFee: settings.claimPerformanceFee,
         claimTechnicalFee: settings.claimTechnicalFee,
         theme: settings.theme,
+        pdfIncludeLogo: settingsData.pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
+        pdfFont: settingsData.pdfFont ?? DEFAULT_SETTINGS.pdfFont,
+        pdfPageSize: settingsData.pdfPageSize ?? DEFAULT_SETTINGS.pdfPageSize,
+        pdfPageBreakMode: settingsData.pdfPageBreakMode ?? DEFAULT_SETTINGS.pdfPageBreakMode,
+        pdfDarkMode: settingsData.pdfDarkMode ?? DEFAULT_SETTINGS.pdfDarkMode,
+        pdfShowHeaders: settingsData.pdfShowHeaders ?? DEFAULT_SETTINGS.pdfShowHeaders,
+        pdfShowMetadata: settingsData.pdfShowMetadata ?? DEFAULT_SETTINGS.pdfShowMetadata,
+        pdfImagesOnly: settingsData.pdfImagesOnly ?? DEFAULT_SETTINGS.pdfImagesOnly,
+        pdfShowPageNumbers: settingsData.pdfShowPageNumbers ?? DEFAULT_SETTINGS.pdfShowPageNumbers,
+        pdfMarginSize: settingsData.pdfMarginSize ?? DEFAULT_SETTINGS.pdfMarginSize,
       });
     } catch (dbErr) {
       const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);

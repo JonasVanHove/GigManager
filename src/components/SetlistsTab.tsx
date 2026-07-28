@@ -362,13 +362,75 @@ export default function SetlistsTab() {
     const query = songSearch.trim().toLowerCase();
     const songsByGroup = new Map<string, SongRow[]>();
 
-    for (const song of songs) {
+    // Fuzzy search with match explanations
+    const fuzzySearchSongs = (songs: SongRow[], query: string): SongRow[] => {
+      if (!query.trim()) return songs;
+      
+      const q = query.toLowerCase().trim();
+      const results: { song: SongRow; score: number }[] = [];
+      
+      for (const song of songs) {
+        const parsed = parseSongNotes(song.notes);
+        let score = 0;
+        
+        // Check title (exact match gets highest score)
+        if (song.title.toLowerCase() === q) {
+          score += 100;
+        } else if (song.title.toLowerCase().includes(q)) {
+          score += 50;
+        } else {
+          // Fuzzy title match (allow 1-2 character differences)
+          const titleLower = song.title.toLowerCase();
+          let matches = 0;
+          let qIndex = 0;
+          for (const char of titleLower) {
+            if (qIndex < q.length && char === q[qIndex]) {
+              matches++;
+              qIndex++;
+            }
+          }
+          if (matches >= q.length * 0.7) {
+            score += 25;
+          }
+        }
+        
+        // Check body content
+        if (parsed.body.toLowerCase().includes(q)) {
+          score += 30;
+        }
+        
+        // Check metadata fields
+        if (parsed.meta.bandProject?.toLowerCase().includes(q)) {
+          score += 20;
+        }
+        if (parsed.meta.genre?.toLowerCase().includes(q)) {
+          score += 15;
+        }
+        if (parsed.meta.keySignature?.toLowerCase().includes(q)) {
+          score += 15;
+        }
+        if (parsed.meta.bpm?.toLowerCase().includes(q)) {
+          score += 10;
+        }
+        if (parsed.meta.comments?.toLowerCase().includes(q)) {
+          score += 10;
+        }
+        
+        if (score > 0) {
+          results.push({ song, score });
+        }
+      }
+      
+      // Sort by score descending and return songs
+      return results.sort((a, b) => b.score - a.score).map(r => r.song);
+    };
+
+    const filteredSongs = query ? fuzzySearchSongs(songs, query) : songs;
+
+    for (const song of filteredSongs) {
       const parsed = parseSongNotes(song.notes);
       const tuning = parsed.meta.keySignature || "Onbekend";
       const hasImages = Boolean(song.attachments?.some(isImageAttachment));
-      if (query && !`${song.title} ${parsed.body} ${parsed.meta.bandProject} ${parsed.meta.genre} ${parsed.meta.keySignature} ${parsed.meta.bpm} ${parsed.meta.comments}`.toLowerCase().includes(query)) {
-        continue;
-      }
       if ((attachmentFilter === "with" && !hasImages) || (attachmentFilter === "without" && hasImages)) continue;
       const list = songsByGroup.get(tuning) || [];
       list.push(song);
@@ -924,10 +986,35 @@ export default function SetlistsTab() {
 
   const renderItem = (item: DraftItem, index: number, performance = false) => {
     if (item.kind === "special") {
+      if (performance) {
+        return (
+          <div key={item.id} className="rounded-3xl border border-dashed border-slate-300 bg-slate-100/80 px-4 py-5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200">
+            {item.specialLabel}
+            {item.specialLabel.toUpperCase().includes("PAUZE") && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">15 min</div>}
+          </div>
+        );
+      }
       return (
-        <div key={item.id} className="rounded-3xl border border-dashed border-slate-300 bg-slate-100/80 px-4 py-5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200">
-          {item.specialLabel}
-          {item.specialLabel.toUpperCase().includes("PAUZE") && performance && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">15 min</div>}
+        <div
+          key={item.id}
+          draggable
+          onDragStart={(event) => event.dataTransfer.setData("text/plain", String(index))}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            const from = Number(event.dataTransfer.getData("text/plain"));
+            if (!Number.isNaN(from)) moveItem(from, index);
+          }}
+          className="rounded-3xl border border-dashed border-slate-300 bg-slate-100/80 px-4 py-3 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span>{item.specialLabel}</span>
+            <div className="flex gap-1">
+              <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"}>↑</button>
+              <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"}>↓</button>
+              <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">×</button>
+            </div>
+          </div>
         </div>
       );
     }
