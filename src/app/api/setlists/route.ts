@@ -101,10 +101,13 @@ export async function POST(request: NextRequest) {
     const itemsInput = Array.isArray(body.items) ? body.items : [];
     const items = normalizeItems(itemsInput);
 
-    const setlist = await prisma.setlist.create({
+    const setlist = await (prisma.setlist.create as any)({
       data: {
         title,
         description: body.description ? String(body.description).trim() : null,
+        status: body.status ? String(body.status).trim() : "concept",
+        datum: body.datum ? String(body.datum).trim() : null,
+        locatie: body.locatie ? String(body.locatie).trim() : null,
         userId: user.id,
         items: items.length
           ? {

@@ -27,7 +27,7 @@ interface BandMember {
 
 export default function BandsTab() {
   const { getAccessToken, session } = useAuth();
-  const { language } = useSettings();
+  const { language, excludeSelfFromMemberCount } = useSettings();
   const toast = useToast();
 
   const [bands, setBands] = useState<Band[]>([]);
@@ -306,7 +306,13 @@ export default function BandsTab() {
   const getBandMembers = (bandId: string) => {
     const band = bands.find(b => b.id === bandId);
     if (!band) return [];
-    return members.filter((member) => member.bands?.includes(band.name));
+    const filtered = members.filter((member) => member.bands?.includes(band.name));
+    // Include current user if setting allows it
+    const currentUser = members.find(m => m.id === "current-user");
+    if (currentUser && !excludeSelfFromMemberCount && !filtered.includes(currentUser)) {
+      filtered.push(currentUser);
+    }
+    return filtered;
   };
 
   if (loading) {

@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS = {
   pdfImagesOnly: false,
   pdfShowPageNumbers: true,
   pdfMarginSize: "medium",
+  excludeSelfFromMemberCount: false,
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -422,6 +423,7 @@ export async function PUT(request: NextRequest) {
     const pdfImagesOnly = typeof body.pdfImagesOnly === "boolean" ? body.pdfImagesOnly : undefined;
     const pdfShowPageNumbers = typeof body.pdfShowPageNumbers === "boolean" ? body.pdfShowPageNumbers : undefined;
     const pdfMarginSize = typeof body.pdfMarginSize === "string" && VALID_PDF_MARGINS.includes(body.pdfMarginSize) ? body.pdfMarginSize : undefined;
+    const excludeSelfFromMemberCount = typeof body.excludeSelfFromMemberCount === "boolean" ? body.excludeSelfFromMemberCount : undefined;
 
     // 5. Authenticate
     console.log("[PUT /api/settings] Authenticating...");
@@ -453,6 +455,7 @@ export async function PUT(request: NextRequest) {
     if (pdfImagesOnly !== undefined) updateData.pdfImagesOnly = pdfImagesOnly;
     if (pdfShowPageNumbers !== undefined) updateData.pdfShowPageNumbers = pdfShowPageNumbers;
     if (pdfMarginSize !== undefined) updateData.pdfMarginSize = pdfMarginSize;
+    if (excludeSelfFromMemberCount !== undefined) updateData.excludeSelfFromMemberCount = excludeSelfFromMemberCount;
 
     // 7. Upsert to database
     try {
@@ -476,6 +479,7 @@ export async function PUT(request: NextRequest) {
           pdfImagesOnly: pdfImagesOnly ?? DEFAULT_SETTINGS.pdfImagesOnly,
           pdfShowPageNumbers: pdfShowPageNumbers ?? DEFAULT_SETTINGS.pdfShowPageNumbers,
           pdfMarginSize: pdfMarginSize ?? DEFAULT_SETTINGS.pdfMarginSize,
+          excludeSelfFromMemberCount: excludeSelfFromMemberCount ?? DEFAULT_SETTINGS.excludeSelfFromMemberCount,
         },
       });
 

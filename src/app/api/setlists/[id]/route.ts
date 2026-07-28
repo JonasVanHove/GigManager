@@ -109,15 +109,18 @@ export async function PATCH(
     const itemsInput = Array.isArray(body.items) ? body.items : [];
     const items = normalizeItems(itemsInput);
 
-    const updated = await prisma.setlist.update({
+    const updated = await (prisma.setlist.update as any)({
       where: { id: existing.id },
       data: {
         title,
         description: body.description ? String(body.description).trim() : null,
+        status: body.status ? String(body.status).trim() : (existing as any).status || "concept",
+        datum: body.datum ? String(body.datum).trim() : (existing as any).datum,
+        locatie: body.locatie ? String(body.locatie).trim() : (existing as any).locatie,
       },
       include: {
         items: { orderBy: { order: "asc" } },
-        gigs: { select: { id: true, eventName: true, date: true } },
+        gigs: { select: { id: true, eventName: true, date: true, bandId: true } },
       },
     });
 
@@ -132,17 +135,45 @@ export async function PATCH(
 
     if (Array.isArray(body.gigIds)) {
       const gigIds = body.gigIds.filter((id: unknown) => typeof id === "string");
-      const current = await prisma.gig.findMany({
+      const current = await (prisma.gig.findMany as any)({
         where: { setlistId: existing.id, userId: user.id },
-        select: { id: true },
+        select: { id: true, bandId: true, date: true, eventName: true },
       });
-      const currentIds = new Set(current.map((g) => g.id));
+      const currentIds = new Set(current.map((g: any) => g.id));
       const desiredIds = new Set(gigIds);
 
       const toAdd = gigIds.filter((id: string) => !currentIds.has(id));
       const toRemove = Array.from(currentIds).filter((id) => !desiredIds.has(id));
 
       if (toAdd.length > 0) {
+        // Get bandId and details from the gigs being added
+        const gigsToAdd = await (prisma.gig.findMany as any)({
+          where: { id: { in: toAdd }, userId: user.id },
+          select: { bandId: true, date: true, eventName: true },
+        });
+        
+        // Auto-link band to setlist if gigs have a band
+        const bandIds = gigsToAdd.map((g: any) => g.bandId).filter((b: any) => b !== null);
+        if (bandIds.length > 0) {
+          // Use the first bandId (assuming gigs are for the same band)
+          await (prisma.setlist.update as any)({
+            where: { id: existing.id },
+            data: { bandId: bandIds[0] },
+          });
+        }
+
+        // Sync date and location from gig to setlist if setlist doesn't have them
+        const firstGig = gigsToAdd[0];
+        if (firstGig && !(existing as any).datum) {
+          await (prisma.setlist.update as any)({
+            where: { id: existing.id },
+            data: {
+              datum: firstGig.date.toISOString().split('T')[0],
+              locatie: firstGig.eventName,
+            },
+          });
+        }
+
         await prisma.gig.updateMany({
           where: { id: { in: toAdd }, userId: user.id },
           data: { setlistId: existing.id },
@@ -151,7 +182,7 @@ export async function PATCH(
 
       if (toRemove.length > 0) {
         await prisma.gig.updateMany({
-          where: { id: { in: toRemove }, userId: user.id },
+          where: { id: { in: toRemove as string[] }, userId: user.id },
           data: { setlistId: null },
         });
       }

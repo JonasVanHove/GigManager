@@ -25,6 +25,8 @@ interface SettingsContextType {
   fmtDate: (value: string | null | undefined) => string;
   /** Format a date/time using the active locale */
   fmtDateTime: (value: string | null | undefined) => string;
+  /** Whether to exclude current user from band member count */
+  excludeSelfFromMemberCount: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -202,7 +204,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SettingsContext.Provider value={{ settings, loading, updateSettings, fmtCurrency, language, setLanguage, locale, fmtDate, fmtDateTime }}>
+    <SettingsContext.Provider value={{ settings, loading, updateSettings, fmtCurrency, language, setLanguage, locale, fmtDate, fmtDateTime, excludeSelfFromMemberCount: settings.excludeSelfFromMemberCount ?? false }}>
       {children}
     </SettingsContext.Provider>
   );

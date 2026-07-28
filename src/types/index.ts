@@ -171,6 +171,8 @@ export interface UserSettingsData {
   pdfImagesOnly?: boolean;
   pdfShowPageNumbers?: boolean;
   pdfMarginSize?: string;
+  // Band Settings
+  excludeSelfFromMemberCount?: boolean;
 }
 
 export type AppLanguage = "system" | "en" | "nl";
@@ -190,6 +192,7 @@ export const DEFAULT_SETTINGS: UserSettingsData = {
   pdfImagesOnly: false,
   pdfShowPageNumbers: true,
   pdfMarginSize: "medium",
+  excludeSelfFromMemberCount: false,
 };
 
 // --- Investment entity ------------------------------------------------------

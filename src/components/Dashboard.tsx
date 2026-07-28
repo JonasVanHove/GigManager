@@ -1546,6 +1546,20 @@ export default function Dashboard() {
                   <Icons.Music2 className="h-5 w-5 shrink-0" />
                   <span>Songs</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleTabChange("bands");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    selectedTab === "bands"
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.People className="h-5 w-5 shrink-0" />
+                  <span>Bands</span>
+                </button>
 
                 <button
                   onClick={() => {

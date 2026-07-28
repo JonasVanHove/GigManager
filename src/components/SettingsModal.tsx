@@ -57,6 +57,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [pdfImagesOnly, setPdfImagesOnly] = useState(settings.pdfImagesOnly ?? false);
   const [pdfShowPageNumbers, setPdfShowPageNumbers] = useState(settings.pdfShowPageNumbers ?? true);
   const [pdfMarginSize, setPdfMarginSize] = useState(settings.pdfMarginSize ?? "medium");
+  const [excludeSelfFromMemberCount, setExcludeSelfFromMemberCount] = useState(settings.excludeSelfFromMemberCount ?? false);
 
   const hasSettingsChanges =
     currency !== settings.currency ||
@@ -73,7 +74,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     pdfShowMetadata !== (settings.pdfShowMetadata ?? true) ||
     pdfImagesOnly !== (settings.pdfImagesOnly ?? false) ||
     pdfShowPageNumbers !== (settings.pdfShowPageNumbers ?? true) ||
-    pdfMarginSize !== (settings.pdfMarginSize ?? "medium");
+    pdfMarginSize !== (settings.pdfMarginSize ?? "medium") ||
+    excludeSelfFromMemberCount !== (settings.excludeSelfFromMemberCount ?? false);
 
   const hasProfileChanges =
     displayName !== (session?.user?.user_metadata?.name || "") ||
@@ -177,6 +179,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           pdfImagesOnly,
           pdfShowPageNumbers,
           pdfMarginSize,
+          excludeSelfFromMemberCount,
         });
         setLanguage(appLanguage);
       }
@@ -588,6 +591,40 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   <option value="medium">Medium</option>
                   <option value="large">Large</option>
                 </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="rounded-2xl border border-slate-200/60 bg-white/50 p-4 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/50">
+            <legend className="mb-3 px-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Band Settings
+            </legend>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Include yourself in band member count
+                  </label>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    When enabled, you'll be counted as a member in bands you play with
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExcludeSelfFromMemberCount(!excludeSelfFromMemberCount)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+                    !excludeSelfFromMemberCount ? "bg-brand-600" : "bg-slate-200 dark:bg-slate-700"
+                  }`}
+                  role="switch"
+                  aria-checked={!excludeSelfFromMemberCount}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      !excludeSelfFromMemberCount ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
               </div>
             </div>
           </fieldset>

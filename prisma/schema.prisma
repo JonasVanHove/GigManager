@@ -51,6 +51,7 @@ model Gig {
   setlistId                  String?
   isTentative                Boolean         @default(false)
   performanceFeeUnknown      Boolean         @default(false)
+  bandId                     String?         // Direct link to band
   setlist                    Setlist?        @relation(fields: [setlistId], references: [id])
   user                       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   bandMembers                GigBandMember[]
@@ -63,12 +64,16 @@ model Gig {
   @@index([userId, date])
   @@index([userId, paymentReceived])
   @@index([setlistId])
+  @@index([bandId])
 }
 
 model Setlist {
   id          String        @id @default(cuid())
   title       String
   description String?
+  status      String?       @default("concept")
+  datum       String?       // Date as string
+  locatie     String?       // Location
   userId      String
   bandId      String?
   createdAt   DateTime      @default(now())
@@ -216,6 +221,8 @@ model UserSettings {
   pdfImagesOnly       Boolean  @default(false)
   pdfShowPageNumbers  Boolean  @default(true)
   pdfMarginSize       String   @default("medium")
+  // Band Settings
+  excludeSelfFromMemberCount Boolean @default(false)
 }
 
 model Investment {
