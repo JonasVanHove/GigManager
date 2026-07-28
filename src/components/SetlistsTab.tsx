@@ -271,6 +271,7 @@ export default function SetlistsTab() {
   const [showPerformanceMode, setShowPerformanceMode] = useState(false);
   const [showGeneralNotes, setShowGeneralNotes] = useState(true);
   const [showTuningPanel, setShowTuningPanel] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState("");
@@ -344,11 +345,18 @@ export default function SetlistsTab() {
     [setlists, statusFilter]
   );
 
-  const statusLabels = useMemo(() => ({
+  const statusLabels = useMemo(() => (({
     alle: isDutch ? "Alle" : "All",
     concept: isDutch ? "Concept" : "Draft",
     klaar: isDutch ? "Klaar" : "Ready",
     gearchiveerd: isDutch ? "Gearchiveerd" : "Archived",
+  })), [isDutch]);
+
+  const statusTooltips = useMemo(() => ({
+    alle: isDutch ? "Toon alle setlists" : "Show all setlists",
+    concept: isDutch ? "Toon concept setlists (nog in bewerking)" : "Show draft setlists (still in progress)",
+    klaar: isDutch ? "Toon klaargemaakte setlists" : "Show ready setlists",
+    gearchiveerd: isDutch ? "Toon gearchiveerde setlists" : "Show archived setlists",
   }), [isDutch]);
 
   const statusIcons = useMemo(() => ({
@@ -655,6 +663,8 @@ export default function SetlistsTab() {
     setSavingState("saved");
     setShowPerformanceMode(false);
     setActiveItemId(null);
+    // Auto-collapse sidebar on mobile when setlist is selected
+    setSidebarCollapsed(true);
   }, []);
 
   const saveDraft = useCallback(async (nextDraft: StoredSetlist, version: number) => {
@@ -1189,20 +1199,30 @@ export default function SetlistsTab() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {["alle", "concept", "klaar", "gearchiveerd"].map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setStatusFilter(value as typeof statusFilter)}
-                title={statusLabels[value as keyof typeof statusLabels]}
-                aria-label={statusLabels[value as keyof typeof statusLabels]}
-                className={`min-w-0 rounded-2xl px-2.5 py-2 text-base font-semibold sm:px-3 ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
-              >
-                <span aria-hidden className="block text-center leading-none">{statusIcons[value as keyof typeof statusIcons]}</span>
-              </button>
-            ))}
+        <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ${sidebarCollapsed ? 'hidden lg:block' : 'block'}`}>
+          <div className="flex items-center justify-between">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 flex-1">
+              {["alle", "concept", "klaar", "gearchiveerd"].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setStatusFilter(value as typeof statusFilter)}
+                  title={statusTooltips[value as keyof typeof statusTooltips]}
+                  aria-label={statusLabels[value as keyof typeof statusLabels]}
+                  className={`min-w-0 rounded-2xl px-2.5 py-2 text-base font-semibold sm:px-3 ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
+                >
+                  <span aria-hidden className="block text-center leading-none">{statusIcons[value as keyof typeof statusIcons]}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="lg:hidden ml-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              aria-label={sidebarCollapsed ? "Show setlists" : "Hide setlists"}
+            >
+              {sidebarCollapsed ? "☰" : "✕"}
+            </button>
           </div>
 
           <div className="space-y-2">
@@ -1253,6 +1273,16 @@ export default function SetlistsTab() {
               <button type="button" onClick={() => setShowCreateModal(true)} className="mt-6 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
                 {copy.newSetlist}
               </button>
+              {/* Mobile toggle button when no setlist selected */}
+              {sidebarCollapsed && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(false)}
+                  className="mt-4 lg:hidden rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  {isDutch ? "Toon setlists" : "Show setlists"}
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-6">
@@ -1483,7 +1513,7 @@ export default function SetlistsTab() {
                 
                 // Header with centered title and metadata
                 htmlParts.push('<header class="document-header">');
-                if (bandLogo) {
+                if (bandLogo && (settings.pdfIncludeLogo ?? true)) {
                   htmlParts.push(`<div class="band-logo"><img src="${escapeHtml(bandLogo)}" alt="Band Logo" /></div>`);
                 }
                 htmlParts.push('<div class="document-eyebrow">GigManager · Setlist</div>');
