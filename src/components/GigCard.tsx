@@ -117,9 +117,8 @@ const GigCard = memo(function GigCard({
           ? 'border-red-300/60 bg-red-50/40 backdrop-blur shadow-md dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-lg dark:backdrop-blur'
           : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
     }`}>
-      <div className="h-1 w-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }} />
       {/* -- Header ------------------------------------------------------ */}
-      <div className={`flex items-start justify-between border-b transition-colors ${isSelected ? 'border-blue-200/60 bg-blue-100/20 dark:border-blue-800/40 dark:bg-blue-900/20' : 'border-slate-100/60 bg-slate-50/30 dark:border-slate-700/40 dark:bg-slate-800/30'} px-3 py-3 sm:px-5 sm:py-4`}>
+      <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4`} style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {onSelect && (

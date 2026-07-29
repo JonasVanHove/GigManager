@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PublicSharedGig, ShareLinkVisibility } from "@/types";
 import BandTag from "./BandTag";
-import { formatDate, resolveLocale } from "@/lib/preferences";
+import { formatDate, resolveLocale, getBandColorStyles } from "@/lib/preferences";
 
 interface SharePayload {
   token: string;
@@ -169,7 +169,8 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
     return sorted.map((gig, index) => {
       const key = `${gig.gigDate || "undated"}-${gig.eventName || "event"}-${gig.performers || "performers"}-${index}`;
       const isPast = isPastGigDate(gig.gigDate);
-      return { gig, key, isPast };
+      const bandStyles = getBandColorStyles(gig.performers || "");
+      return { gig, key, isPast, bandStyles };
     });
   }, [shareData]);
 
@@ -369,13 +370,14 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
 
               {isUpcomingSectionOpen && (
                 <div className="space-y-3 sm:space-y-4">
-                  {upcomingGigs.map(({ gig, key }) => {
+                  {upcomingGigs.map(({ gig, key, bandStyles }) => {
                     const isExpanded = expandedGigKeys.has(key);
                     return (
                       <article
                         key={key}
                         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 sm:p-5"
                       >
+                        <div className="border-b pb-3 mb-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
                         <button
                           type="button"
                           onClick={() => toggleGig(key)}
@@ -403,6 +405,7 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
                             </span>
                           </div>
                         </button>
+                        </div>
 
                         {isExpanded && (
                           <div className="mt-3 space-y-2">
@@ -495,13 +498,14 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
 
               {isPastSectionOpen && (
                 <div className="space-y-3 sm:space-y-4">
-                  {pastGigs.map(({ gig, key }) => {
+                  {pastGigs.map(({ gig, key, bandStyles }) => {
                     const isExpanded = expandedGigKeys.has(key);
                     return (
                       <article
                         key={key}
                         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 sm:p-5"
                       >
+                        <div className="border-b pb-3 mb-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
                         <button
                           type="button"
                           onClick={() => toggleGig(key)}
@@ -529,6 +533,7 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
                             </span>
                           </div>
                         </button>
+                        </div>
 
                         {isExpanded && (
                           <div className="mt-3 space-y-2">

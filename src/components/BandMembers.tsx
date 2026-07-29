@@ -8,6 +8,8 @@ import { useToast } from "./ToastContainer";
 import { useSettings } from "./SettingsProvider";
 import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
+import BandTag from "./BandTag";
+import { getBandColorStyles } from "@/lib/preferences";
 
 interface BandMemberGig {
   gigId: string;
@@ -765,32 +767,33 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                     {band}
                   </h3>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {grouped.map((member) => (
-                      <div
-                        key={`${band}-${member.id}`}
-                        className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-                      >
-                        <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-slate-700/50 dark:bg-slate-800/50">
-                          <div className="flex items-start justify-between">
-                            <div className="min-w-0 flex-1">
-                              <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
-                                {member.name}
-                              </h3>
-                              {member.email && (
-                                <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
-                                  {member.email}
-                                </p>
-                              )}
-                              {member.bands?.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {member.bands.map((bandName) => (
-                                    <span key={bandName} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                      {bandName}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                    {grouped.map((member) => {
+                      const primaryBand = member.bands?.[0] || "";
+                      const bandStyles = getBandColorStyles(primaryBand);
+                      return (
+                        <div
+                          key={`${band}-${member.id}`}
+                          className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+                        >
+                          <div className="border-b px-4 py-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                            <div className="flex items-start justify-between">
+                              <div className="min-w-0 flex-1">
+                                <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
+                                  {member.name}
+                                </h3>
+                                {member.email && (
+                                  <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+                                    {member.email}
+                                  </p>
+                                )}
+                                {member.bands?.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {member.bands.map((bandName) => (
+                                      <BandTag key={bandName} name={bandName} variant="soft" />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             <div className="ml-2 flex gap-1">
                               <button
                                 onClick={() => openGigPicker(member)}
@@ -865,7 +868,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -876,32 +880,33 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sortedMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-                >
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-slate-700/50 dark:bg-slate-800/50">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
-                          {member.name}
-                        </h3>
-                        {member.email && (
-                          <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
-                            {member.email}
-                          </p>
-                        )}
-                        {member.bands?.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {member.bands.map((bandName) => (
-                              <span key={bandName} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                {bandName}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+              {sortedMembers.map((member) => {
+                const primaryBand = member.bands?.[0] || "";
+                const bandStyles = getBandColorStyles(primaryBand);
+                return (
+                  <div
+                    key={member.id}
+                    className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <div className="border-b px-4 py-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
+                            {member.name}
+                          </h3>
+                          {member.email && (
+                            <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+                              {member.email}
+                            </p>
+                          )}
+                          {member.bands?.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {member.bands.map((bandName) => (
+                                <BandTag key={bandName} name={bandName} variant="soft" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       <div className="ml-2 flex gap-1">
                         <button
                           onClick={() => openGigPicker(member)}
@@ -976,7 +981,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
