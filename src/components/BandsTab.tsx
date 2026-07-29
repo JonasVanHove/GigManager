@@ -373,14 +373,37 @@ export default function BandsTab() {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                 {language === "nl" ? "Accentkleur" : "Accent Color"}
               </label>
-              <div className="mt-2 flex items-center gap-3">
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="h-10 w-20 rounded-lg border border-slate-300 bg-white cursor-pointer focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
-                />
-                <span className="text-sm text-slate-500 dark:text-slate-400">{formData.color}</span>
+              <div className="mt-2">
+                <div className="grid grid-cols-8 gap-2 mb-3">
+                  {[
+                    '#ef4444', '#f97316', '#f59e0b', '#84cc16',
+                    '#10b981', '#06b6d4', '#3b82f6', '#6366f1',
+                    '#8b5cf6', '#d946ef', '#f43f5e', '#ec4899',
+                    '#14b8a6', '#22c55e', '#eab308', '#64748b'
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, color })}
+                      className={`h-8 w-8 rounded-lg border-2 transition hover:scale-110 ${
+                        formData.color === color
+                          ? 'border-slate-900 dark:border-white'
+                          : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="h-10 w-20 rounded-lg border border-slate-300 bg-white cursor-pointer focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+                  />
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{formData.color}</span>
+                </div>
               </div>
             </div>
 
@@ -465,14 +488,37 @@ export default function BandsTab() {
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                           {language === "nl" ? "Accentkleur" : "Accent Color"}
                         </label>
-                        <div className="mt-2 flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={formData.color}
-                            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                            className="h-10 w-20 rounded-lg border border-slate-300 bg-white cursor-pointer focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
-                          />
-                          <span className="text-sm text-slate-500 dark:text-slate-400">{formData.color}</span>
+                        <div className="mt-2">
+                          <div className="grid grid-cols-8 gap-2 mb-3">
+                            {[
+                              '#ef4444', '#f97316', '#f59e0b', '#84cc16',
+                              '#10b981', '#06b6d4', '#3b82f6', '#6366f1',
+                              '#8b5cf6', '#d946ef', '#f43f5e', '#ec4899',
+                              '#14b8a6', '#22c55e', '#eab308', '#64748b'
+                            ].map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, color })}
+                                className={`h-8 w-8 rounded-lg border-2 transition hover:scale-110 ${
+                                  formData.color === color
+                                    ? 'border-slate-900 dark:border-white'
+                                    : 'border-transparent'
+                                }`}
+                                style={{ backgroundColor: color }}
+                                title={color}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={formData.color}
+                              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                              className="h-10 w-20 rounded-lg border border-slate-300 bg-white cursor-pointer focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+                            />
+                            <span className="text-sm text-slate-500 dark:text-slate-400">{formData.color}</span>
+                          </div>
                         </div>
                       </div>
 
@@ -539,6 +585,9 @@ export default function BandsTab() {
                           )}
                           <div>
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{band.name}</h3>
+                            {band.color && (
+                              <div className="h-1 mt-1 rounded-full" style={{ backgroundColor: band.color }}></div>
+                            )}
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                               {bandMembers.length} {language === "nl" ? "leden" : "members"}
                             </p>

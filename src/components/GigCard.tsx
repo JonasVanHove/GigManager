@@ -118,7 +118,7 @@ const GigCard = memo(function GigCard({
           : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
     }`}>
       {/* -- Header ------------------------------------------------------ */}
-      <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4 border-l-4`} style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
+      <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4`}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {onSelect && (
@@ -146,9 +146,12 @@ const GigCard = memo(function GigCard({
             className="min-w-0 flex-1 text-left transition-opacity hover:opacity-80"
           >
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
-              {gig.eventName}
-            </h3>
+            <div className="flex-1">
+              <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
+                {gig.eventName}
+              </h3>
+              <div className="h-1 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
+            </div>
             {gig.isCharity && (
               <>
                 <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-pink-600 dark:text-pink-300 badge-enter" title="Charity">

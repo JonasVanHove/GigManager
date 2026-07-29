@@ -802,14 +802,15 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                           key={`${band}-${member.id}`}
                           className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                         >
-                          <div className="border-b px-4 py-3 border-l-4" style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
+                          <div className="border-b px-4 py-3">
                             <div className="flex items-start justify-between">
                               <div className="min-w-0 flex-1">
                                 <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                                   {member.name}
                                 </h3>
+                                <div className="h-1 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
                                 {member.email && (
-                                  <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+                                  <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
                                     {member.email}
                                   </p>
                                 )}
@@ -916,14 +917,15 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                     key={member.id}
                     className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                   >
-                    <div className="border-b px-4 py-3 border-l-4" style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
+                    <div className="border-b px-4 py-3">
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                             {member.name}
                           </h3>
+                          <div className="h-1 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
                           {member.email && (
-                            <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
                               {member.email}
                             </p>
                           )}
