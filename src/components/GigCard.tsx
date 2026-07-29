@@ -118,7 +118,7 @@ const GigCard = memo(function GigCard({
           : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
     }`}>
       {/* -- Header ------------------------------------------------------ */}
-      <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4`} style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+      <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4 border-l-4`} style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {onSelect && (

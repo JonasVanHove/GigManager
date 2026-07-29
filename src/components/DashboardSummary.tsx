@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, useEffect, useCallback } from "react";
 import type { DashboardSummary, Gig } from "@/types";
 import { calculateGigFinancials, formatDate } from "@/lib/calculations";
 import { XAITooltip } from "./XAITooltip";
 import BandTag from "./BandTag";
 import { useSettings } from "./SettingsProvider";
+import { useAuth } from "./AuthProvider";
 import { getBandColorStyles } from "@/lib/preferences";
 
 interface DashboardSummaryProps {
@@ -20,24 +21,41 @@ interface DashboardSummaryProps {
   };
 }
 
-/**
- * DashboardSummary: Premium summary cards with band breakdown and expandable sections
- *
- * Features:
- * - Split view: Received vs Pending earnings
- * - Band breakdown: shows which bands contribute to totals
- * - Quick stats per band
- * - Expandable cards for progressive disclosure
- * - XAI tooltips for explanation
- * - HCI-optimized spacing and hierarchy
- */
+interface Band {
+  id: string;
+  name: string;
+  color?: string | null;
+}
+
 export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOverview }: DashboardSummaryProps) {
   const { language } = useSettings();
+  const { getAccessToken } = useAuth();
   const tr = (en: string, nl: string) => (language === "nl" ? nl : en);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [expandedBand, setExpandedBand] = useState<string | null>(null);
   const [expandedUnpaidBand, setExpandedUnpaidBand] = useState<string | null>(null);
   const [expandedPerformanceType, setExpandedPerformanceType] = useState<string | null>(null);
+  const [bands, setBands] = useState<Band[]>([]);
+
+  const fetchBands = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      const response = await fetch("/api/bands", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setBands(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch bands:", error);
+    }
+  }, [getAccessToken]);
+
+  useEffect(() => {
+    fetchBands();
+  }, [fetchBands]);
 
   const toggleCard = (cardId: string) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
@@ -229,7 +247,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                 </p>
                 <div className="space-y-1">
                   {sortedBands.map(([band, data]) => {
-                    const bandStyles = getBandColorStyles(band);
+                    const bandData = bands.find(b => b.name === band);
+                    const bandStyles = getBandColorStyles(band, bandData?.color);
                     return (
                       <div key={`perf-${band}`} className="flex items-center justify-between text-xs rounded px-2 py-1.5" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
                         <BandTag name={band} variant="soft" />
@@ -348,7 +367,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                 ) : (
                   <div className="space-y-1.5">
                     {sortedBands.map(([band, data]) => {
-                      const bandStyles = getBandColorStyles(band);
+                      const bandData = bands.find(b => b.name === band);
+                      const bandStyles = getBandColorStyles(band, bandData?.color);
                       return (
                         <div key={band} className="rounded border p-1.5 sm:p-2" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
                           <div className="flex items-center justify-between gap-1.5">
@@ -424,7 +444,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                     const bandGigs = gigs.filter(
                       (g) => (g.performers || "Unknown Band") === item.band && !g.paymentReceived
                     );
-                    const bandStyles = getBandColorStyles(item.band);
+                    const bandData = bands.find(b => b.name === item.band);
+                    const bandStyles = getBandColorStyles(item.band, bandData?.color);
                     const bandManagerTotals = bandGigs.reduce(
                       (sum, gig) => {
                         const calc = calculateGigFinancials(
@@ -629,7 +650,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                 <div className="space-y-1.5">
                   {sortedOutstandingBands.map(([band, data]) => {
                     const isExpanded = expandedUnpaidBand === band;
-                    const bandStyles = getBandColorStyles(band);
+                    const bandData = bands.find(b => b.name === band);
+                    const bandStyles = getBandColorStyles(band, bandData?.color);
 
                     return (
                       <div key={`outstanding-${band}`} className="rounded bg-white/40 dark:bg-slate-800/40">

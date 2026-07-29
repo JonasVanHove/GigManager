@@ -377,7 +377,7 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
                         key={key}
                         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 sm:p-5"
                       >
-                        <div className="border-b pb-3 mb-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                        <div className="border-b pb-3 mb-3 border-l-4" style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
                         <button
                           type="button"
                           onClick={() => toggleGig(key)}
@@ -505,7 +505,7 @@ export default function SharedGigOverviewPage({ token }: SharedGigOverviewPagePr
                         key={key}
                         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 sm:p-5"
                       >
-                        <div className="border-b pb-3 mb-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                        <div className="border-b pb-3 mb-3 border-l-4" style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
                         <button
                           type="button"
                           onClick={() => toggleGig(key)}

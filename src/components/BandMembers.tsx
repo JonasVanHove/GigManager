@@ -19,6 +19,15 @@ interface BandMemberGig {
   paid: number;
 }
 
+interface Band {
+  id: string;
+  name: string;
+  logoUrl?: string | null;
+  color?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface BandMember {
   id: string;
   name: string;
@@ -45,6 +54,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
   const { language } = useSettings();
   const toast = useToast();
   const [members, setMembers] = useState<BandMember[]>([]);
+  const [bands, setBands] = useState<Band[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -132,9 +142,25 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
     }
   }, [getAccessToken, toast]);
 
+  const fetchBands = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No auth token");
+      const response = await fetch("/api/bands", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch bands");
+      const data = await response.json();
+      setBands(data);
+    } catch (error) {
+      console.error("Failed to load bands:", error);
+    }
+  }, [getAccessToken]);
+
   useEffect(() => {
     fetchMembers();
-  }, [fetchMembers]);
+    fetchBands();
+  }, [fetchMembers, fetchBands]);
 
   const fetchAllGigs = useCallback(async () => {
     try {
@@ -769,13 +795,14 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {grouped.map((member) => {
                       const primaryBand = member.bands?.[0] || "";
-                      const bandStyles = getBandColorStyles(primaryBand);
+                      const bandData = bands.find(b => b.name === primaryBand);
+                      const bandStyles = getBandColorStyles(primaryBand, bandData?.color);
                       return (
                         <div
                           key={`${band}-${member.id}`}
                           className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                         >
-                          <div className="border-b px-4 py-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                          <div className="border-b px-4 py-3 border-l-4" style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
                             <div className="flex items-start justify-between">
                               <div className="min-w-0 flex-1">
                                 <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
@@ -882,13 +909,14 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {sortedMembers.map((member) => {
                 const primaryBand = member.bands?.[0] || "";
-                const bandStyles = getBandColorStyles(primaryBand);
+                const bandData = bands.find(b => b.name === primaryBand);
+                const bandStyles = getBandColorStyles(primaryBand, bandData?.color);
                 return (
                   <div
                     key={member.id}
                     className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                   >
-                    <div className="border-b px-4 py-3" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                    <div className="border-b px-4 py-3 border-l-4" style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
