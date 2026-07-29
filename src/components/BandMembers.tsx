@@ -808,7 +808,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                                 <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                                   {member.name}
                                 </h3>
-                                <div className="h-0.5 mt-1 rounded-full opacity-60" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
+                                <div className="h-0.5 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
                                 {member.email && (
                                   <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
                                     {member.email}

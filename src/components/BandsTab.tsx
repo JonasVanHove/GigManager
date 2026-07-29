@@ -586,7 +586,7 @@ export default function BandsTab() {
                           <div>
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{band.name}</h3>
                             {band.color && (
-                              <div className="h-0.5 mt-1 rounded-full opacity-60" style={{ backgroundColor: band.color }}></div>
+                              <div className="h-0.5 mt-1 rounded-full" style={{ backgroundColor: band.color }}></div>
                             )}
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                               {bandMembers.length} {language === "nl" ? "leden" : "members"}
