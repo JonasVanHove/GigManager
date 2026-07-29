@@ -442,7 +442,7 @@ export default function BandsTab() {
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-500">{copy.addFirstBand}</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {bands.map((band) => {
             const bandMembers = getBandMembers(band.id);
             return (

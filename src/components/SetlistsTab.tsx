@@ -6,6 +6,7 @@ import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
 import { createPrintDocument } from "@/lib/print-document";
+import { supabaseClient } from "@/lib/supabase-client";
 
 type SongRow = {
   id: string;
@@ -280,6 +281,8 @@ export default function SetlistsTab() {
   const [error, setError] = useState("");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [drawerSongId, setDrawerSongId] = useState<string | null>(null);
+  const [itemAttachments, setItemAttachments] = useState<Map<string, Array<{ id: string; url: string; type: string; title?: string }>>>(new Map());
+  const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftVersionRef = useRef(0);
 
@@ -371,21 +374,24 @@ export default function SetlistsTab() {
     const songsByGroup = new Map<string, SongRow[]>();
 
     // Fuzzy search with match explanations
-    const fuzzySearchSongs = (songs: SongRow[], query: string): SongRow[] => {
-      if (!query.trim()) return songs;
+    const fuzzySearchSongs = (songs: SongRow[], query: string): { song: SongRow; matchReasons: string[] }[] => {
+      if (!query.trim()) return songs.map(s => ({ song: s, matchReasons: [] }));
       
       const q = query.toLowerCase().trim();
-      const results: { song: SongRow; score: number }[] = [];
+      const results: { song: SongRow; score: number; matchReasons: string[] }[] = [];
       
       for (const song of songs) {
         const parsed = parseSongNotes(song.notes);
         let score = 0;
+        const reasons: string[] = [];
         
         // Check title (exact match gets highest score)
         if (song.title.toLowerCase() === q) {
           score += 100;
+          reasons.push(isDutch ? "Exacte titelmatch" : "Exact title match");
         } else if (song.title.toLowerCase().includes(q)) {
           score += 50;
+          reasons.push(isDutch ? "Titel bevat zoekterm" : "Title contains search term");
         } else {
           // Fuzzy title match (allow 1-2 character differences)
           const titleLower = song.title.toLowerCase();
@@ -399,43 +405,51 @@ export default function SetlistsTab() {
           }
           if (matches >= q.length * 0.7) {
             score += 25;
+            reasons.push(isDutch ? "Gedeeltelijke titelmatch" : "Partial title match");
           }
         }
         
         // Check body content
         if (parsed.body.toLowerCase().includes(q)) {
           score += 30;
+          reasons.push(isDutch ? "In songtekst" : "In lyrics");
         }
         
         // Check metadata fields
         if (parsed.meta.bandProject?.toLowerCase().includes(q)) {
           score += 20;
+          reasons.push(isDutch ? "In band/project" : "In band/project");
         }
         if (parsed.meta.genre?.toLowerCase().includes(q)) {
           score += 15;
+          reasons.push(isDutch ? "In genre" : "In genre");
         }
         if (parsed.meta.keySignature?.toLowerCase().includes(q)) {
           score += 15;
+          reasons.push(isDutch ? "In toonsoort" : "In key signature");
         }
         if (parsed.meta.bpm?.toLowerCase().includes(q)) {
           score += 10;
+          reasons.push(isDutch ? "In BPM" : "In BPM");
         }
         if (parsed.meta.comments?.toLowerCase().includes(q)) {
           score += 10;
+          reasons.push(isDutch ? "In opmerkingen" : "In comments");
         }
         
         if (score > 0) {
-          results.push({ song, score });
+          results.push({ song, score, matchReasons: reasons });
         }
       }
       
-      // Sort by score descending and return songs
-      return results.sort((a, b) => b.score - a.score).map(r => r.song);
+      // Sort by score descending and return songs with reasons
+      return results.sort((a, b) => b.score - a.score).map(r => ({ song: r.song, matchReasons: r.matchReasons }));
     };
 
-    const filteredSongs = query ? fuzzySearchSongs(songs, query) : songs;
+    const filteredSongs = query ? fuzzySearchSongs(songs, query) : songs.map(s => ({ song: s, matchReasons: [] }));
 
-    for (const song of filteredSongs) {
+    for (const item of filteredSongs) {
+      const song = 'song' in item ? item.song : item;
       const parsed = parseSongNotes(song.notes);
       const tuning = parsed.meta.keySignature || "Onbekend";
       const hasImages = Boolean(song.attachments?.some(isImageAttachment));
@@ -994,6 +1008,97 @@ export default function SetlistsTab() {
     setDrawerSongId((current) => (current === songId ? null : songId));
   };
 
+  const loadItemAttachments = useCallback(async (itemId: string) => {
+    if (!session?.user) return;
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      
+      const response = await fetch(`/api/setlist-items/${itemId}/attachments`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const attachments = await response.json();
+        setItemAttachments(prev => new Map(prev).set(itemId, attachments));
+      }
+    } catch (error) {
+      console.error('Failed to load attachments:', error);
+    }
+  }, [session, getAccessToken]);
+
+  const handleAttachmentUpload = async (itemId: string, file: File) => {
+    if (!session?.user) return;
+    setUploadingAttachment(itemId);
+    
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      
+      // Upload to Supabase
+      const ext = file.name.split('.').pop() || 'png';
+      const fileName = `setlist-item-${itemId}-${Date.now()}.${ext}`;
+      
+      const { data: uploadData, error: uploadError } = await supabaseClient.storage
+        .from('songs')
+        .upload(fileName, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from('songs')
+        .getPublicUrl(fileName);
+      
+      // Create attachment record
+      const response = await fetch(`/api/setlist-items/${itemId}/attachments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          url: publicUrl,
+          type: file.type.startsWith('image/') ? 'image' : 'file',
+          title: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        }),
+      });
+      
+      if (response.ok) {
+        await loadItemAttachments(itemId);
+        toast.success(isDutch ? 'Bijlage toegevoegd' : 'Attachment added');
+      }
+    } catch (error) {
+      console.error('Failed to upload attachment:', error);
+      toast.error(isDutch ? 'Upload mislukt' : 'Upload failed');
+    } finally {
+      setUploadingAttachment(null);
+    }
+  };
+
+  const handleDeleteAttachment = async (itemId: string, attachmentId: string) => {
+    if (!session?.user) return;
+    
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      
+      const response = await fetch(`/api/setlist-items/[id]/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        await loadItemAttachments(itemId);
+        toast.success(isDutch ? 'Bijlage verwijderd' : 'Attachment deleted');
+      }
+    } catch (error) {
+      console.error('Failed to delete attachment:', error);
+      toast.error(isDutch ? 'Verwijderen mislukt' : 'Delete failed');
+    }
+  };
+
   const renderItem = (item: DraftItem, index: number, performance = false) => {
     if (item.kind === "special") {
       if (performance) {
@@ -1099,7 +1204,7 @@ export default function SetlistsTab() {
             {item.notitie && <div className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
             {item.songId && songNoteMap.get(item.songId)?.length ? (
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Gekoppelde notities" : "Linked notes"} aria-label={isDutch ? "Gekoppelde notities" : "Linked notes"}>
                   📝 {songNoteMap.get(item.songId)?.length}
                 </button>
               </div>
@@ -1112,10 +1217,15 @@ export default function SetlistsTab() {
             <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
               ↓
             </button>
-            <button type="button" onClick={() => updateItem(item.id, { expanded: !item.expanded })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => {
+              updateItem(item.id, { expanded: !item.expanded });
+              if (!item.expanded) {
+                loadItemAttachments(item.id);
+              }
+            }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
               📝
             </button>
-            <button type="button" onClick={() => removeItem(item.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">
+            <button type="button" onClick={() => removeItem(item.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
               ×
             </button>
           </div>
@@ -1127,6 +1237,61 @@ export default function SetlistsTab() {
             <div className="grid gap-3 sm:grid-cols-2">
               <input value={item.tuning} onChange={(e) => updateItem(item.id, { tuning: e.target.value })} placeholder="Tuning" className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
               <input value={item.key} onChange={(e) => updateItem(item.id, { key: e.target.value })} placeholder={isDutch ? "Toonsoort" : "Key"} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+            </div>
+            
+            {/* Attachments Section */}
+            <div className="sm:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {isDutch ? "Bijlagen" : "Attachments"}
+                </span>
+                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                  {uploadingAttachment === item.id ? (
+                    <span className="flex items-center gap-1">
+                      <span className="h-3 w-3 animate-spin rounded-full border border-slate-400 border-t-transparent" />
+                      {isDutch ? "Uploaden..." : "Uploading..."}
+                    </span>
+                  ) : (
+                    <span>+ {isDutch ? "Toevoegen" : "Add"}</span>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAttachmentUpload(item.id, file);
+                    }}
+                    disabled={uploadingAttachment === item.id}
+                  />
+                </label>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {itemAttachments.get(item.id)?.map((att) => (
+                  <div key={att.id} className="relative group">
+                    {att.type === 'image' ? (
+                      <img src={att.url} alt={att.title || ''} className="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        📄
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAttachment(item.id, att.id)}
+                      className="absolute -right-1 -top-1 hidden rounded-full bg-rose-500 p-1 text-white shadow-sm group-hover:block hover:bg-rose-600"
+                      title={isDutch ? "Verwijderen" : "Delete"}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {itemAttachments.get(item.id)?.length === 0 && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {isDutch ? "Geen bijlagen" : "No attachments"}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1253,10 +1418,10 @@ export default function SetlistsTab() {
                   </div>
                 </button>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" onClick={duplicateSetlist} className="min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                  <button type="button" onClick={duplicateSetlist} className="min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={copy.duplicate} aria-label={copy.duplicate}>
                     {copy.duplicate}
                   </button>
-                  <button type="button" onClick={() => deleteSetlist(setlist.id)} className="min-w-0 rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">
+                  <button type="button" onClick={() => deleteSetlist(setlist.id)} className="min-w-0 rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
                     ×
                   </button>
                 </div>
@@ -1389,7 +1554,9 @@ export default function SetlistsTab() {
                       <div key={tuning}>
                         <div className={`mb-2 inline-flex max-w-full rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
                         <div className="space-y-2">
-                          {group.map((song) => {
+                          {group.map((item) => {
+                            const song = (item as any).song || item as SongRow;
+                            const matchReasons = (item as any).matchReasons || [] as string[];
                             const occurrenceCount = songOccurrences.get(song.id) || 0;
                             const meta = parseSongNotes(song.notes).meta;
                             const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
@@ -1400,6 +1567,15 @@ export default function SetlistsTab() {
                                   <div className="min-w-0 flex-1">
                                     <div className="break-words font-semibold leading-snug">{song.title}</div>
                                     <div className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
+                                    {matchReasons.length > 0 && (
+                                      <div className="mt-1 flex flex-wrap gap-1">
+                                        {matchReasons.map((reason: string, idx: number) => (
+                                          <span key={idx} className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                                            {reason}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
                                     <div className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${imageCount ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
                                       {imageCount
                                         ? `🖼️ ${imageCount} ${isDutch ? (imageCount === 1 ? "afbeelding voor PDF" : "afbeeldingen voor PDF") : (imageCount === 1 ? "image for PDF" : "images for PDF")}`
@@ -1580,9 +1756,15 @@ export default function SetlistsTab() {
                 htmlParts.push('</section>');
                 if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">General Notes</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
                 htmlParts.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
+                
+                // Get band logo if setlist is linked to a band
+                const band = draft.bandId ? bandsList.find(b => b.id === draft.bandId) : null;
+                const logoUrl = band?.logoUrl || undefined;
+                
                 win.document.open();
                 win.document.write(createPrintDocument(escapeHtml(draft.naam), htmlParts.join('\n'), {
                   includeLogo: settings.pdfIncludeLogo ?? true,
+                  logoUrl: logoUrl,
                   font: settings.pdfFont ?? "inter",
                   pageSize: settings.pdfPageSize ?? "a4",
                   pageBreakMode: settings.pdfPageBreakMode ?? "auto",

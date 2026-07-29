@@ -4,6 +4,7 @@
  */
 export function createPrintDocument(title: string, content: string, options?: {
   includeLogo?: boolean;
+  logoUrl?: string;
   font?: string;
   pageSize?: string;
   pageBreakMode?: string;
@@ -16,6 +17,7 @@ export function createPrintDocument(title: string, content: string, options?: {
 }) {
   const {
     includeLogo = true,
+    logoUrl = "",
     font = "inter",
     pageSize = "a4",
     pageBreakMode = "auto",
@@ -131,7 +133,7 @@ export function createPrintDocument(title: string, content: string, options?: {
       
       /* Header */
       .document-header { text-align: center; border-bottom: 2px solid ${darkModeColors.headerBorder}; padding: 5mm 0 8mm; margin-bottom: 10mm; }
-      .band-logo { margin-bottom: 4mm; display: ${includeLogo ? 'block' : 'none'}; }
+      .band-logo { margin-bottom: 4mm; display: ${includeLogo && logoUrl ? 'block' : 'none'}; }
       .band-logo img { max-height: 25mm; max-width: 80mm; object-fit: contain; }
       .document-eyebrow { color: ${darkModeColors.subtitle}; font-size: 8pt; font-weight: 600; letter-spacing: 0.15em; margin-bottom: 3mm; text-transform: uppercase; }
       .document-title { color: ${darkModeColors.title}; font-size: 28pt; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 0; overflow-wrap: anywhere; }
@@ -221,6 +223,14 @@ export function createPrintDocument(title: string, content: string, options?: {
       window.addEventListener('load', function() { window.setTimeout(printWhenReady, 150); });
     </script>
   </head>
-  <body><main class="print-document">${processedContent}</main></body>
+  <body><main class="print-document">
+    <header class="document-header">
+      ${includeLogo && logoUrl ? `<div class="band-logo"><img src="${logoUrl}" alt="Band Logo" /></div>` : ''}
+      <div class="document-eyebrow">Setlist</div>
+      <h1 class="document-title">${title}</h1>
+    </header>
+    ${processedContent}
+    <footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>
+  </main></body>
 </html>`;
 }

@@ -141,6 +141,35 @@ export async function PUT(
     });
     invalidateCache(`${user.id}:gigs`);
 
+    // Bidirectional sync: update linked setlist when gig changes
+    if (gig.setlistId) {
+      const setlistUpdateData: any = {};
+      const dateChanged = existing.date.getTime() !== gig.date.getTime();
+      const eventNameChanged = existing.eventName !== gig.eventName;
+      
+      if (dateChanged) {
+        setlistUpdateData.datum = gig.date.toISOString().split('T')[0];
+      }
+      if (eventNameChanged) {
+        setlistUpdateData.locatie = gig.eventName;
+      }
+      
+      // Sync bandId if gig has a band and setlist doesn't
+      const gigBandId = (gig as any).bandId;
+      const existingBandId = (existing as any).bandId;
+      if (gigBandId && !existingBandId) {
+        setlistUpdateData.bandId = gigBandId;
+      }
+      
+      if (Object.keys(setlistUpdateData).length > 0) {
+        await prisma.setlist.update({
+          where: { id: gig.setlistId },
+          data: setlistUpdateData,
+        });
+        invalidateCache(`${user.id}:setlists`);
+      }
+    }
+
     // Trigger notifications and webhooks if payment status changed
     if (!existing.paymentReceived && body.paymentReceived) {
       // Payment just received - notify and webhook
