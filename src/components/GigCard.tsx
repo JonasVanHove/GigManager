@@ -150,7 +150,7 @@ const GigCard = memo(function GigCard({
               <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                 {gig.eventName}
               </h3>
-              <div className="h-1 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
+              <div className="h-0.5 mt-1 rounded-full opacity-60" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
             </div>
             {gig.isCharity && (
               <>
