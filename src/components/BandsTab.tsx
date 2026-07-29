@@ -480,7 +480,7 @@ export default function BandsTab() {
             const isExpanded = expandedBandId === band.id;
             const isEditing = editingBand?.id === band.id;
             return (
-              <div key={band.id} className="rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
+              <div key={band.id} className="rounded-2xl border bg-white dark:bg-slate-900 overflow-hidden" style={{ borderColor: band.color || '#e2e8f0' }}>
                 {isEditing ? (
                   <div className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -585,9 +585,6 @@ export default function BandsTab() {
                           )}
                           <div>
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{band.name}</h3>
-                            {band.color && (
-                              <div className="h-0.5 mt-1 rounded-full" style={{ backgroundColor: band.color }}></div>
-                            )}
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                               {bandMembers.length} {language === "nl" ? "leden" : "members"}
                             </p>

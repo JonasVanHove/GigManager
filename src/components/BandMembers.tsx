@@ -800,7 +800,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                       return (
                         <div
                           key={`${band}-${member.id}`}
-                          className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+                          className="group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md dark:bg-slate-900"
+                          style={{ borderColor: bandStyles.solid.backgroundColor }}
                         >
                           <div className="border-b px-4 py-3">
                             <div className="flex items-start justify-between">
@@ -808,9 +809,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                                 <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                                   {member.name}
                                 </h3>
-                                <div className="h-0.5 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
                                 {member.email && (
-                                  <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
+                                  <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
                                     {member.email}
                                   </p>
                                 )}
@@ -915,7 +915,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                 return (
                   <div
                     key={member.id}
-                    className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+                    className="group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md dark:bg-slate-900"
+                    style={{ borderColor: bandStyles.solid.backgroundColor }}
                   >
                     <div className="border-b px-4 py-3">
                       <div className="flex items-start justify-between">
@@ -923,9 +924,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                           <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                             {member.name}
                           </h3>
-                          <div className="h-1 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
                           {member.email && (
-                            <p className="mt-2 truncate text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
                               {member.email}
                             </p>
                           )}

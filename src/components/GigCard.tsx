@@ -116,7 +116,7 @@ const GigCard = memo(function GigCard({
         : isClientPaymentOverdue
           ? 'border-red-300/60 bg-red-50/40 backdrop-blur shadow-md dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-lg dark:backdrop-blur'
           : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
-    }`}>
+    }`} style={{ borderColor: bandStyles.solid.backgroundColor }}>
       {/* -- Header ------------------------------------------------------ */}
       <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4`}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
@@ -146,12 +146,9 @@ const GigCard = memo(function GigCard({
             className="min-w-0 flex-1 text-left transition-opacity hover:opacity-80"
           >
           <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
-                {gig.eventName}
-              </h3>
-              <div className="h-0.5 mt-1 rounded-full" style={{ backgroundColor: bandStyles.solid.backgroundColor }}></div>
-            </div>
+            <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
+              {gig.eventName}
+            </h3>
             {gig.isCharity && (
               <>
                 <span className="inline-flex tablet:hidden items-center shrink-0 p-1 rounded-md text-pink-600 dark:text-pink-300 badge-enter" title="Charity">
