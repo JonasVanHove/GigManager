@@ -64,7 +64,7 @@ type StoredSetlist = {
   userId: string;
   naam: string;
   datum: string | null;
-  locatie: string;
+  locatie: string | null;
   gigIds: string[];
   items: DraftItem[];
   notities: string;
@@ -698,7 +698,7 @@ export default function SetlistsTab() {
       title: nextDraft.naam.trim() || (isDutch ? "Nieuwe setlist" : "New setlist"),
       description: serializeSetlistMeta({
         datum: nextDraft.datum,
-        locatie: nextDraft.locatie,
+        locatie: nextDraft.locatie || "",
         notities: nextDraft.notities,
         status: nextDraft.status,
         pauseOnTuningChange: nextDraft.pauseOnTuningChange,
@@ -838,7 +838,7 @@ export default function SetlistsTab() {
           title: `${draft.naam} (kopie)`,
           description: serializeSetlistMeta({
             datum: draft.datum,
-            locatie: draft.locatie,
+            locatie: draft.locatie || "",
             notities: draft.notities,
             status: "concept",
             pauseOnTuningChange: draft.pauseOnTuningChange,
@@ -889,14 +889,19 @@ export default function SetlistsTab() {
 
       const nextGigIds = gigId ? [gigId] : [];
       
-      // Get gig info to sync bandId and band info
+      // Get gig info to sync bandId, band info, date, and location
       let bandId = draft.bandId || null;
       let bandInfo = draft.band || null;
+      let gigDatum = draft.datum || null;
+      let gigLocatie = draft.locatie || null;
+      
       if (gigId) {
         const gigRes = await fetch(`/api/gigs/${gigId}`, { headers: { Authorization: `Bearer ${token}` } });
         if (gigRes.ok) {
           const gigData = await gigRes.json();
           bandId = gigData.bandId || null;
+          gigDatum = gigData.date ? gigData.date.split('T')[0] : null;
+          gigLocatie = gigData.eventName || null;
           
           // Fetch band info if bandId is present
           if (bandId) {
@@ -918,19 +923,33 @@ export default function SetlistsTab() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ gigIds: nextGigIds, bandId }),
+        body: JSON.stringify({ gigIds: nextGigIds, bandId, datum: gigDatum, locatie: gigLocatie }),
       });
 
       if (!res.ok) throw new Error(gigId ? (isDutch ? 'Toewijzen mislukt' : 'Assign failed') : (isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed'));
 
-      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }>; bandId?: string | null; band?: any };
+      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }>; bandId?: string | null; band?: any; datum?: string | null; locatie?: string | null };
       const resolvedGigIds = Array.isArray(refreshed.gigs) ? refreshed.gigs.map((gig) => gig.id) : nextGigIds;
 
-      setDraft((current) => current ? { ...current, gigIds: resolvedGigIds, bandId: refreshed.bandId || null, band: refreshed.band || bandInfo } : current);
+      setDraft((current) => current ? { 
+        ...current, 
+        gigIds: resolvedGigIds, 
+        bandId: refreshed.bandId || null, 
+        band: refreshed.band || bandInfo,
+        datum: refreshed.datum || gigDatum || null,
+        locatie: refreshed.locatie || gigLocatie || null
+      } : current);
       setSetlists((prev) =>
         prev.map((setlist) => {
           if (setlist.id === draft.id) {
-            return { ...setlist, gigIds: resolvedGigIds, bandId: refreshed.bandId || null, band: refreshed.band || bandInfo };
+            return { 
+              ...setlist, 
+              gigIds: resolvedGigIds, 
+              bandId: refreshed.bandId || null, 
+              band: refreshed.band || bandInfo,
+              datum: refreshed.datum || gigDatum || null,
+              locatie: refreshed.locatie || gigLocatie || null
+            };
           }
           return gigId && setlist.gigIds.includes(gigId)
             ? { ...setlist, gigIds: setlist.gigIds.filter((id) => id !== gigId) }
@@ -1537,7 +1556,7 @@ export default function SetlistsTab() {
 
               <div className="grid gap-3 md:grid-cols-4">
                 <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                <input value={activeDraft.locatie} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                 <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                   <option value="concept">{isDutch ? "concept" : "Draft"}</option>
                   <option value="klaar">{isDutch ? "klaar" : "Ready"}</option>

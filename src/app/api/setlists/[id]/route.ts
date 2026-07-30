@@ -116,13 +116,14 @@ export async function PATCH(
         title,
         description: body.description ? String(body.description).trim() : null,
         status: body.status ? String(body.status).trim() : (existing as any).status || "concept",
-        datum: body.datum ? String(body.datum).trim() : (existing as any).datum,
-        locatie: body.locatie ? String(body.locatie).trim() : (existing as any).locatie,
+        datum: body.datum !== undefined ? (body.datum ? String(body.datum).trim() : null) : (existing as any).datum,
+        locatie: body.locatie !== undefined ? (body.locatie ? String(body.locatie).trim() : null) : (existing as any).locatie,
         bandId: body.bandId !== undefined ? (body.bandId || null) : (existing as any).bandId,
       },
       include: {
         items: { orderBy: { order: "asc" } },
         gigs: { select: { id: true, eventName: true, date: true, bandId: true } },
+        band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
     });
 
@@ -164,9 +165,9 @@ export async function PATCH(
           });
         }
 
-        // Sync date and location from gig to setlist if setlist doesn't have them
+        // Sync date and location from gig to setlist
         const firstGig = gigsToAdd[0];
-        if (firstGig && !(existing as any).datum) {
+        if (firstGig) {
           await (prisma.setlist.update as any)({
             where: { id: existing.id },
             data: {
