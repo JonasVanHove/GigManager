@@ -259,7 +259,7 @@ export default function SetlistsTab() {
 
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [gigsList, setGigsList] = useState<GigOption[]>([]);
-  const [bandsList, setBandsList] = useState<Array<{ id: string; name: string; logoUrl?: string }>>([]);
+  const [bandsList, setBandsList] = useState<Array<{ id: string; name: string; logoUrl?: string; color?: string | null }>>([]);
   const [setlists, setSetlists] = useState<StoredSetlist[]>([]);
   const [notes, setNotes] = useState<LinkedNote[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -545,7 +545,7 @@ export default function SetlistsTab() {
 
       const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; attachments?: any[] }>;
       const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; gigs?: Array<{ id: string; eventName?: string; date?: string | null }>; createdAt: string; updatedAt: string }>;
-      const bandsPayload = (await bandsResponse.json()) as Array<{ id: string; name: string; logoUrl?: string }>;
+      const bandsPayload = (await bandsResponse.json()) as Array<{ id: string; name: string; logoUrl?: string; color?: string | null }>;
       
       setBandsList(bandsPayload || []);
       const songIdByTitle = new Map((Array.isArray(songPayload) ? songPayload : []).map((song) => [song.title.trim().toLocaleLowerCase(), song.id]));
@@ -880,25 +880,36 @@ export default function SetlistsTab() {
       if (!token) return;
 
       const nextGigIds = gigId ? [gigId] : [];
+      
+      // Get gig info to sync bandId
+      let bandId = draft.bandId || null;
+      if (gigId) {
+        const gigRes = await fetch(`/api/gigs/${gigId}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (gigRes.ok) {
+          const gigData = await gigRes.json();
+          bandId = gigData.bandId || null;
+        }
+      }
+
       const res = await fetch(`/api/setlists/${draft.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ gigIds: nextGigIds }),
+        body: JSON.stringify({ gigIds: nextGigIds, bandId }),
       });
 
       if (!res.ok) throw new Error(gigId ? (isDutch ? 'Toewijzen mislukt' : 'Assign failed') : (isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed'));
 
-      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }> };
+      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }>; bandId?: string | null };
       const resolvedGigIds = Array.isArray(refreshed.gigs) ? refreshed.gigs.map((gig) => gig.id) : nextGigIds;
 
-      setDraft((current) => current ? { ...current, gigIds: resolvedGigIds } : current);
+      setDraft((current) => current ? { ...current, gigIds: resolvedGigIds, bandId: refreshed.bandId || null } : current);
       setSetlists((prev) =>
         prev.map((setlist) => {
           if (setlist.id === draft.id) {
-            return { ...setlist, gigIds: resolvedGigIds };
+            return { ...setlist, gigIds: resolvedGigIds, bandId: refreshed.bandId || null };
           }
           return gigId && setlist.gigIds.includes(gigId)
             ? { ...setlist, gigIds: setlist.gigIds.filter((id) => id !== gigId) }
@@ -1453,7 +1464,18 @@ export default function SetlistsTab() {
             <div className="space-y-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="w-full border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-slate-900 outline-none sm:text-3xl dark:text-slate-100" />
+                  <div className="flex items-center gap-3">
+                    <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="flex-1 border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-slate-900 outline-none sm:text-3xl dark:text-slate-100" />
+                    {activeDraft.bandId && (() => {
+                      const band = bandsList.find(b => b.id === activeDraft.bandId);
+                      return band ? (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full border" style={{ borderColor: band.color || '#e2e8f0', backgroundColor: band.color ? `${band.color}20` : undefined }}>
+                          {band.logoUrl && <img src={band.logoUrl} alt={band.name} className="h-5 w-5 rounded-full object-cover" />}
+                          <span className="text-sm font-medium" style={{ color: band.color || '#6366f1' }}>{band.name}</span>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
                   <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{savingState === "saving" ? copy.saving : copy.saved}</div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

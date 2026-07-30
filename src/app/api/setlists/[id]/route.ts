@@ -57,11 +57,12 @@ export async function GET(
   const { user } = authResult as { user: { id: string } };
 
   try {
-    const setlist = await prisma.setlist.findFirst({
+    const setlist = await (prisma.setlist.findFirst as any)({
       where: { id: params.id, userId: user.id },
       include: {
         items: { orderBy: { order: "asc" } },
         gigs: { select: { id: true, eventName: true, date: true } },
+        band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
     });
 
@@ -117,6 +118,7 @@ export async function PATCH(
         status: body.status ? String(body.status).trim() : (existing as any).status || "concept",
         datum: body.datum ? String(body.datum).trim() : (existing as any).datum,
         locatie: body.locatie ? String(body.locatie).trim() : (existing as any).locatie,
+        bandId: body.bandId !== undefined ? (body.bandId || null) : (existing as any).bandId,
       },
       include: {
         items: { orderBy: { order: "asc" } },
@@ -188,11 +190,12 @@ export async function PATCH(
       }
     }
 
-    const refreshed = await prisma.setlist.findFirst({
+    const refreshed = await (prisma.setlist.findFirst as any)({
       where: { id: existing.id, userId: user.id },
       include: {
         items: { orderBy: { order: "asc" } },
         gigs: { select: { id: true, eventName: true, date: true } },
+        band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
     });
 
