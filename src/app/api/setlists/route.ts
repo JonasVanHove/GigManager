@@ -61,11 +61,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached, { headers: getApiCacheHeaders(30, "HIT") });
     }
 
-    const setlists = await prisma.setlist.findMany({
+    const setlists = await (prisma.setlist.findMany as any)({
       where: { userId: user.id },
       include: {
         items: { orderBy: { order: "asc" } },
         gigs: { select: { id: true, eventName: true, date: true } },
+        band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
         datum: body.datum ? String(body.datum).trim() : null,
         locatie: body.locatie ? String(body.locatie).trim() : null,
         userId: user.id,
+        bandId: body.bandId || null,
         items: items.length
           ? {
               createMany: {
@@ -120,6 +122,7 @@ export async function POST(request: NextRequest) {
       include: {
         items: { orderBy: { order: "asc" } },
         gigs: { select: { id: true, eventName: true, date: true } },
+        band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
     });
 
@@ -132,6 +135,20 @@ export async function POST(request: NextRequest) {
         where: { id: { in: gigIds }, userId: user.id },
         data: { setlistId: setlist.id },
       });
+
+      // Sync bandId from gigs to setlist if gigs have a band
+      const gigs = await (prisma.gig.findMany as any)({
+        where: { id: { in: gigIds }, userId: user.id },
+        select: { bandId: true },
+      });
+      const bandIds = gigs.map((g: any) => g.bandId).filter((b: any) => b !== null);
+      if (bandIds.length > 0 && !body.bandId) {
+        await (prisma.setlist.update as any)({
+          where: { id: setlist.id },
+          data: { bandId: bandIds[0] },
+        });
+        setlist.bandId = bandIds[0];
+      }
     }
 
     invalidateCache(`${user.id}:setlists`);

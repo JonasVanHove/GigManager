@@ -71,6 +71,12 @@ type StoredSetlist = {
   status: SetlistMeta["status"];
   pauseOnTuningChange: boolean;
   bandId?: string | null;
+  band?: {
+    id: string;
+    name: string;
+    color?: string | null;
+    logoUrl?: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -586,7 +592,8 @@ export default function SetlistsTab() {
               notities: meta.notities,
               status: meta.status,
               pauseOnTuningChange: meta.pauseOnTuningChange,
-              bandId: null,
+              bandId: (setlist as any).bandId || null,
+              band: (setlist as any).band || null,
               createdAt: setlist.createdAt,
               updatedAt: setlist.updatedAt,
             };
@@ -720,7 +727,7 @@ export default function SetlistsTab() {
       throw new Error(isDutch ? "Opslaan mislukt" : "Save failed");
     }
 
-    const refreshed = (await response.json()) as { id: string; title?: string; description?: string | null; gigs?: Array<{ id: string }>; createdAt: string; updatedAt: string };
+    const refreshed = (await response.json()) as { id: string; title?: string; description?: string | null; gigs?: Array<{ id: string }>; createdAt: string; updatedAt: string; bandId?: string | null; band?: any };
     const meta = parseSetlistMeta(refreshed.description);
     const saved: StoredSetlist = {
       id: refreshed.id,
@@ -733,7 +740,8 @@ export default function SetlistsTab() {
       notities: meta.notities,
       status: meta.status,
       pauseOnTuningChange: meta.pauseOnTuningChange,
-      bandId: nextDraft.bandId || null,
+      bandId: refreshed.bandId || nextDraft.bandId || null,
+      band: refreshed.band || nextDraft.band || null,
       createdAt: refreshed.createdAt,
       updatedAt: refreshed.updatedAt,
     };
@@ -1464,6 +1472,20 @@ export default function SetlistsTab() {
             <div className="space-y-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <select 
+                      value={activeDraft.id} 
+                      onChange={(e) => {
+                        const selected = setlists.find(s => s.id === e.target.value);
+                        if (selected) selectSetlist(selected);
+                      }}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                    >
+                      {filteredSetlists.map((setlist) => (
+                        <option key={setlist.id} value={setlist.id}>{setlist.naam}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="flex items-center gap-3">
                     <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="flex-1 border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-slate-900 outline-none sm:text-3xl dark:text-slate-100" />
                     {activeDraft.bandId && (() => {
