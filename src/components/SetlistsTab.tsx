@@ -889,13 +889,26 @@ export default function SetlistsTab() {
 
       const nextGigIds = gigId ? [gigId] : [];
       
-      // Get gig info to sync bandId
+      // Get gig info to sync bandId and band info
       let bandId = draft.bandId || null;
+      let bandInfo = draft.band || null;
       if (gigId) {
         const gigRes = await fetch(`/api/gigs/${gigId}`, { headers: { Authorization: `Bearer ${token}` } });
         if (gigRes.ok) {
           const gigData = await gigRes.json();
           bandId = gigData.bandId || null;
+          
+          // Fetch band info if bandId is present
+          if (bandId) {
+            const bandRes = await fetch(`/api/bands`, { headers: { Authorization: `Bearer ${token}` } });
+            if (bandRes.ok) {
+              const bands = await bandRes.json();
+              const band = bands.find((b: any) => b.id === bandId);
+              if (band) {
+                bandInfo = { id: band.id, name: band.name, color: band.color, logoUrl: band.logoUrl };
+              }
+            }
+          }
         }
       }
 
@@ -910,14 +923,14 @@ export default function SetlistsTab() {
 
       if (!res.ok) throw new Error(gigId ? (isDutch ? 'Toewijzen mislukt' : 'Assign failed') : (isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed'));
 
-      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }>; bandId?: string | null };
+      const refreshed = (await res.json()) as { gigs?: Array<{ id: string }>; bandId?: string | null; band?: any };
       const resolvedGigIds = Array.isArray(refreshed.gigs) ? refreshed.gigs.map((gig) => gig.id) : nextGigIds;
 
-      setDraft((current) => current ? { ...current, gigIds: resolvedGigIds, bandId: refreshed.bandId || null } : current);
+      setDraft((current) => current ? { ...current, gigIds: resolvedGigIds, bandId: refreshed.bandId || null, band: refreshed.band || bandInfo } : current);
       setSetlists((prev) =>
         prev.map((setlist) => {
           if (setlist.id === draft.id) {
-            return { ...setlist, gigIds: resolvedGigIds, bandId: refreshed.bandId || null };
+            return { ...setlist, gigIds: resolvedGigIds, bandId: refreshed.bandId || null, band: refreshed.band || bandInfo };
           }
           return gigId && setlist.gigIds.includes(gigId)
             ? { ...setlist, gigIds: setlist.gigIds.filter((id) => id !== gigId) }
@@ -1731,22 +1744,14 @@ export default function SetlistsTab() {
                 const selectedBand = draft.bandId ? bandsList.find(b => b.id === draft.bandId) : null;
                 const bandLogo = selectedBand?.logoUrl;
                 
-                // Header with centered title and metadata
-                htmlParts.push('<header class="document-header">');
-                if (bandLogo && (settings.pdfIncludeLogo ?? true)) {
-                  htmlParts.push(`<div class="band-logo"><img src="${escapeHtml(bandLogo)}" alt="Band Logo" /></div>`);
-                }
-                htmlParts.push('<div class="document-eyebrow">GigManager · Setlist</div>');
-                htmlParts.push(`<h1 class="document-title">${escapeHtml(draft.naam)}</h1>`);
-                
-                // Metadata badges
+                // Metadata badges (without title - handled by createPrintDocument)
                 const metaBadges: string[] = [];
                 if (selectedBand) metaBadges.push(`<span class="metadata-item">Band: ${escapeHtml(selectedBand.name)}</span>`);
                 if (draft.status) metaBadges.push(`<span class="metadata-item">Status: ${escapeHtml(draft.status)}</span>`);
                 if (draft.datum) metaBadges.push(`<span class="metadata-item">Date: ${escapeHtml(draft.datum)}</span>`);
                 if (draft.locatie) metaBadges.push(`<span class="metadata-item">Location: ${escapeHtml(draft.locatie)}</span>`);
                 if (metaBadges.length > 0) htmlParts.push(`<div class="metadata">${metaBadges.join('')}</div>`);
-                htmlParts.push('</header><section class="section">');
+                htmlParts.push('<section class="section">');
                 
                 // Track song numbers separately (only for actual songs)
                 let songNumber = 0;
