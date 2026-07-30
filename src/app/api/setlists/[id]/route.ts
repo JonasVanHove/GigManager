@@ -155,16 +155,6 @@ export async function PATCH(
           select: { bandId: true, date: true, eventName: true },
         });
         
-        // Auto-link band to setlist if gigs have a band
-        const bandIds = gigsToAdd.map((g: any) => g.bandId).filter((b: any) => b !== null);
-        if (bandIds.length > 0) {
-          // Use the first bandId (assuming gigs are for the same band)
-          await (prisma.setlist.update as any)({
-            where: { id: existing.id },
-            data: { bandId: bandIds[0] },
-          });
-        }
-
         // Sync date and location from gig to setlist
         const firstGig = gigsToAdd[0];
         if (firstGig) {
