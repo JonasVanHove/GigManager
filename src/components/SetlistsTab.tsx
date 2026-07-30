@@ -180,7 +180,7 @@ const createSongItem = (song: SongRow): DraftItem => {
     label: song.title,
     artist: parsed.meta.bandProject || parsed.meta.genre || "",
     tuning: parsed.meta.keySignature || "Onbekend",
-    key: parsed.meta.keySignature || "",
+    key: "",
     tempo: parsed.meta.bpm || "",
     notitie: "",
     specialLabel: "",
