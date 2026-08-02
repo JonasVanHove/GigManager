@@ -712,6 +712,7 @@ export default function SetlistsTab() {
         order: index + 1,
       })),
       gigIds: nextDraft.gigIds,
+      bandId: nextDraft.bandId || null,
     };
 
     const response = await fetch(`/api/setlists/${nextDraft.id}`, {
