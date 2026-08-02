@@ -50,6 +50,7 @@ const emptyForm: GigFormData = {
   bandPaidDate: "",
   bookingDate: new Date().toISOString().split("T")[0],
   notes: "",
+  bandId: null,
 };
 
 function gigToFormData(gig: Gig): GigFormData {
@@ -84,6 +85,7 @@ function gigToFormData(gig: Gig): GigFormData {
     bandPaidDate: gig.bandPaidDate ? gig.bandPaidDate.split("T")[0] : "",
     bookingDate: gig.bookingDate ? gig.bookingDate.split("T")[0] : "",
     notes: gig.notes ?? "",
+    bandId: gig.bandId ?? null,
   };
 }
 
@@ -100,6 +102,7 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   const [bandMembers, setBandMembers] = useState<BandMemberOption[]>([]);
   const [bandMembersLoading, setBandMembersLoading] = useState(false);
   const [allGigs, setAllGigs] = useState<Gig[]>([]);
+  const [bandsList, setBandsList] = useState<Array<{ id: string; name: string; logoUrl?: string; color?: string | null }>>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [syncFromMembers, setSyncFromMembers] = useState(!gig);
@@ -273,21 +276,41 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   }, [getAccessToken]);
 
   const fetchAllGigs = useCallback(async () => {
-    const token = await getAccessToken();
-    if (!token) return;
-    const response = await fetch("/api/gigs?take=200&skip=0", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) return;
-    const data = await response.json();
-    const gigsArray = Array.isArray(data) ? data : (data.data ?? []);
-    setAllGigs(gigsArray);
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      const response = await fetch("/api/gigs?take=200&skip=0", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const gigsArray = Array.isArray(data) ? data : (data.data ?? []);
+      setAllGigs(gigsArray);
+    } catch (err) {
+      console.error("Failed to fetch gigs:", err);
+    }
+  }, [getAccessToken]);
+
+  const fetchBands = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      const response = await fetch("/api/bands", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setBandsList(data || []);
+    } catch (err) {
+      console.error("Failed to fetch bands:", err);
+    }
   }, [getAccessToken]);
 
   useEffect(() => {
     fetchBandMembers();
     fetchAllGigs();
-  }, [fetchBandMembers, fetchAllGigs]);
+    fetchBands();
+  }, [fetchBandMembers, fetchAllGigs, fetchBands]);
 
   useEffect(() => {
     if (!bandMembers.length || selectedMemberIds.length > 0) return;
@@ -622,13 +645,31 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                   </div>
                 </div>
 
+                <div className="mt-3">
+                  <label className={labelCls}>
+                    Select Band (optional)
+                  </label>
+                  <select
+                    className={inputCls}
+                    value={form.bandId || ""}
+                    onChange={(e) => set("bandId", e.target.value || null)}
+                  >
+                    <option value="">No band selected</option>
+                    {bandsList.map((band) => (
+                      <option key={band.id} value={band.id}>
+                        {band.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                   <select
                     className={inputCls}
                     value={selectedBandName}
                     onChange={(e) => handleSelectBand(e.target.value)}
                   >
-                    <option value="">Choose an existing band</option>
+                    <option value="">Choose an existing band name</option>
                     {bandOptions.map((band) => (
                       <option key={band} value={band}>
                         {band}

@@ -478,6 +478,7 @@ function toGigData(body: any, userId: string) {
     bookingDate: body.bookingDate ? new Date(String(body.bookingDate)) : new Date(),
     notes: body.notes ? String(body.notes).trim() : null,
     setlistId: body.setlistId ? String(body.setlistId) : null,
+    bandId: body.bandId ? String(body.bandId) : null,
     userId,
   };
 }

@@ -137,6 +137,7 @@ export async function PUT(
             : existing.bookingDate,
         notes: body.notes ? String(body.notes).trim() : null,
         setlistId: body.setlistId ? String(body.setlistId) : null,
+        bandId: body.bandId ? String(body.bandId) : null,
       },
     });
     invalidateCache(`${user.id}:gigs`);

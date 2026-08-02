@@ -101,6 +101,7 @@ export interface GigFormData {
   bookingDate: string; // "" or "YYYY-MM-DD" - when booking was made
   bandMemberIds?: string[];
   setlistId?: string | null;
+  bandId?: string | null;
 }
 
 // --- Setlists --------------------------------------------------------------
