@@ -923,7 +923,7 @@ export default function SetlistsTab() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ gigIds: nextGigIds, bandId, datum: gigDatum, locatie: gigLocatie }),
+        body: JSON.stringify({ gigIds: nextGigIds, datum: gigDatum, locatie: gigLocatie }),
       });
 
       if (!res.ok) throw new Error(gigId ? (isDutch ? 'Toewijzen mislukt' : 'Assign failed') : (isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed'));
