@@ -1414,8 +1414,8 @@ export default function SetlistsTab() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ${sidebarCollapsed ? 'hidden lg:block' : 'block'}`}>
+      <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-3 sm:p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ${sidebarCollapsed ? 'hidden md:block' : 'block'}`}>
           <div className="flex items-center justify-between">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 flex-1">
               {["alle", "concept", "klaar", "gearchiveerd"].map((value) => (
@@ -1434,7 +1434,7 @@ export default function SetlistsTab() {
             <button
               type="button"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="lg:hidden ml-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="md:hidden ml-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               aria-label={sidebarCollapsed ? "Show setlists" : "Hide setlists"}
             >
               {sidebarCollapsed ? "☰" : "✕"}
@@ -1554,7 +1554,7 @@ export default function SetlistsTab() {
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
                 <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                 <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                 <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
@@ -1570,9 +1570,9 @@ export default function SetlistsTab() {
                 </select>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
+              <div className="grid gap-6 md:grid-cols-[1fr_320px]">
                 <section className="space-y-4">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <div className="flex flex-wrap items-center gap-2">
                       <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.pause}</button>
                       <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.bis}</button>
@@ -1589,12 +1589,12 @@ export default function SetlistsTab() {
                     {currentItems.map((item, index) => renderItem(item, index, false))}
                   </div>
 
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <button type="button" onClick={() => setShowGeneralNotes((current) => !current)} className="mb-3 text-left text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.generalNotes}</button>
                     {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-32 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={copy.generalNotes} />}
                   </div>
 
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <button type="button" onClick={() => setShowTuningPanel((current) => !current)} className="mb-3 text-left text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.tuningPanel}</button>
                     {showTuningPanel && (
                       <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
@@ -1606,7 +1606,7 @@ export default function SetlistsTab() {
                   </div>
                 </section>
 
-                <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                   <div>
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.songPicker}</div>
@@ -1614,7 +1614,7 @@ export default function SetlistsTab() {
                     </div>
                     <p className="mb-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{isDutch ? "Afbeeldingen zijn de tablatuur/notities die in de setlist-PDF worden opgenomen." : "Images are the tabs/notes included in the setlist PDF."}</p>
                     <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                    <div className="mt-2 grid grid-cols-3 gap-1.5" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
                       {([
                         ["all", isDutch ? `Alle (${songs.length})` : `All (${songs.length})`],
                         ["with", isDutch ? `Met PDF-afbeelding (${repertoireImageStats.withImages})` : `With PDF image (${repertoireImageStats.withImages})`],
