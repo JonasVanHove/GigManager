@@ -108,15 +108,15 @@ const GigCard = memo(function GigCard({
   const bandStyles = useMemo(() => getBandColorStyles(gig.performers, gig.band?.color), [gig.performers, gig.band?.color]);
 
   return (
-    <div className={`group overflow-hidden rounded-xl border animate-fade-in transition-all duration-300 ${
+    <div className={`group overflow-hidden rounded-xl border-l-4 border animate-fade-in transition-all duration-300 ${
       gig.managerInstantPayment
-        ? 'opacity-60 border-slate-300/60 bg-slate-100/50 backdrop-blur shadow-sm dark:border-slate-600/60 dark:bg-slate-800/50 dark:backdrop-blur'
+        ? 'border-slate-300/60 bg-slate-100/50 backdrop-blur shadow-sm dark:border-slate-600/60 dark:bg-slate-800/50 dark:backdrop-blur'
         : isSelected
         ? 'border-blue-400/60 bg-blue-50/50 backdrop-blur shadow-lg dark:bg-blue-950/30 dark:border-blue-400/60 dark:backdrop-blur'
         : isClientPaymentOverdue
           ? 'border-red-300/60 bg-red-50/40 backdrop-blur shadow-md dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-lg dark:backdrop-blur'
           : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
-    }`} style={{ borderColor: bandStyles.solid.backgroundColor, backgroundColor: bandStyles.soft.backgroundColor }}>
+    }`} style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
       {/* -- Header ------------------------------------------------------ */}
       <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4`}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
