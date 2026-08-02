@@ -408,7 +408,7 @@ export default function SongsTab() {
 
       {/* Filter and Search Bar */}
       <div className="rounded-2xl border border-neutral-800 bg-neutral-950/90 p-4 shadow-xl backdrop-blur">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <input
             type="text"
             value={songSearch}
@@ -543,7 +543,7 @@ export default function SongsTab() {
         </div>
 
         {/* Songs List */}
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-5 grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {loading ? (
             <div className="py-12 text-center text-sm text-neutral-400 col-span-full">Repertoire laden...</div>
           ) : filteredSongs.length === 0 ? (
@@ -704,7 +704,7 @@ export default function SongsTab() {
                 className="w-full rounded-xl border border-neutral-800 bg-black px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
               />
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                 <input
                   value={songMeta.bandProject}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, bandProject: e.target.value }))}

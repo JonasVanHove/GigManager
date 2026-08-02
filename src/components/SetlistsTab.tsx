@@ -1284,9 +1284,9 @@ export default function SetlistsTab() {
         </div>
 
         {item.expanded && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
             <input value={item.notitie} onChange={(e) => updateItem(item.id, { notitie: e.target.value })} placeholder={isDutch ? "Inline notitie" : "Inline note"} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               <input value={item.tuning} onChange={(e) => updateItem(item.id, { tuning: e.target.value })} placeholder="Tuning" className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
               <input value={item.key} onChange={(e) => updateItem(item.id, { key: e.target.value })} placeholder={isDutch ? "Toonsoort" : "Key"} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
             </div>
