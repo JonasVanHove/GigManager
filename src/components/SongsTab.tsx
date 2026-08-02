@@ -430,13 +430,13 @@ export default function SongsTab() {
         {/* Additional Filters */}
         <div className="mt-3 flex flex-col gap-3">
           {/* Attachment Filter - Prominent */}
-          <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-black p-2">
-            <span className="text-xs font-medium text-neutral-400">{copy.filterAttachments}:</span>
-            <div className="flex gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-neutral-800 bg-black p-2 min-w-0 max-w-full">
+            <span className="text-xs font-medium text-neutral-400 shrink-0">{copy.filterAttachments}:</span>
+            <div className="flex flex-wrap gap-1.5 min-w-0 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setAttachmentFilter("all")}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded px-2 py-1.5 text-xs font-medium transition shrink-0 ${
                   attachmentFilter === "all"
                     ? "bg-cyan-600 text-white"
                     : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
@@ -447,7 +447,7 @@ export default function SongsTab() {
               <button
                 type="button"
                 onClick={() => setAttachmentFilter("with")}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded px-2 py-1.5 text-xs font-medium transition shrink-0 ${
                   attachmentFilter === "with"
                     ? "bg-cyan-600 text-white"
                     : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
@@ -458,7 +458,7 @@ export default function SongsTab() {
               <button
                 type="button"
                 onClick={() => setAttachmentFilter("without")}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded px-2 py-1.5 text-xs font-medium transition shrink-0 ${
                   attachmentFilter === "without"
                     ? "bg-cyan-600 text-white"
                     : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"

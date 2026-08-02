@@ -1239,13 +1239,13 @@ export default function SetlistsTab() {
         }}
         className={`rounded-3xl border p-4 transition ${activeItemId === item.id ? "border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
       >
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <div className="flex items-start gap-2 sm:gap-4 min-w-0 max-w-full">
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xs sm:text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {index + 1}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="truncate text-base font-semibold text-slate-900 dark:text-slate-100">{song?.title || item.label}</div>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
+              <div className="truncate text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100">{song?.title || item.label}</div>
               {item.artist && <span className="text-xs text-slate-500 dark:text-slate-400">{item.artist}</span>}
               <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
               {item.key && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.key}</span>}
@@ -1253,20 +1253,20 @@ export default function SetlistsTab() {
               {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️ {isDutch ? "Afbeelding" : "Image"}</span>}
               {tuningChanged && <span className="text-sm text-amber-600">⚠</span>}
             </div>
-            {item.notitie && <div className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
+            {item.notitie && <div className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-2.5 sm:p-3 text-xs sm:text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
             {item.songId && songNoteMap.get(item.songId)?.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Gekoppelde notities" : "Linked notes"} aria-label={isDutch ? "Gekoppelde notities" : "Linked notes"}>
+              <div className="mt-2 sm:mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Gekoppelde notities" : "Linked notes"} aria-label={isDutch ? "Gekoppelde notities" : "Linked notes"}>
                   📝 {songNoteMap.get(item.songId)?.length}
                 </button>
               </div>
             ) : null}
           </div>
-          <div className="flex shrink-0 flex-col gap-2">
-            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"} aria-label={isDutch ? "Omhoog" : "Move up"}>
+          <div className="flex shrink-0 flex-col gap-1.5 sm:gap-2">
+            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"} aria-label={isDutch ? "Omhoog" : "Move up"}>
               ↑
             </button>
-            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
+            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
               ↓
             </button>
             <button type="button" onClick={() => {
@@ -1274,10 +1274,10 @@ export default function SetlistsTab() {
               if (!item.expanded) {
                 loadItemAttachments(item.id);
               }
-            }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
+            }} className="rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
               📝
             </button>
-            <button type="button" onClick={() => removeItem(item.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
+            <button type="button" onClick={() => removeItem(item.id)} className="rounded-xl border border-rose-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
               ×
             </button>
           </div>
@@ -1401,7 +1401,7 @@ export default function SetlistsTab() {
   }
 
   return (
-    <div className="space-y-6 bg-black text-slate-100 p-4 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)]">
+    <div className="space-y-6 bg-black text-slate-100 p-3 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)] min-w-0 max-w-full">
       <div className="flex items-center justify-between gap-3 border-b border-neutral-800/80 pb-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
@@ -1415,7 +1415,7 @@ export default function SetlistsTab() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)] min-w-0 max-w-full">
         <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-3 sm:p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ${sidebarCollapsed ? 'hidden md:block' : 'block'}`}>
           <div className="flex items-center justify-between">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 flex-1">
@@ -1482,7 +1482,7 @@ export default function SetlistsTab() {
           </div>
         </aside>
 
-        <main className="min-h-[760px] rounded-3xl border border-slate-200/80 bg-white/95 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
+        <main className="min-h-[760px] min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white/95 p-3.5 sm:p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
           {!activeDraft ? (
             <div className="flex min-h-[680px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 p-8 text-center dark:border-slate-700 dark:bg-slate-900/40">
               <div className="text-5xl">🎼</div>
@@ -1502,68 +1502,68 @@ export default function SetlistsTab() {
               )}
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+            <div className="space-y-6 min-w-0 max-w-full">
+              <div className="flex flex-wrap items-start justify-between gap-3 min-w-0 max-w-full">
+                <div className="min-w-0 flex-1 w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 mb-2 min-w-0">
                     <select 
                       value={activeDraft.id} 
                       onChange={(e) => {
                         const selected = setlists.find(s => s.id === e.target.value);
                         if (selected) selectSetlist(selected);
                       }}
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                      className="max-w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                     >
                       {filteredSetlists.map((setlist) => (
                         <option key={setlist.id} value={setlist.id}>{setlist.naam}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="flex-1 border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-slate-900 outline-none sm:text-3xl dark:text-slate-100" />
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0 w-full">
+                    <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="flex-1 min-w-0 w-full sm:w-auto border-0 bg-transparent p-0 text-xl font-semibold tracking-tight text-slate-900 outline-none sm:text-3xl dark:text-slate-100" />
                     {activeDraft.bandId && (() => {
                       const band = bandsList.find(b => b.id === activeDraft.bandId);
                       return band ? (
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full border" style={{ borderColor: band.color || '#e2e8f0', backgroundColor: band.color ? `${band.color}20` : undefined }}>
-                          {band.logoUrl && <img src={band.logoUrl} alt={band.name} className="h-5 w-5 rounded-full object-cover" />}
-                          <span className="text-sm font-medium" style={{ color: band.color || '#6366f1' }}>{band.name}</span>
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full border shrink-0 max-w-full" style={{ borderColor: band.color || '#e2e8f0', backgroundColor: band.color ? `${band.color}20` : undefined }}>
+                          {band.logoUrl && <img src={band.logoUrl} alt={band.name} className="h-5 w-5 rounded-full object-cover shrink-0" />}
+                          <span className="text-sm font-medium truncate" style={{ color: band.color || '#6366f1' }}>{band.name}</span>
                         </div>
                       ) : null;
                     })()}
                   </div>
                   <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{savingState === "saving" ? copy.saving : copy.saved}</div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="max-w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full w-full sm:w-auto">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="w-full sm:w-auto max-w-full rounded-lg border border-slate-200 px-3 py-2 text-xs sm:text-sm truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                       <option value="">{isDutch ? "Toewijzen aan performance..." : "Assign to performance..."}</option>
                       {gigsList.map((g) => (
                         <option key={g.id} value={g.id}>{g.date ? `${g.eventName} · ${new Date(g.date).toLocaleDateString(locale)}` : g.eventName}</option>
                       ))}
                     </select>
-                    <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-rose-600">{isDutch ? "Ontkoppelen" : "Unassign"}</button>
+                    <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-rose-600 shrink-0">{isDutch ? "Ontkoppelen" : "Unassign"}</button>
                   </div>
-                  <button type="button" onClick={() => setShowPerformanceMode((current) => !current)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
+                  <button type="button" onClick={() => setShowPerformanceMode((current) => !current)} className="rounded-xl border border-slate-200 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                     {copy.performanceMode}
                   </button>
-                  <button type="button" onClick={() => setShowExport(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
+                  <button type="button" onClick={() => setShowExport(true)} className="rounded-xl border border-slate-200 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                     {copy.export}
                   </button>
-                  <button type="button" onClick={duplicateSetlist} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
+                  <button type="button" onClick={duplicateSetlist} className="rounded-xl border border-slate-200 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                     {copy.duplicate}
                   </button>
                 </div>
               </div>
 
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-                <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+              <div className="grid gap-2 sm:gap-3 grid-cols-2 md:grid-cols-4 min-w-0 max-w-full">
+                <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                   <option value="concept">{isDutch ? "concept" : "Draft"}</option>
                   <option value="klaar">{isDutch ? "klaar" : "Ready"}</option>
                   <option value="gearchiveerd">{isDutch ? "gearchiveerd" : "Archived"}</option>
                 </select>
-                <select value={activeDraft.bandId || ""} onChange={(e) => updateDraft({ bandId: e.target.value || null })} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                <select value={activeDraft.bandId || ""} onChange={(e) => updateDraft({ bandId: e.target.value || null })} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                   <option value="">{isDutch ? "Selecteer band..." : "Select band..."}</option>
                   {bandsList.map((band) => (
                     <option key={band.id} value={band.id}>{band.name}</option>
@@ -1571,10 +1571,10 @@ export default function SetlistsTab() {
                 </select>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-[1fr_320px]">
-                <section className="space-y-4">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <div className="flex flex-wrap items-center gap-2">
+              <div className="grid gap-4 sm:gap-6 md:grid-cols-[1fr_320px] min-w-0 max-w-full">
+                <section className="space-y-4 min-w-0 max-w-full">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-full">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
                       <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.pause}</button>
                       <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.bis}</button>
                       <button type="button" onClick={() => addSpecial(window.prompt(isDutch ? "Custom blok label" : "Custom block label") || "")} className="min-w-0 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{copy.customBlock}</button>
@@ -1586,7 +1586,7 @@ export default function SetlistsTab() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 min-w-0 max-w-full">
                     {currentItems.map((item, index) => renderItem(item, index, false))}
                   </div>
 
@@ -1607,7 +1607,7 @@ export default function SetlistsTab() {
                   </div>
                 </section>
 
-                <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-full">
                   <div>
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.songPicker}</div>
@@ -1615,13 +1615,13 @@ export default function SetlistsTab() {
                     </div>
                     <p className="mb-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{isDutch ? "Afbeeldingen zijn de tablatuur/notities die in de setlist-PDF worden opgenomen." : "Images are the tabs/notes included in the setlist PDF."}</p>
                     <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
+                    <div className="mt-2 flex flex-wrap gap-1.5 min-w-0 max-w-full" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
                       {([
                         ["all", isDutch ? `Alle (${songs.length})` : `All (${songs.length})`],
                         ["with", isDutch ? `Met PDF-afbeelding (${repertoireImageStats.withImages})` : `With PDF image (${repertoireImageStats.withImages})`],
                         ["without", isDutch ? `Zonder PDF-afbeelding (${repertoireImageStats.withoutImages})` : `Without PDF image (${repertoireImageStats.withoutImages})`],
                       ] as const).map(([value, label]) => (
-                        <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-xl border px-2 py-2 text-[11px] font-semibold leading-tight transition ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
+                        <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-xl border px-2 py-1.5 text-[11px] font-semibold leading-tight transition shrink-0 ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
                       ))}
                     </div>
                   </div>

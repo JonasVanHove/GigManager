@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, type KeyboardEvent, useEffect, useCallback } from "react";
 import type { DashboardSummary, Gig } from "@/types";
@@ -251,7 +251,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                     const bandStyles = getBandColorStyles(band, bandData?.color);
                     return (
                       <div key={`perf-${band}`} className="flex items-center justify-between text-xs rounded px-2 py-1.5" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
-                        <BandTag name={band} variant="soft" />
+                        <BandTag name={band} variant="soft" color={bandData?.color} />
                         <p className="text-slate-600 dark:text-slate-400 flex-shrink-0 ml-2">{data.gigs}</p>
                       </div>
                     );
@@ -370,11 +370,11 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                       const bandData = bands.find(b => b.name === band);
                       const bandStyles = getBandColorStyles(band, bandData?.color);
                       return (
-                        <div key={band} className="rounded border p-1.5 sm:p-2" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                        <div key={band} className="rounded border p-1.5 sm:p-2 min-w-0" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="min-w-0 flex-1">
-                              <BandTag name={band} variant="soft" />
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                              <BandTag name={band} variant="soft" color={bandData?.color} />
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {data.gigs} {tr(data.gigs === 1 ? "gig" : "gigs", data.gigs === 1 ? "optreden" : "optredens")}
                               </p>
                             </div>
@@ -382,9 +382,9 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                               <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
                                 {fmtCurrency(data.earnings)}
                               </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap justify-end gap-1">
                                 <span className="text-lime-600 dark:text-lime-400">{fmtCurrency(data.received)}</span>
-                                {" / "}
+                                <span>/</span>
                                 <span className="text-orange-600 dark:text-orange-400">{fmtCurrency(data.pending)}</span>
                               </p>
                             </div>
@@ -477,8 +477,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                         <button
                           onClick={() => toggleBand(item.band)}
                           type="button"
-                          className="w-full flex items-center justify-between px-2 py-1.5 sm:py-2 rounded-lg cursor-pointer hover:opacity-80 active:opacity-70 transition-colors gap-2 text-left border-0"
-                          style={{ backgroundColor: bandStyles.soft.backgroundColor }}
+                          className="w-full flex items-center justify-between px-2 py-1.5 sm:py-2 rounded-lg cursor-pointer hover:opacity-80 active:opacity-70 transition-colors gap-2 text-left border min-w-0"
+                          style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}
                         >
                           <div className="flex-1 min-w-0 flex items-center gap-1.5">
                             <svg
@@ -492,10 +492,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-orange-800 dark:text-orange-200 truncate">
-                                {item.band}
-                              </p>
-                              <p className="text-xs text-orange-600 dark:text-orange-400">
+                              <BandTag name={item.band} variant="soft" color={bandData?.color} />
+                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
                                 {item.count} {tr(item.count === 1 ? "gig" : "gigs", item.count === 1 ? "optreden" : "optredens")}
                               </p>
                             </div>
@@ -508,7 +506,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                               {fmtCurrency(bandManagerTotals.stillOwed)} {tr("for you", "voor jou")}
                             </p>
                             {bandManagerTotals.alreadyReceived > 0 && (
-                              <p className="text-xs text-orange-500 dark:text-orange-400/90 text-right">
+                              <p className="text-xs text-orange-500 dark:text-orange-400/90 text-right break-words min-w-0">
                                 {tr("after", "na")} {fmtCurrency(bandManagerTotals.alreadyReceived)} {tr("advance already received", "reeds ontvangen voorschot")}
                               </p>
                             )}
@@ -658,8 +656,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                         <button
                           onClick={() => toggleUnpaidBand(band)}
                           type="button"
-                          className="w-full flex items-center justify-between gap-2 rounded px-2 py-1.5 sm:py-2 text-left hover:opacity-80 transition"
-                          style={{ backgroundColor: bandStyles.soft.backgroundColor }}
+                          className="w-full flex items-center justify-between gap-2 rounded px-2 py-1.5 sm:py-2 text-left hover:opacity-80 transition border min-w-0"
+                          style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
                             <svg
@@ -670,8 +668,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
-                            <BandTag name={band} variant="soft" />
-                            <span className="text-xs text-pink-600 dark:text-pink-400">{data.gigs.length} {tr("gigs", "optredens")}</span>
+                            <BandTag name={band} variant="soft" color={bandData?.color} />
+                            <span className="text-xs text-pink-600 dark:text-pink-400 shrink-0">{data.gigs.length} {tr("gigs", "optredens")}</span>
                           </div>
                           <p className="font-semibold text-pink-800 dark:text-pink-300 whitespace-nowrap flex-shrink-0">
                             {fmtCurrency(data.totalOwed)}

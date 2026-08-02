@@ -1708,7 +1708,7 @@ export default function Dashboard() {
           {/* Collapsible content */}
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              isOverviewExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+              isOverviewExpanded ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
             }`}
           >
             {loading && gigs.length === 0 ? (

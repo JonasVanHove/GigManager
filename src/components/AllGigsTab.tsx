@@ -443,7 +443,7 @@ export default function AllGigsTab({
         </div>
       ) : (
         <>
-          <div className="grid gap-5">
+          <div className="grid gap-5 grid-cols-1">
           {visibleGigs.map((gig, idx) => (
             <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
               <GigCard
