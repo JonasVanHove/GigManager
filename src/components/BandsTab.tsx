@@ -37,7 +37,7 @@ export default function BandsTab() {
   const [showForm, setShowForm] = useState(false);
   const [editingBand, setEditingBand] = useState<Band | null>(null);
   const [expandedBandId, setExpandedBandId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: "", logoUrl: "", color: "#6366f1" });
+  const [formData, setFormData] = useState({ name: "", logoUrl: "", color: "#bfdbfe" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -268,7 +268,7 @@ export default function BandsTab() {
       setShowForm(false);
       setEditingBand(null);
       setExpandedBandId(null);
-      setFormData({ name: "", logoUrl: "", color: "#6366f1" });
+      setFormData({ name: "", logoUrl: "", color: "#bfdbfe" });
       setLogoPreview(null);
       loadBands();
     } catch (error) {
@@ -278,7 +278,7 @@ export default function BandsTab() {
 
   const handleEdit = (band: Band) => {
     setEditingBand(band);
-    setFormData({ name: band.name, logoUrl: band.logoUrl || "", color: band.color || "#6366f1" });
+    setFormData({ name: band.name, logoUrl: band.logoUrl || "", color: band.color || "#bfdbfe" });
     setLogoPreview(band.logoUrl || null);
     setExpandedBandId(band.id);
   };
@@ -286,7 +286,7 @@ export default function BandsTab() {
   const handleCancelEdit = () => {
     setEditingBand(null);
     setExpandedBandId(null);
-    setFormData({ name: "", logoUrl: "", color: "#6366f1" });
+    setFormData({ name: "", logoUrl: "", color: "#bfdbfe" });
     setLogoPreview(null);
   };
 
@@ -340,7 +340,7 @@ export default function BandsTab() {
         <button
           onClick={() => {
             setEditingBand(null);
-            setFormData({ name: "", logoUrl: "", color: "#6366f1" });
+            setFormData({ name: "", logoUrl: "", color: "#bfdbfe" });
             setLogoPreview(null);
             setShowForm(true);
           }}
@@ -376,10 +376,22 @@ export default function BandsTab() {
               <div className="mt-2">
                 <div className="grid grid-cols-8 gap-2 mb-3">
                   {[
-                    '#ef4444', '#f97316', '#f59e0b', '#84cc16',
-                    '#10b981', '#06b6d4', '#3b82f6', '#6366f1',
-                    '#8b5cf6', '#d946ef', '#f43f5e', '#ec4899',
-                    '#14b8a6', '#22c55e', '#eab308', '#64748b'
+                    '#fecaca', // pastel red
+                    '#fed7aa', // pastel orange
+                    '#fef08a', // pastel yellow
+                    '#bbf7d0', // pastel green
+                    '#a5f3fc', // pastel cyan
+                    '#bfdbfe', // pastel blue
+                    '#ddd6fe', // pastel purple
+                    '#fbcfe8', // pastel pink
+                    '#f5d0fe', // pastel fuchsia
+                    '#fecdd3', // pastel rose
+                    '#99f6e4', // pastel teal
+                    '#d9f99d', // pastel lime
+                    '#fde68a', // pastel amber
+                    '#e0e7ff', // pastel indigo
+                    '#f3e8ff', // pastel violet
+                    '#e5e7eb', // pastel gray
                   ].map((color) => (
                     <button
                       key={color}
@@ -491,10 +503,22 @@ export default function BandsTab() {
                         <div className="mt-2">
                           <div className="grid grid-cols-8 gap-2 mb-3">
                             {[
-                              '#ef4444', '#f97316', '#f59e0b', '#84cc16',
-                              '#10b981', '#06b6d4', '#3b82f6', '#6366f1',
-                              '#8b5cf6', '#d946ef', '#f43f5e', '#ec4899',
-                              '#14b8a6', '#22c55e', '#eab308', '#64748b'
+                              '#fecaca', // pastel red
+                              '#fed7aa', // pastel orange
+                              '#fef08a', // pastel yellow
+                              '#bbf7d0', // pastel green
+                              '#a5f3fc', // pastel cyan
+                              '#bfdbfe', // pastel blue
+                              '#ddd6fe', // pastel purple
+                              '#fbcfe8', // pastel pink
+                              '#f5d0fe', // pastel fuchsia
+                              '#fecdd3', // pastel rose
+                              '#99f6e4', // pastel teal
+                              '#d9f99d', // pastel lime
+                              '#fde68a', // pastel amber
+                              '#e0e7ff', // pastel indigo
+                              '#f3e8ff', // pastel violet
+                              '#e5e7eb', // pastel gray
                             ].map((color) => (
                               <button
                                 key={color}
