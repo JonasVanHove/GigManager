@@ -174,8 +174,10 @@ export function createPrintDocument(title: string, content: string, options?: {
         .print-document { max-width: none; } 
         .document-footer { position: fixed; bottom: 0; left: 0; right: 0; }
         .section { break-after: ${pageBreakMode === 'auto' ? 'auto' : pageBreakMode === 'none' ? 'avoid' : 'always'}; }
-        @page { counter-increment: page; }
-        .metadata-item { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        @page { counter-increment: page; margin: ${cssMargin}; }
+        .metadata-item { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
       }
     </style>
     <script>
