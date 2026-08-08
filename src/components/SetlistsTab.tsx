@@ -1735,7 +1735,7 @@ export default function SetlistsTab() {
                 if (!win) return;
                 
                 // Generate pastel colors for unique tunings
-                const tuningColors = new Map<string, string>();
+                const tuningColors = new Map<string, { pastel: string; dark: string }>();
                 const pastelColors = [
                   '#e3f2fd', // pastel blue
                   '#e8f5e9', // pastel green
@@ -1746,14 +1746,24 @@ export default function SetlistsTab() {
                   '#fff9c4', // pastel yellow
                   '#efebe9', // pastel brown
                 ];
+                const darkColors = [
+                  '#1976d2', // dark blue
+                  '#2e7d32', // dark green
+                  '#f57c00', // dark orange
+                  '#7b1fa2', // dark purple
+                  '#c2185b', // dark pink
+                  '#0097a7', // dark cyan
+                  '#fbc02d', // dark yellow
+                  '#5d4037', // dark brown
+                ];
                 let colorIndex = 0;
                 
-                const getTuningColor = (tuning: string) => {
+                const getTuningColor = (tuning: string): { pastel: string; dark: string } => {
                   if (!tuningColors.has(tuning)) {
-                    tuningColors.set(tuning, pastelColors[colorIndex % pastelColors.length]);
+                    tuningColors.set(tuning, { pastel: pastelColors[colorIndex % pastelColors.length], dark: darkColors[colorIndex % darkColors.length] });
                     colorIndex++;
                   }
-                  return tuningColors.get(tuning);
+                  return tuningColors.get(tuning)!;
                 };
                 
                 const htmlParts: string[] = [];
@@ -1785,19 +1795,19 @@ export default function SetlistsTab() {
                   const song = songs.find(s => s.id === item.songId || (s.title && s.title.toLowerCase() === item.label.toLowerCase()));
                   const title = song ? song.title : item.label;
                   
-                  // Build metadata badges with pastel colors using left borders (most reliable for print)
+                  // Build metadata badges with colored text (most reliable for print)
                   const badges: string[] = [];
                   if (item.tuning) {
-                    const color = getTuningColor(item.tuning);
-                    badges.push(`<span class="metadata-item" style="border-left: 4px solid ${color} !important; background-color: ${color} !important; color: #1a1a2e !important;">${escapeHtml(item.tuning)}</span>`);
+                    const colors = getTuningColor(item.tuning);
+                    badges.push(`<span class="metadata-item" style="border: 2px solid ${colors.pastel} !important; color: ${colors.dark} !important; font-weight: 800 !important;">${escapeHtml(item.tuning)}</span>`);
                   }
                   if (item.key) {
-                    const color = getTuningColor(item.key);
-                    badges.push(`<span class="metadata-item" style="border-left: 4px solid ${color} !important; background-color: ${color} !important; color: #1a1a2e !important;">Key: ${escapeHtml(item.key)}</span>`);
+                    const colors = getTuningColor(item.key);
+                    badges.push(`<span class="metadata-item" style="border: 2px solid ${colors.pastel} !important; color: ${colors.dark} !important; font-weight: 800 !important;">Key: ${escapeHtml(item.key)}</span>`);
                   }
                   if (item.tempo) {
-                    const color = getTuningColor(item.tempo + ' bpm');
-                    badges.push(`<span class="metadata-item" style="border-left: 4px solid ${color} !important; background-color: ${color} !important; color: #1a1a2e !important;">${escapeHtml(item.tempo)} BPM</span>`);
+                    const colors = getTuningColor(item.tempo + ' bpm');
+                    badges.push(`<span class="metadata-item" style="border: 2px solid ${colors.pastel} !important; color: ${colors.dark} !important; font-weight: 800 !important;">${escapeHtml(item.tempo)} BPM</span>`);
                   }
                   
                   const metaStr = badges.length > 0 ? `<div class="metadata" style="justify-content:flex-start;margin-top:2mm;">${badges.join('')}</div>` : '';
