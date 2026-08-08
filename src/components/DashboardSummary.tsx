@@ -250,8 +250,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                     const bandData = bands.find(b => b.name === band);
                     const bandStyles = getBandColorStyles(band, bandData?.color);
                     return (
-                      <div key={`perf-${band}`} className="flex items-center justify-between text-xs rounded px-2 py-1.5" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
-                        <BandTag name={band} variant="soft" color={bandData?.color} />
+                      <div key={`perf-${band}`} className="flex items-center justify-between text-xs rounded px-2 py-1.5 border-l-2" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.solid.backgroundColor }}>
+                        <BandTag name={band} variant={bandData?.color ? "solid" : "soft"} color={bandData?.color} />
                         <p className="text-slate-600 dark:text-slate-400 flex-shrink-0 ml-2">{data.gigs}</p>
                       </div>
                     );
@@ -370,10 +370,10 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                       const bandData = bands.find(b => b.name === band);
                       const bandStyles = getBandColorStyles(band, bandData?.color);
                       return (
-                        <div key={band} className="rounded border p-1.5 sm:p-2 min-w-0" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}>
+                        <div key={band} className="rounded border-l-2 p-1.5 sm:p-2 min-w-0" style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.solid.backgroundColor }}>
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="min-w-0 flex-1">
-                              <BandTag name={band} variant="soft" color={bandData?.color} />
+                              <BandTag name={band} variant={bandData?.color ? "solid" : "soft"} color={bandData?.color} />
                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {data.gigs} {tr(data.gigs === 1 ? "gig" : "gigs", data.gigs === 1 ? "optreden" : "optredens")}
                               </p>
@@ -477,8 +477,8 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                         <button
                           onClick={() => toggleBand(item.band)}
                           type="button"
-                          className="w-full flex items-center justify-between px-2 py-1.5 sm:py-2 rounded-lg cursor-pointer hover:opacity-80 active:opacity-70 transition-colors gap-2 text-left border min-w-0"
-                          style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.soft.borderColor }}
+                          className="w-full flex items-center justify-between px-2 py-1.5 sm:py-2 rounded-lg cursor-pointer hover:opacity-80 active:opacity-70 transition-colors gap-2 text-left border-l-2 min-w-0"
+                          style={{ backgroundColor: bandStyles.soft.backgroundColor, borderColor: bandStyles.solid.backgroundColor }}
                         >
                           <div className="flex-1 min-w-0 flex items-center gap-1.5">
                             <svg
@@ -492,7 +492,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                             <div className="flex-1 min-w-0">
-                              <BandTag name={item.band} variant="soft" color={bandData?.color} />
+                              <BandTag name={item.band} variant={bandData?.color ? "solid" : "soft"} color={bandData?.color} />
                               <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
                                 {item.count} {tr(item.count === 1 ? "gig" : "gigs", item.count === 1 ? "optreden" : "optredens")}
                               </p>

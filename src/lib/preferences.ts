@@ -67,16 +67,16 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
       solid: {
         backgroundColor: bandColor,
         borderColor: adjustColor(bandColor, -20),
-        color: "#ffffff",
+        color: getContrastColor(bandColor),
       },
       soft: {
-        backgroundColor: adjustColor(bandColor, 90),
-        borderColor: adjustColor(bandColor, -10),
-        color: adjustColor(bandColor, -40),
+        backgroundColor: adjustColor(bandColor, 85),
+        borderColor: adjustColor(bandColor, -15),
+        color: adjustColor(bandColor, -50),
       },
       line: {
         borderColor: bandColor,
-        color: adjustColor(bandColor, -30),
+        color: adjustColor(bandColor, -35),
       },
     } as const;
   }
@@ -98,6 +98,20 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
       color: `hsl(${hue} 58% 28%)`,
     },
   } as const;
+}
+
+function getContrastColor(hex: string): string {
+  const color = hex.replace('#', '');
+  const num = parseInt(color, 16);
+  const r = (num >> 16) & 0xFF;
+  const g = (num >> 8) & 0xFF;
+  const b = num & 0xFF;
+  
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Return white for dark colors, black for light colors
+  return luminance > 0.5 ? '#1f2937' : '#ffffff';
 }
 
 function adjustColor(hex: string, amount: number): string {
