@@ -146,7 +146,7 @@ export function createPrintDocument(title: string, content: string, options?: {
       
       /* Metadata badges */
       .metadata { display: ${showMetadata ? 'flex' : 'none'}; flex-wrap: wrap; gap: 2.5mm; justify-content: center; margin-top: 4mm; }
-      .metadata-item { background: linear-gradient(135deg, ${darkModeColors.metadataBg}, ${darkModeColors.metadataBg}); border: 1px solid ${darkModeColors.metadataBorder}; border-radius: 99px; color: ${darkModeColors.metadataText}; font-size: 9pt; font-weight: 600; padding: 2mm 4mm; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+      .metadata-item { background: ${darkModeColors.metadataBg}; border: 1px solid ${darkModeColors.metadataBorder}; border-radius: 99px; color: ${darkModeColors.metadataText}; font-size: 9pt; font-weight: 600; padding: 2mm 4mm; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
       
       /* Notes */
       .note-content { background: linear-gradient(135deg, ${darkModeColors.noteBg}, ${darkModeColors.noteBg}); border-left: 4px solid ${darkModeColors.noteBorder}; color: ${darkModeColors.noteText}; padding: 5mm 6mm; white-space: pre-wrap; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
@@ -174,6 +174,7 @@ export function createPrintDocument(title: string, content: string, options?: {
         .print-document { max-width: none; } 
         .document-footer { position: fixed; bottom: 0; left: 0; right: 0; }
         .section { break-after: ${pageBreakMode === 'auto' ? 'auto' : pageBreakMode === 'none' ? 'avoid' : 'always'}; }
+        @page { counter-increment: page; }
       }
     </style>
     <script>
@@ -230,7 +231,7 @@ export function createPrintDocument(title: string, content: string, options?: {
       <h1 class="document-title">${title}</h1>
     </header>
     ${processedContent}
-    <footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>
+    <footer class="document-footer">GigsManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>
   </main></body>
 </html>`;
 }

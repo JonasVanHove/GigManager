@@ -1156,16 +1156,22 @@ export default function Dashboard() {
         <div className={`mx-auto flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:flex-nowrap sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
           {/* Left: Logo */}
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-            <Image
-              src="/favicon.png"
-              alt="GigsManager"
-              width={36}
-              height={36}
-              className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 rounded-lg"
-            />
-            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
-              Gigs<span className="text-gold-600 dark:text-gold-400">Manager</span>
-            </h1>
+            <button
+              onClick={() => handleTabChange("gigs")}
+              className="flex items-center gap-1.5 sm:gap-2.5 hover:opacity-80 transition"
+              title="Go to Overview"
+            >
+              <Image
+                src="/favicon.png"
+                alt="GigsManager"
+                width={36}
+                height={36}
+                className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 rounded-lg"
+              />
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                Gigs<span className="text-gold-600 dark:text-gold-400">Manager</span>
+              </h1>
+            </button>
           </div>
 
           {/* Center: Primary navigation + search */}

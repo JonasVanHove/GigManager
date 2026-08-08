@@ -1822,7 +1822,7 @@ export default function SetlistsTab() {
                 
                 htmlParts.push('</section>');
                 if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">General Notes</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
-                htmlParts.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
+                htmlParts.push('<footer class="document-footer">GigsManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
                 
                 // Get band logo if setlist is linked to a band
                 const band = draft.bandId ? bandsList.find(b => b.id === draft.bandId) : null;
