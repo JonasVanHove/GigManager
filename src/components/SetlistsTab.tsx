@@ -1789,15 +1789,15 @@ export default function SetlistsTab() {
                   const badges: string[] = [];
                   if (item.tuning) {
                     const color = getTuningColor(item.tuning);
-                    badges.push(`<span class="metadata-item" style="background:${color};color:#1a1a2e;">${escapeHtml(item.tuning)}</span>`);
+                    badges.push(`<span class="metadata-item" style="background-color:${color} !important;color:#1a1a2e !important;">${escapeHtml(item.tuning)}</span>`);
                   }
                   if (item.key) {
                     const color = getTuningColor(item.key);
-                    badges.push(`<span class="metadata-item" style="background:${color};color:#1a1a2e;">Key: ${escapeHtml(item.key)}</span>`);
+                    badges.push(`<span class="metadata-item" style="background-color:${color} !important;color:#1a1a2e !important;">Key: ${escapeHtml(item.key)}</span>`);
                   }
                   if (item.tempo) {
                     const color = getTuningColor(item.tempo + ' bpm');
-                    badges.push(`<span class="metadata-item" style="background:${color};color:#1a1a2e;">${escapeHtml(item.tempo)} BPM</span>`);
+                    badges.push(`<span class="metadata-item" style="background-color:${color} !important;color:#1a1a2e !important;">${escapeHtml(item.tempo)} BPM</span>`);
                   }
                   
                   const metaStr = badges.length > 0 ? `<div class="metadata" style="justify-content:flex-start;margin-top:2mm;">${badges.join('')}</div>` : '';
