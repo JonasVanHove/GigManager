@@ -1198,7 +1198,7 @@ export default function SetlistsTab() {
             <div className="min-w-0">
               <div className="text-4xl font-black text-white/90">{index + 1}</div>
               <div className="mt-2 text-2xl font-semibold">{song?.title || item.label}</div>
-              {hasImages && <div className="mt-2 text-sm font-medium text-cyan-200">🖼️ {isDutch ? "Notitie-afbeelding beschikbaar" : "Image note available"}</div>}
+              {hasImages && <div className="mt-2 text-sm font-medium text-cyan-200 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); updateItem(item.id, { expanded: !item.expanded }); }}>{item.expanded ? "🖼️ " + (isDutch ? "Afbeelding verbergen" : "Hide image") : "🖼️ " + (isDutch ? "Afbeelding tonen" : "Show image")}</div>}
               {item.artist && <div className="text-sm text-slate-300">{item.artist}</div>}
             </div>
             <div className="flex flex-col items-end gap-2 text-right">
@@ -1207,6 +1207,13 @@ export default function SetlistsTab() {
             </div>
           </button>
           {item.notitie && <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-base text-slate-100">{item.notitie}</div>}
+          {item.expanded && hasImages && song?.attachments && (
+            <div className="mt-4 space-y-3">
+              {song.attachments.filter(isImageAttachment).map((att) => (
+                <img key={att.id} src={att.publicUrl} alt="" className="max-h-96 w-auto rounded-2xl border border-white/10" />
+              ))}
+            </div>
+          )}
           {songNotes.length > 0 && (
             <div className="mt-4 space-y-3">
               {songNotes.map((note) => (
@@ -1810,11 +1817,10 @@ export default function SetlistsTab() {
                     badges.push(`<span class="metadata-item" style="border: 2px solid ${colors.pastel} !important; color: ${colors.dark} !important; font-weight: 800 !important;">${escapeHtml(item.tempo)} BPM</span>`);
                   }
                   
-                  const metaStr = badges.length > 0 ? `<div class="metadata" style="justify-content:flex-start;margin-top:2mm;">${badges.join('')}</div>` : '';
+                  const metaStr = badges.length > 0 ? ` ${badges.join('')}` : '';
                   
                   htmlParts.push(`<article class="setlist-item">`);
-                  htmlParts.push(`<h3 class="setlist-item-title"><span class="setlist-item-number">${songNumber}.</span>${escapeHtml(title)}</h3>`);
-                  if (metaStr) htmlParts.push(metaStr);
+                  htmlParts.push(`<h3 class="setlist-item-title"><span class="setlist-item-number">${songNumber}.</span>${escapeHtml(title)}${metaStr}</h3>`);
                   
                   // Include image attachments without captions
                   if (song?.attachments && song.attachments.length > 0) {
