@@ -332,6 +332,13 @@ export async function GET(request: NextRequest) {
     // 6. Query database
     try {
       console.log("[GET /api/gigs] Executing query with:", { userId, take, skip });
+      
+      // First fetch all bands for this user to enable name-based matching
+      const allBands = await prisma.bands.findMany({
+        where: { userId },
+        select: { id: true, name: true, color: true },
+      });
+      
       const result = await safeMeasureAsync(
         "GET /api/gigs [DB QUERY]",
         async () => {
@@ -353,11 +360,24 @@ export async function GET(request: NextRequest) {
           });
           console.log("[GET /api/gigs] findMany returned", gigs.length, "gigs");
           
+          // Fallback: match band by name if bandId is not set
+          const gigsWithBandFallback = gigs.map((gig) => {
+            if (!gig.band && gig.performers) {
+              const matchedBand = allBands.find(
+                (band) => band.name.toLowerCase() === gig.performers.trim().toLowerCase()
+              );
+              if (matchedBand) {
+                return { ...gig, band: matchedBand };
+              }
+            }
+            return gig;
+          });
+          
           console.log("[GET /api/gigs] Starting count...");
           const count = await prisma.gig.count({ where: { userId } });
           console.log("[GET /api/gigs] count returned:", count);
           
-          return [gigs, count];
+          return [gigsWithBandFallback, count];
         },
         { endpoint: "/api/gigs", userId, metadata: { take, skip } }
       );
