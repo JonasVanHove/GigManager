@@ -115,8 +115,13 @@ const GigCard = memo(function GigCard({
         ? 'border-blue-400/60 bg-blue-50/50 backdrop-blur shadow-lg dark:bg-blue-950/30 dark:border-blue-400/60 dark:backdrop-blur'
         : isClientPaymentOverdue
           ? 'border-red-300/60 bg-red-50/40 backdrop-blur shadow-md dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-lg dark:backdrop-blur'
+          : gig.band?.color
+          ? `${bandStyles.soft.backgroundColor} backdrop-blur shadow-md hover:shadow-lg dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60`
           : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
-    }`} style={{ borderLeftColor: bandStyles.solid.backgroundColor }}>
+    }`} style={{
+      borderLeftColor: bandStyles.solid.backgroundColor,
+      borderColor: gig.band?.color ? bandStyles.soft.borderColor : undefined
+    }}>
       {/* -- Header ------------------------------------------------------ */}
       <div className={`flex items-start justify-between border-b transition-colors px-3 py-3 sm:px-5 sm:py-4`}>
         {/* Left side: Checkbox + Event info (clickable to expand/collapse) */}
@@ -211,7 +216,7 @@ const GigCard = memo(function GigCard({
               <span className="hidden tablet:inline">{formattedDate}</span>
               <span className="tablet:hidden">{formattedDate}</span>
             </span>
-            <BandTag name={gig.performers} variant="soft" color={gig.band?.color} />
+            <BandTag name={gig.performers} variant={gig.band?.color ? "solid" : "soft"} color={gig.band?.color} />
             <span className="hidden tablet:inline-flex items-center gap-1">
               <Icons.People className="h-4 w-4 shrink-0" />
               {gig.numberOfMusicians} musician{gig.numberOfMusicians !== 1 ? "s" : ""}
