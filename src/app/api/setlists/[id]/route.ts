@@ -128,11 +128,35 @@ export async function PATCH(
     });
 
     if (Array.isArray(body.items)) {
+      // Preserve existing attachments before deleting items
+      const existingAttachments = await prisma.setlistItemAttachment.findMany({
+        where: {
+          setlistItemId: { in: existing.items.map((item: any) => item.id) },
+        },
+      });
+      
       await prisma.setlistItem.deleteMany({ where: { setlistId: existing.id } });
+      
       if (items.length > 0) {
-        await prisma.setlistItem.createMany({
+        const createdItems = await prisma.setlistItem.createMany({
           data: items.map((item) => ({ ...item, setlistId: existing.id })),
         });
+        
+        // Get the newly created items to restore attachments
+        const newItems = await prisma.setlistItem.findMany({
+          where: { setlistId: existing.id },
+          orderBy: { order: 'asc' },
+        });
+        
+        // Restore attachments by matching order/index
+        for (let i = 0; i < existingAttachments.length && i < newItems.length; i++) {
+          const attachment = existingAttachments[i];
+          const newItem = newItems[i];
+          await prisma.setlistItemAttachment.update({
+            where: { id: attachment.id },
+            data: { setlistItemId: newItem.id },
+          });
+        }
       }
     }
 
