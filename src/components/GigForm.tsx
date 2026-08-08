@@ -381,13 +381,24 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   useEffect(() => {
     if (!form.performers) {
       setSelectedBandName("");
+      set("bandId", null);
       return;
     }
     const exact = bandOptions.find(
       (band) => band.toLowerCase() === form.performers.trim().toLowerCase()
     );
     setSelectedBandName(exact || "");
-  }, [form.performers, bandOptions]);
+    
+    // Auto-match bandId if performers name matches a band
+    const matchedBand = bandsList.find(
+      (band) => band.name.toLowerCase() === form.performers.trim().toLowerCase()
+    );
+    if (matchedBand) {
+      set("bandId", matchedBand.id);
+    } else {
+      set("bandId", null);
+    }
+  }, [form.performers, bandOptions, bandsList]);
 
   useEffect(() => {
     if (!selectedBandName) return;
@@ -441,8 +452,17 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
       setSelectedMemberIds(defaults);
       setSyncFromMembers(true);
       setMemberSearch(band);
+      
+      // Also set bandId if this band exists in bandsList
+      const matchedBand = bandsList.find(
+        (b) => b.name.toLowerCase() === band.toLowerCase()
+      );
+      if (matchedBand) {
+        set("bandId", matchedBand.id);
+      }
     } else {
       setMemberSearch("");
+      set("bandId", null);
     }
   };
 
