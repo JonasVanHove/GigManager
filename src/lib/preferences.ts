@@ -82,22 +82,39 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
   }
 
   const hue = getBandHue(bandName);
+  const solidColor = `hsl(${hue} 68% 42%)`;
+  const softColor = hslToRgba(hue, 68, 94, 0.15); // 15% opacity
+  const borderColor = `hsl(${hue} 70% 78%)`;
+  const textColor = `hsl(${hue} 58% 28%)`;
+  
   return {
     solid: {
-      backgroundColor: `hsl(${hue} 68% 42%)`,
+      backgroundColor: solidColor,
       borderColor: `hsl(${hue} 68% 34%)`,
       color: "#ffffff",
     },
     soft: {
-      backgroundColor: `hsl(${hue} 85% 94%)`,
-      borderColor: `hsl(${hue} 70% 78%)`,
-      color: `hsl(${hue} 58% 28%)`,
+      backgroundColor: softColor,
+      borderColor: borderColor,
+      color: textColor,
     },
     line: {
-      borderColor: `hsl(${hue} 68% 42%)`,
-      color: `hsl(${hue} 58% 28%)`,
+      borderColor: solidColor,
+      color: textColor,
     },
   } as const;
+}
+
+function hslToRgba(h: number, s: number, l: number, a: number): string {
+  s /= 100;
+  l /= 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a2 = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a2 * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const r = Math.round(f(0) * 255);
+  const g = Math.round(f(8) * 255);
+  const b = Math.round(f(4) * 255);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 function hexToRgba(hex: string, alpha: number): string {
