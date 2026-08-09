@@ -70,7 +70,7 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
         color: getContrastColor(bandColor),
       },
       soft: {
-        backgroundColor: adjustColor(bandColor, 85),
+        backgroundColor: hexToRgba(bandColor, 0.15), // 15% opacity
         borderColor: adjustColor(bandColor, -15),
         color: adjustColor(bandColor, -50),
       },
@@ -98,6 +98,15 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
       color: `hsl(${hue} 58% 28%)`,
     },
   } as const;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const color = hex.replace('#', '');
+  const num = parseInt(color, 16);
+  const r = (num >> 16) & 0xFF;
+  const g = (num >> 8) & 0xFF;
+  const b = num & 0xFF;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function getContrastColor(hex: string): string {
