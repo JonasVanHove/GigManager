@@ -72,7 +72,7 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
       soft: {
         backgroundColor: hexToRgba(bandColor, 0.15), // 15% opacity
         borderColor: adjustColor(bandColor, -15),
-        color: adjustColor(bandColor, -50),
+        color: adjustColor(bandColor, -60), // Darker text for better contrast
       },
       line: {
         borderColor: bandColor,
@@ -85,7 +85,7 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
   const solidColor = `hsl(${hue} 68% 42%)`;
   const softColor = hslToRgba(hue, 68, 94, 0.15); // 15% opacity
   const borderColor = `hsl(${hue} 70% 78%)`;
-  const textColor = `hsl(${hue} 58% 28%)`;
+  const textColor = `hsl(${hue} 58% 25%)`; // Darker for better contrast
   
   return {
     solid: {
