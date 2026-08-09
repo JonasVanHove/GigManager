@@ -116,8 +116,8 @@ const GigCard = memo(function GigCard({
         : isClientPaymentOverdue
           ? 'border-red-300/60 bg-red-50/40 backdrop-blur shadow-md dark:border-red-500/40 dark:bg-red-950/20 dark:shadow-lg dark:backdrop-blur'
           : gig.band?.color
-          ? `${bandStyles.soft.backgroundColor} backdrop-blur shadow-md hover:shadow-lg dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60`
-          : 'border-slate-200/50 bg-white/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-white/80 dark:hover:bg-slate-800/60'
+          ? `${bandStyles.soft.backgroundColor} backdrop-blur shadow-md hover:shadow-lg dark:backdrop-blur hover:bg-slate-100/80 dark:hover:bg-slate-800/60`
+          : 'border-slate-200/50 bg-slate-50/70 backdrop-blur shadow-md hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50 dark:backdrop-blur hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
     }`} style={{
       borderLeftColor: bandStyles.solid.backgroundColor,
       borderColor: gig.band?.color ? bandStyles.soft.borderColor : undefined

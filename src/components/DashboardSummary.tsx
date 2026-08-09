@@ -214,7 +214,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
 
           {/* Expanded performances breakdown */}
           {expandedCard === "performances" && (
-            <div className="mt-2 sm:mt-3 space-y-2 rounded-lg border border-purple-200 bg-white p-2 sm:p-3 dark:border-purple-800 dark:bg-slate-800 accordion-enter">
+            <div className="mt-2 sm:mt-3 space-y-2 rounded-lg border border-purple-200 bg-slate-50 p-2 sm:p-3 dark:border-purple-800 dark:bg-slate-900 accordion-enter">
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded bg-purple-50 dark:bg-purple-900/20 p-2">
                   <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Total</p>
@@ -337,7 +337,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
               </div>
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
                   <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Net liquid position</p>
                   <p className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-50">
                     {fmtCurrency(summary.totalEarningsReceived - (investmentOverview?.totalInvested ?? 0))}
@@ -346,7 +346,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                     Received earnings minus total invested capital.
                   </p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
                   <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Investment mix</p>
                   <p className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-50">
                     {investmentOverview?.loading ? tr("Loading...", "Laden...") : `${investmentOverview?.sharedInvestments ?? 0}/${investmentOverview?.totalInvestments ?? 0}`}
@@ -652,7 +652,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                     const bandStyles = getBandColorStyles(band, bandData?.color);
 
                     return (
-                      <div key={`outstanding-${band}`} className="rounded bg-white/40 dark:bg-slate-800/40">
+                      <div key={`outstanding-${band}`} className="rounded bg-slate-50 dark:bg-slate-800/40">
                         <button
                           onClick={() => toggleUnpaidBand(band)}
                           type="button"
