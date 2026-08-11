@@ -292,6 +292,7 @@ export default function SetlistsTab() {
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
   const [showSongPicker, setShowSongPicker] = useState(false);
   const [convertingItemId, setConvertingItemId] = useState<string | null>(null);
+  const [includeTuningNotes, setIncludeTuningNotes] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftVersionRef = useRef(0);
 
@@ -1020,6 +1021,56 @@ export default function SetlistsTab() {
     }));
   }, [updateDraftItems]);
 
+  const insertTuningNotes = useCallback(() => {
+    const notes: DraftItem[] = [];
+    let previousTuning = "";
+    
+    for (const item of currentItems) {
+      if (item.kind === "special") {
+        previousTuning = "";
+        continue;
+      }
+      
+      const currentTuning = item.tuning || "Onbekend";
+      if (previousTuning && currentTuning !== previousTuning) {
+        notes.push(createSpecialItem(`⚠ Tuningwissel: ${previousTuning} → ${currentTuning}`));
+      }
+      previousTuning = currentTuning;
+    }
+    
+    if (notes.length === 0) {
+      toast.error(isDutch ? "Geen tuningwissels gevonden" : "No tuning changes found");
+      return;
+    }
+    
+    // Insert notes at appropriate positions
+    let noteIndex = 0;
+    updateDraftItems((items) => {
+      const newItems: DraftItem[] = [];
+      let previousTuning = "";
+      
+      for (const item of items) {
+        if (item.kind === "special") {
+          previousTuning = "";
+          newItems.push(item);
+          continue;
+        }
+        
+        const currentTuning = item.tuning || "Onbekend";
+        if (previousTuning && currentTuning !== previousTuning && noteIndex < notes.length) {
+          newItems.push(notes[noteIndex]);
+          noteIndex++;
+        }
+        newItems.push(item);
+        previousTuning = currentTuning;
+      }
+      
+      return newItems;
+    });
+    
+    toast.success(isDutch ? `${notes.length} tuningwissels toegevoegd` : `${notes.length} tuning changes added`);
+  }, [currentItems, updateDraftItems, toast, isDutch]);
+
   const updateItem = useCallback((itemId: string, patch: Partial<DraftItem>) => {
     updateDraftItems((items) => items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)));
   }, [updateDraftItems]);
@@ -1610,6 +1661,7 @@ export default function SetlistsTab() {
                       <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.pause}</button>
                       <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.bis}</button>
                       <button type="button" onClick={() => addSpecial(window.prompt(isDutch ? "Custom blok label" : "Custom block label") || "")} className="min-w-0 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{copy.customBlock}</button>
+                      <button type="button" onClick={insertTuningNotes} className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300" title={isDutch ? "Voeg tuningwissel notities in" : "Insert tuning change notes"}>⚠ {isDutch ? "Tuningwissels" : "Tuning changes"}</button>
                       <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">{copy.autoGenerate}</button>
                       <label className="ml-auto flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
                         <input type="checkbox" checked={activeDraft.pauseOnTuningChange} onChange={(e) => updateDraft({ pauseOnTuningChange: e.target.checked })} />
