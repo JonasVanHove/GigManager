@@ -290,6 +290,8 @@ export default function SetlistsTab() {
   const [drawerSongId, setDrawerSongId] = useState<string | null>(null);
   const [itemAttachments, setItemAttachments] = useState<Map<string, Array<{ id: string; url: string; type: string; title?: string }>>>(new Map());
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
+  const [showSongPicker, setShowSongPicker] = useState(false);
+  const [convertingItemId, setConvertingItemId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftVersionRef = useRef(0);
 
@@ -1000,6 +1002,24 @@ export default function SetlistsTab() {
     updateDraftItems((items) => [...items, createSpecialItem(trimmed)]);
   }, [updateDraftItems]);
 
+  const convertToSong = useCallback((itemId: string, songId: string) => {
+    const song = songs.find(s => s.id === songId);
+    if (!song) return;
+    const songItem = createSongItem(song);
+    updateDraftItems((items) => items.map(item => item.id === itemId ? { ...songItem, id: itemId } : item));
+    setShowSongPicker(false);
+    setConvertingItemId(null);
+  }, [songs, updateDraftItems]);
+
+  const convertToCustom = useCallback((itemId: string) => {
+    updateDraftItems((items) => items.map(item => {
+      if (item.id === itemId) {
+        return { ...createSpecialItem(item.label || "Custom"), id: itemId };
+      }
+      return item;
+    }));
+  }, [updateDraftItems]);
+
   const updateItem = useCallback((itemId: string, patch: Partial<DraftItem>) => {
     updateDraftItems((items) => items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)));
   }, [updateDraftItems]);
@@ -1178,6 +1198,7 @@ export default function SetlistsTab() {
           <div className="flex items-center justify-between gap-2">
             <span>{item.specialLabel}</span>
             <div className="flex gap-1">
+              <button type="button" onClick={() => { setConvertingItemId(item.id); setShowSongPicker(true); }} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={isDutch ? "Naar nummer converteren" : "Convert to song"}>🎵</button>
               <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"}>↑</button>
               <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"}>↓</button>
               <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">×</button>
@@ -1277,13 +1298,16 @@ export default function SetlistsTab() {
             <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
               ↓
             </button>
+            <button type="button" onClick={() => convertToCustom(item.id)} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={isDutch ? "Naar aangepast blok" : "Convert to custom"} aria-label={isDutch ? "Naar aangepast blok" : "Convert to custom"}>
+              📝
+            </button>
             <button type="button" onClick={() => {
               updateItem(item.id, { expanded: !item.expanded });
               if (!item.expanded) {
                 loadItemAttachments(item.id);
               }
             }} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
-              📝
+              🔧
             </button>
             <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
               ×
@@ -1720,6 +1744,52 @@ export default function SetlistsTab() {
                     </button>
                   </div>
                   <div className="mt-3 whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">{note.inhoud}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSongPicker && convertingItemId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl max-h-[80vh] rounded-3xl bg-white p-5 shadow-2xl dark:bg-slate-950 flex flex-col">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{isDutch ? "Kies een nummer" : "Select a song"}</div>
+              <button type="button" onClick={() => { setShowSongPicker(false); setConvertingItemId(null); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
+            </div>
+            <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-4" />
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {songGroups.map(([tuning, group]) => (
+                <div key={tuning}>
+                  <div className={`mb-2 inline-flex max-w-full rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
+                  <div className="space-y-2">
+                    {group.map((item) => {
+                      const song = (item as any).song || item as SongRow;
+                      const matchReasons = (item as any).matchReasons || [] as string[];
+                      const meta = parseSongNotes(song.notes).meta;
+                      return (
+                        <button key={song.id} type="button" onClick={() => convertToSong(convertingItemId, song.id)} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="break-words font-semibold leading-snug">{song.title}</div>
+                              <div className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
+                              {matchReasons.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {matchReasons.map((reason: string, idx: number) => (
+                                    <span key={idx} className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                                      {reason}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <span className="rounded-full bg-brand-600 px-2 py-1 text-xs font-semibold text-white shrink-0">{isDutch ? "Kies" : "Select"}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
