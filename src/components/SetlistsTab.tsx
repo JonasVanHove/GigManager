@@ -1244,36 +1244,36 @@ export default function SetlistsTab() {
           const from = Number(event.dataTransfer.getData("text/plain"));
           if (!Number.isNaN(from)) moveItem(from, index);
         }}
-        className={`rounded-3xl border p-4 transition ${activeItemId === item.id ? "border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
+        className={`rounded-2xl border p-2 sm:p-3 transition ${activeItemId === item.id ? "border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
       >
-        <div className="flex items-start gap-2 sm:gap-4 min-w-0 max-w-full">
-          <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xs sm:text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <div className="flex items-start gap-2 min-w-0 max-w-full">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {index + 1}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
-              <div className="truncate text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100">{song?.title || item.label}</div>
+            <div className="flex flex-wrap items-center gap-1 min-w-0">
+              <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{song?.title || item.label}</div>
               {item.artist && <span className="text-xs text-slate-500 dark:text-slate-400">{item.artist}</span>}
-              <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
-              {item.key && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.key}</span>}
-              {item.tempo && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.tempo}</span>}
-              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️ {isDutch ? "Afbeelding" : "Image"}</span>}
+              <span className={`rounded-full border px-1.5 py-0.5 text-xs font-semibold ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
+              {item.key && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.key}</span>}
+              {item.tempo && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.tempo}</span>}
+              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-xs font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️</span>}
               {tuningChanged && <span className="text-sm text-amber-600">⚠</span>}
             </div>
-            {item.notitie && <div className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-2.5 sm:p-3 text-xs sm:text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
+            {item.notitie && <div className="mt-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
             {item.songId && songNoteMap.get(item.songId)?.length ? (
-              <div className="mt-2 sm:mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Gekoppelde notities" : "Linked notes"} aria-label={isDutch ? "Gekoppelde notities" : "Linked notes"}>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Gekoppelde notities" : "Linked notes"} aria-label={isDutch ? "Gekoppelde notities" : "Linked notes"}>
                   📝 {songNoteMap.get(item.songId)?.length}
                 </button>
               </div>
             ) : null}
           </div>
-          <div className="flex shrink-0 flex-col gap-1.5 sm:gap-2">
-            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"} aria-label={isDutch ? "Omhoog" : "Move up"}>
+          <div className="flex shrink-0 flex-col gap-1">
+            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"} aria-label={isDutch ? "Omhoog" : "Move up"}>
               ↑
             </button>
-            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
+            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
               ↓
             </button>
             <button type="button" onClick={() => {
@@ -1281,10 +1281,10 @@ export default function SetlistsTab() {
               if (!item.expanded) {
                 loadItemAttachments(item.id);
               }
-            }} className="rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
+            }} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
               📝
             </button>
-            <button type="button" onClick={() => removeItem(item.id)} className="rounded-xl border border-rose-200 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
+            <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
               ×
             </button>
           </div>
