@@ -280,6 +280,7 @@ export default function SetlistsTab() {
   const [showTuningPanel, setShowTuningPanel] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [exportIncludeAttachments, setExportIncludeAttachments] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDate, setNewDate] = useState("");
@@ -1734,6 +1735,18 @@ export default function SetlistsTab() {
               <button type="button" onClick={() => setShowExport(false)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
             </div>
             <textarea readOnly value={exportText} className="mt-4 min-h-80 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="exportIncludeAttachments"
+                checked={exportIncludeAttachments}
+                onChange={(e) => setExportIncludeAttachments(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900"
+              />
+              <label htmlFor="exportIncludeAttachments" className="text-sm text-slate-700 dark:text-slate-300">
+                {isDutch ? "Bijlagen opnemen in PDF" : "Include attachments in PDF"}
+              </label>
+            </div>
             <div className="mt-4 flex justify-end gap-2">
               <button type="button" onClick={() => navigator.clipboard.writeText(exportText)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Copy</button>
               <button type="button" onClick={() => {
@@ -1822,8 +1835,8 @@ export default function SetlistsTab() {
                   htmlParts.push(`<article class="setlist-item">`);
                   htmlParts.push(`<h3 class="setlist-item-title"><span class="setlist-item-number">${songNumber}.</span>${escapeHtml(title)}${metaStr}</h3>`);
                   
-                  // Include image attachments without captions
-                  if (song?.attachments && song.attachments.length > 0) {
+                  // Include image attachments only if checkbox is checked
+                  if (exportIncludeAttachments && song?.attachments && song.attachments.length > 0) {
                     const imageAttachments = song.attachments.filter(isImageAttachment);
                     if (imageAttachments.length > 0) {
                       imageAttachments.forEach((att) => {
