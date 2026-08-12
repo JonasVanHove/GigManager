@@ -1340,14 +1340,14 @@ export default function SetlistsTab() {
             {index + 1}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
               <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{song?.title || item.label}</div>
-              {item.artist && <span className="text-xs text-slate-500 dark:text-slate-400">{item.artist}</span>}
-              <span className={`rounded-full border px-1.5 py-0.5 text-xs font-semibold ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
-              {item.key && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.key}</span>}
-              {item.tempo && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.tempo}</span>}
-              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-xs font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️</span>}
-              {tuningChanged && <span className="text-sm text-amber-600">⚠</span>}
+              {item.artist && <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{item.artist}</span>}
+              <span className={`rounded-full border px-1.5 py-0.5 text-[11px] font-semibold shrink-0 ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
+              {item.key && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0">{item.key}</span>}
+              {item.tempo && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0">{item.tempo}</span>}
+              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300 shrink-0" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️</span>}
+              {tuningChanged && <span className="text-sm text-amber-600 shrink-0">⚠</span>}
             </div>
             {item.notitie && <div className="mt-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
             {item.songId && songNoteMap.get(item.songId)?.length ? (
