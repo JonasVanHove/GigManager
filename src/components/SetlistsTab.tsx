@@ -293,6 +293,8 @@ export default function SetlistsTab() {
   const [showSongPicker, setShowSongPicker] = useState(false);
   const [convertingItemId, setConvertingItemId] = useState<string | null>(null);
   const [includeTuningNotes, setIncludeTuningNotes] = useState(false);
+  const [setlistListCollapsed, setSetlistListCollapsed] = useState(false);
+  const [repertoireCollapsed, setRepertoireCollapsed] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftVersionRef = useRef(0);
 
@@ -1526,7 +1528,16 @@ export default function SetlistsTab() {
           </div>
 
           <div className="space-y-2">
-            {loading ? (
+            <button
+              type="button"
+              onClick={() => setSetlistListCollapsed(!setlistListCollapsed)}
+              className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            >
+              {setlistListCollapsed ? "▶" : "▼"} {isDutch ? "Setlists" : "Setlists"} ({filteredSetlists.length})
+            </button>
+            {!setlistListCollapsed && (
+              <>
+                {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/40 animate-pulse">
@@ -1562,6 +1573,8 @@ export default function SetlistsTab() {
                 </div>
               </div>
             ))}
+              </>
+            )}
           </div>
         </aside>
 
@@ -1692,11 +1705,19 @@ export default function SetlistsTab() {
                 </section>
 
                 <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-full">
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{copy.songPicker}</div>
+                  <button
+                    type="button"
+                    onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
+                    className="mb-1 flex items-center justify-between gap-2 w-full text-left"
+                  >
+                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {repertoireCollapsed ? "▶" : "▼"} {copy.songPicker}
+                    </div>
                     <span className="rounded-full bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length} PDF</span>
-                  </div>
-                  <p className="mb-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{isDutch ? "Afbeeldingen zijn de tablatuur/notities die in de setlist-PDF worden opgenomen." : "Images are the tabs/notes included in the setlist PDF."}</p>
+                  </button>
+                  {!repertoireCollapsed && (
+                    <>
+                      <p className="mb-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{isDutch ? "Afbeeldingen zijn de tablatuur/notities die in de setlist-PDF worden opgenomen." : "Images are the tabs/notes included in the setlist PDF."}</p>
                   <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                   <div className="mt-2 flex flex-wrap gap-1.5 min-w-0 max-w-full" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
                     {([
@@ -1759,6 +1780,8 @@ export default function SetlistsTab() {
                   <div className="rounded-3xl border border-slate-200 bg-white p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
                     {isDutch ? "Songs worden gegroepeerd op tuning en gesorteerd op tempo binnen de groep." : "Songs are grouped by tuning and sorted by tempo within each group."}
                   </div>
+                    </>
+                  )}
                 </aside>
               </div>
             </div>
