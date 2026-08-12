@@ -1343,6 +1343,8 @@ export default function SetlistsTab() {
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
               <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{song?.title || item.label}</div>
               {item.artist && <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{item.artist}</span>}
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap mt-1">
               <span className={`rounded-full border px-1.5 py-0.5 text-[11px] font-semibold shrink-0 ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
               {item.key && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0">{item.key}</span>}
               {item.tempo && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0">{item.tempo}</span>}
@@ -1511,11 +1513,14 @@ export default function SetlistsTab() {
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{copy.newSetlist}</button>
+          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}>
+            {sidebarCollapsed ? "☰" : "✕"}
+          </button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)] min-w-0 max-w-full">
-        <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-3 sm:p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ${sidebarCollapsed ? 'hidden md:block' : 'block'}`}>
+      <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)] min-w-0 max-w-full transition-all duration-300">
+        <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-3 sm:p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 overflow-hidden ${sidebarCollapsed ? 'w-0 opacity-0 p-0 m-0 border-0' : 'w-full opacity-100'}`}>
           <div className="flex items-center justify-between">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 flex-1">
               {["alle", "concept", "klaar", "gearchiveerd"].map((value) => (
@@ -1531,14 +1536,6 @@ export default function SetlistsTab() {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="md:hidden ml-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              aria-label={sidebarCollapsed ? "Show setlists" : "Hide setlists"}
-            >
-              {sidebarCollapsed ? "☰" : "✕"}
-            </button>
           </div>
 
           <div className="space-y-2">
