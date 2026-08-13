@@ -276,6 +276,8 @@ export default function SetlistsTab() {
   const [songSearch, setSongSearch] = useState("");
   const [attachmentFilter, setAttachmentFilter] = useState<"all" | "with" | "without">("all");
   const [showPerformanceMode, setShowPerformanceMode] = useState(false);
+  const [performanceAttachmentsOpen, setPerformanceAttachmentsOpen] = useState(false);
+  const [performanceActiveSong, setPerformanceActiveSong] = useState<DraftItem | null>(null);
   const [showGeneralNotes, setShowGeneralNotes] = useState(true);
   const [showTuningPanel, setShowTuningPanel] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -1457,72 +1459,199 @@ export default function SetlistsTab() {
   if (showPerformanceMode && activeDraft) {
     const songsOnly = currentItems.filter((item) => item.kind === "song");
     const position = songsOnly.length > 0 ? `${Math.max(0, songsOnly.findIndex((item) => item.id === activeItemId)) + 1} / ${songsOnly.length}` : "0 / 0";
+    const currentSong = performanceActiveSong || songsOnly.find((item) => item.id === activeItemId) || null;
+    const currentSongAttachments = currentSong?.songId ? itemAttachments.get(currentSong.songId) || [] : [];
 
     return (
       <div className="fixed inset-0 z-40 flex flex-col bg-slate-950 text-white">
-        <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur">
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.performanceMode}</div>
-            <div className="truncate text-2xl font-semibold">{activeDraft.naam}</div>
-            <div className="text-sm text-slate-300">{[activeDraft.datum, activeDraft.locatie].filter(Boolean).join(" · ")}</div>
+        {/* Header - compact for mobile, optimized touch targets */}
+        <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-950/95 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur shrink-0">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] sm:text-xs uppercase tracking-[0.18em] text-slate-400">{copy.performanceMode}</div>
+            <div className="truncate text-base sm:text-xl font-semibold">{activeDraft.naam}</div>
+            <div className="text-[10px] sm:text-sm text-slate-300">{[activeDraft.datum, activeDraft.locatie].filter(Boolean).join(" · ")}</div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="rounded-full border border-white/10 px-3 py-2 text-sm">{position}</div>
-            <button type="button" onClick={() => setShowPerformanceMode(false)} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">{copy.backToEditor}</button>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="rounded-full border border-white/10 px-2 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-sm">{position}</div>
+            <button type="button" onClick={() => setShowPerformanceMode(false)} className="rounded-full bg-white/10 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-semibold hover:bg-white/20 min-h-[36px] sm:min-h-[40px]">{copy.backToEditor}</button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-5">
-          <div className="mx-auto max-w-5xl space-y-4">
-            {currentItems.map((item, index) => renderItem(item, index, true))}
-          </div>
-        </main>
+        {/* Main content - split view when attachments open */}
+        <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
+          {/* Song list */}
+          <main className={`flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-5 transition-all ${performanceAttachmentsOpen ? 'sm:w-1/2' : 'w-full'}`}>
+            <div className="mx-auto max-w-5xl space-y-3 sm:space-y-4">
+              {currentItems.map((item, index) => (
+                <div 
+                  key={item.id}
+                  onClick={() => {
+                    if (item.kind === "song") {
+                      setActiveItemId(item.id);
+                      setPerformanceActiveSong(item);
+                      if (item.songId && itemAttachments.has(item.songId)) {
+                        setPerformanceAttachmentsOpen(true);
+                      }
+                    }
+                  }}
+                  className={`cursor-pointer transition-all ${item.id === activeItemId ? 'ring-2 ring-brand-500 rounded-2xl' : ''}`}
+                >
+                  {renderItem(item, index, true)}
+                </div>
+              ))}
+            </div>
+          </main>
 
-        <footer className="sticky bottom-0 border-t border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-            <button type="button" onClick={() => {
-              const idx = songsOnly.findIndex((item) => item.id === activeItemId);
-              const next = songsOnly[Math.max(0, idx - 1)];
-              setActiveItemId(next?.id || null);
-            }} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">
-              ← {isDutch ? "Vorig" : "Prev"}
+          {/* Attachment drawer - slide in from right on mobile, split view on desktop */}
+          {performanceAttachmentsOpen && currentSong && (
+            <aside className="fixed inset-y-0 right-0 z-20 w-full sm:w-1/2 lg:w-2/5 bg-slate-900 border-l border-white/10 flex flex-col sm:static sm:flex">
+              <div className="flex items-center justify-between gap-2 p-3 border-b border-white/10 shrink-0">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-300">{currentSong.label}</div>
+                  <div className="text-[10px] text-slate-500">{currentSong.tuning && `Tuning: ${currentSong.tuning}`}</div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setPerformanceAttachmentsOpen(false)}
+                  className="rounded-full bg-white/10 p-2 hover:bg-white/20 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                  aria-label="Close attachments"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-3">
+                {currentSongAttachments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                    <div className="text-3xl mb-2">📎</div>
+                    <div className="text-sm text-slate-400">{isDutch ? "Geen bijlagen" : "No attachments"}</div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {currentSongAttachments.map((att) => (
+                      <div key={att.id} className="rounded-xl border border-white/10 bg-slate-800 overflow-hidden">
+                        {att.type.startsWith('image/') ? (
+                          <img 
+                            src={att.url} 
+                            alt={att.title || 'Attachment'} 
+                            className="w-full h-auto max-h-[60vh] object-contain"
+                            loading="eager"
+                          />
+                        ) : att.type.startsWith('audio/') ? (
+                          <audio controls src={att.url} className="w-full p-3">
+                            Your browser does not support audio.
+                          </audio>
+                        ) : att.type.startsWith('video/') ? (
+                          <video controls src={att.url} className="w-full">
+                            Your browser does not support video.
+                          </video>
+                        ) : (
+                          <div className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-2xl">📄</span>
+                              <span className="text-sm font-medium">{att.title || 'Document'}</span>
+                            </div>
+                            <a 
+                              href={att.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold hover:bg-brand-700"
+                            >
+                              {isDutch ? "Openen" : "Open"}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
+          )}
+        </div>
+
+        {/* Footer - navigation with large touch targets */}
+        <footer className="sticky bottom-0 border-t border-white/10 bg-slate-950/95 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur shrink-0">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 sm:gap-3">
+            <button 
+              type="button" 
+              onClick={() => {
+                const idx = songsOnly.findIndex((item) => item.id === activeItemId);
+                const next = songsOnly[Math.max(0, idx - 1)];
+                setActiveItemId(next?.id || null);
+                setPerformanceActiveSong(next || null);
+                if (next?.songId && itemAttachments.has(next.songId)) {
+                  setPerformanceAttachmentsOpen(true);
+                } else {
+                  setPerformanceAttachmentsOpen(false);
+                }
+              }} 
+              className="flex-1 rounded-full bg-white/10 px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold hover:bg-white/20 min-h-[48px] sm:min-h-[52px] flex items-center justify-center gap-2"
+            >
+              <span className="text-lg sm:text-xl">←</span>
+              <span className="hidden sm:inline">{isDutch ? "Vorig" : "Prev"}</span>
             </button>
-            <div className="text-sm text-slate-300">{position}</div>
-            <button type="button" onClick={() => {
-              const idx = songsOnly.findIndex((item) => item.id === activeItemId);
-              const next = songsOnly[Math.min(songsOnly.length - 1, idx + 1)];
-              setActiveItemId(next?.id || null);
-            }} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">
-              {isDutch ? "Volgend" : "Next"} →
+            <div className="text-xs sm:text-sm text-slate-300 px-2">{position}</div>
+            <button 
+              type="button" 
+              onClick={() => {
+                const idx = songsOnly.findIndex((item) => item.id === activeItemId);
+                const next = songsOnly[Math.min(songsOnly.length - 1, idx + 1)];
+                setActiveItemId(next?.id || null);
+                setPerformanceActiveSong(next || null);
+                if (next?.songId && itemAttachments.has(next.songId)) {
+                  setPerformanceAttachmentsOpen(true);
+                } else {
+                  setPerformanceAttachmentsOpen(false);
+                }
+              }} 
+              className="flex-1 rounded-full bg-white/10 px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold hover:bg-white/20 min-h-[48px] sm:min-h-[52px] flex items-center justify-center gap-2"
+            >
+              <span className="hidden sm:inline">{isDutch ? "Volgend" : "Next"}</span>
+              <span className="text-lg sm:text-xl">→</span>
             </button>
           </div>
+          
+          {/* Quick attachment toggle button */}
+          {currentSong?.songId && itemAttachments.has(currentSong.songId) && (
+            <button
+              type="button"
+              onClick={() => setPerformanceAttachmentsOpen(!performanceAttachmentsOpen)}
+              className="absolute bottom-20 right-4 rounded-full bg-brand-600 p-3 shadow-lg hover:bg-brand-700 min-h-[48px] min-w-[48px] flex items-center justify-center"
+              aria-label={performanceAttachmentsOpen ? "Hide attachments" : "Show attachments"}
+            >
+              <span className="text-xl sm:text-2xl">{performanceAttachmentsOpen ? '✕' : '📎'}</span>
+            </button>
+          )}
         </footer>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 bg-black text-slate-100 p-3 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)] min-w-0 max-w-full">
-      <div className="flex items-center justify-between gap-3 border-b border-neutral-800/80 pb-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-brand-500 animate-pulse" />
-            {copy.title}
-          </h2>
-          {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
+    <div className="flex flex-col h-full min-h-0 bg-black text-slate-100 rounded-3xl border border-neutral-800/80 shadow-2xl overflow-hidden">
+      {/* Header - always visible, compact */}
+      <div className="flex items-center justify-between gap-2 border-b border-neutral-800/80 px-3 py-2 sm:px-4 sm:py-3 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="h-2 w-2 rounded-full bg-brand-500 animate-pulse shrink-0" />
+          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white truncate">{copy.title}</h2>
+          {error && <p className="hidden sm:block text-xs text-rose-400">{error}</p>}
         </div>
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{copy.newSetlist}</button>
-          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{copy.newSetlist}</button>
+          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}>
             {sidebarCollapsed ? "☰" : "✕"}
           </button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)] min-w-0 max-w-full transition-all duration-300">
-        <aside className={`space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 p-3 sm:p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 overflow-hidden ${sidebarCollapsed ? 'w-0 opacity-0 p-0 m-0 border-0' : 'w-full opacity-100'}`}>
-          <div className="flex items-center justify-between">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 flex-1">
+      {/* Main content area - flexible layout */}
+      <div className="flex flex-col md:flex-row min-h-0 overflow-hidden">
+        {/* Sidebar - collapsible, optimized for mobile */}
+        <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 overflow-hidden ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-full md:w-72 lg:w-80 opacity-100'}`}>
+          <div className="flex flex-col h-full p-2 sm:p-3 space-y-2">
+            {/* Status filters - compact */}
+            <div className="grid grid-cols-4 gap-1.5">
               {["alle", "concept", "klaar", "gearchiveerd"].map((value) => (
                 <button
                   key={value}
@@ -1530,73 +1659,75 @@ export default function SetlistsTab() {
                   onClick={() => setStatusFilter(value as typeof statusFilter)}
                   title={statusTooltips[value as keyof typeof statusTooltips]}
                   aria-label={statusLabels[value as keyof typeof statusLabels]}
-                  className={`min-w-0 rounded-2xl px-2.5 py-2 text-base font-semibold sm:px-3 ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
+                  className={`rounded-lg px-1.5 py-1.5 text-sm font-semibold ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
                 >
-                  <span aria-hidden className="block text-center leading-none">{statusIcons[value as keyof typeof statusIcons]}</span>
+                  <span aria-hidden className="block text-center leading-none text-xs">{statusIcons[value as keyof typeof statusIcons]}</span>
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setSetlistListCollapsed(!setlistListCollapsed)}
-              className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-            >
-              {setlistListCollapsed ? "▶" : "▼"} {isDutch ? "Setlists" : "Setlists"} ({filteredSetlists.length})
-            </button>
-            <div 
-              className={`overflow-hidden transition-all duration-300 ease-in-out ${setlistListCollapsed ? 'max-h-0 opacity-0' : 'max-h-[1000px] opacity-100'}`}
-            >
-              {loading ? (
-              <div className="space-y-3 py-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/40 animate-pulse">
-                    <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-2"></div>
-                    <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700 mb-2"></div>
-                    <div className="h-3 w-1/4 rounded bg-slate-200 dark:bg-slate-700"></div>
+            {/* Setlist list - collapsible */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <button
+                type="button"
+                onClick={() => setSetlistListCollapsed(!setlistListCollapsed)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 py-1"
+              >
+                {setlistListCollapsed ? "▶" : "▼"} {isDutch ? "Setlists" : "Setlists"} ({filteredSetlists.length})
+              </button>
+              <div 
+                className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${setlistListCollapsed ? 'max-h-0 opacity-0' : 'max-h-full opacity-100'}`}
+              >
+                {loading ? (
+                  <div className="space-y-2 py-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40 animate-pulse">
+                        <div className="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-1.5"></div>
+                        <div className="h-2 w-1/2 rounded bg-slate-200 dark:bg-slate-700 mb-1.5"></div>
+                        <div className="h-2 w-1/4 rounded bg-slate-200 dark:bg-slate-700"></div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : filteredSetlists.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">{copy.noSetlists}</div>
-            ) : (
-              <div className="space-y-3 py-2 animate-in fade-in duration-300">
-                {filteredSetlists.map((setlist) => (
-                  <div key={setlist.id} className={`rounded-3xl border p-3 transition ${selectedId === setlist.id ? "border-brand-500 bg-brand-50 dark:border-brand-500/50 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}>
-                <button type="button" onClick={() => selectSetlist(setlist)} className="w-full text-left">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="break-words text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">{setlist.naam}</div>
-                      <div className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500 dark:text-slate-400">{[setlist.datum, setlist.locatie].filter(Boolean).join(" · ")}</div>
-                      <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{setlist.items.filter((item) => item.kind === "song").length} {isDutch ? "nummers" : "songs"}</div>
-                    </div>
-                    <span className="max-w-[100px] rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase leading-none text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                      <span className="block truncate">{statusLabels[setlist.status]}</span>
-                    </span>
+                ) : filteredSetlists.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">{copy.noSetlists}</div>
+                ) : (
+                  <div className="space-y-2 py-2 animate-in fade-in duration-300">
+                    {filteredSetlists.map((setlist) => (
+                      <div key={setlist.id} className={`rounded-xl border p-2 transition ${selectedId === setlist.id ? "border-brand-500 bg-brand-50 dark:border-brand-500/50 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}>
+                        <button type="button" onClick={() => selectSetlist(setlist)} className="w-full text-left">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="break-words text-xs sm:text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">{setlist.naam}</div>
+                              <div className="mt-0.5 line-clamp-1 text-[10px] sm:text-xs leading-snug text-slate-500 dark:text-slate-400">{[setlist.datum, setlist.locatie].filter(Boolean).join(" · ")}</div>
+                              <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{setlist.items.filter((item) => item.kind === "song").length} {isDutch ? "nummers" : "songs"}</div>
+                            </div>
+                            <span className="max-w-[80px] rounded-full border border-slate-200 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none text-slate-600 dark:border-slate-700 dark:text-slate-300 shrink-0">
+                              <span className="block truncate">{statusLabels[setlist.status]}</span>
+                            </span>
+                          </div>
+                        </button>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          <button type="button" onClick={duplicateSetlist} className="min-w-0 rounded-md border border-slate-200 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={copy.duplicate} aria-label={copy.duplicate}>
+                            {copy.duplicate}
+                          </button>
+                          <button type="button" onClick={() => deleteSetlist(setlist.id)} className="min-w-0 rounded-md border border-rose-200 px-2 py-1 text-[10px] sm:text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </button>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" onClick={duplicateSetlist} className="min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={copy.duplicate} aria-label={copy.duplicate}>
-                    {copy.duplicate}
-                  </button>
-                  <button type="button" onClick={() => deleteSetlist(setlist.id)} className="min-w-0 rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
-                    ×
-                  </button>
-                </div>
+                )}
               </div>
-                ))}
-              </div>
-            )}
             </div>
           </div>
         </aside>
 
-        <main className="min-h-[760px] min-w-0 max-w-full rounded-3xl border border-slate-200/80 bg-white/95 p-3.5 sm:p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
+        {/* Main content - full width when sidebar collapsed */}
+        <main className="flex-1 min-h-0 overflow-hidden rounded-none md:rounded-3xl border border-slate-200/80 bg-white/95 dark:border-slate-800 dark:bg-slate-950/85">
           {!activeDraft ? (
-            <div className="flex min-h-[680px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 p-8 text-center dark:border-slate-700 dark:bg-slate-900/40">
-              <div className="text-5xl">🎼</div>
+            <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
+              <div className="text-4xl sm:text-5xl">🎼</div>
               <div className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{setlists.length === 0 ? copy.noSetlists : copy.noSelection}</div>
               <button type="button" onClick={() => setShowCreateModal(true)} className="mt-6 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
                 {copy.newSetlist}
@@ -1613,95 +1744,96 @@ export default function SetlistsTab() {
               )}
             </div>
           ) : (
-            <div className="space-y-6 min-w-0 max-w-full">
-              <div className="flex flex-wrap items-start justify-between gap-3 min-w-0 max-w-full">
-                <div className="min-w-0 flex-1 w-full sm:w-auto">
-                  <div className="flex flex-wrap items-center gap-2 mb-2 min-w-0">
-                    <select 
-                      value={activeDraft.id} 
-                      onChange={(e) => {
-                        const selected = setlists.find(s => s.id === e.target.value);
-                        if (selected) selectSetlist(selected);
-                      }}
-                      className="max-w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                    >
-                      {filteredSetlists.map((setlist) => (
-                        <option key={setlist.id} value={setlist.id}>{setlist.naam}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0 w-full">
-                    <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="flex-1 min-w-0 w-full sm:w-auto border-0 bg-transparent p-0 text-xl font-semibold tracking-tight text-slate-900 outline-none sm:text-3xl dark:text-slate-100" />
-                    {activeDraft.bandId && (() => {
-                      const band = bandsList.find(b => b.id === activeDraft.bandId);
-                      return band ? (
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full border shrink-0 max-w-full" style={{ borderColor: band.color || '#e2e8f0', backgroundColor: band.color ? `${band.color}20` : undefined }}>
-                          {band.logoUrl && <img src={band.logoUrl} alt={band.name} className="h-5 w-auto max-w-8 rounded object-contain shrink-0" />}
-                          <span className="text-sm font-medium truncate" style={{ color: band.color || '#6366f1' }}>{band.name}</span>
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-                  <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{savingState === "saving" ? copy.saving : copy.saved}</div>
+            <div className="flex flex-col h-full min-h-0 overflow-y-auto p-3 sm:p-4 space-y-4">
+              {/* Compact header for editing */}
+              <div className="flex flex-col gap-3 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <select 
+                    value={activeDraft.id} 
+                    onChange={(e) => {
+                      const selected = setlists.find(s => s.id === e.target.value);
+                      if (selected) selectSetlist(selected);
+                    }}
+                    className="max-w-[200px] rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-700 truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                  >
+                    {filteredSetlists.map((setlist) => (
+                      <option key={setlist.id} value={setlist.id}>{setlist.naam}</option>
+                    ))}
+                  </select>
+                  <input value={activeDraft.naam} onChange={(e) => updateDraft({ naam: e.target.value })} className="flex-1 min-w-0 border-0 bg-transparent p-0 text-lg sm:text-xl font-semibold tracking-tight text-slate-900 outline-none dark:text-slate-100" />
+                  {activeDraft.bandId && (() => {
+                    const band = bandsList.find(b => b.id === activeDraft.bandId);
+                    return band ? (
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border shrink-0 max-w-[150px]" style={{ borderColor: band.color || '#e2e8f0', backgroundColor: band.color ? `${band.color}20` : undefined }}>
+                        {band.logoUrl && <img src={band.logoUrl} alt={band.name} className="h-4 w-auto max-w-6 rounded object-contain shrink-0" />}
+                        <span className="text-xs font-medium truncate" style={{ color: band.color || '#6366f1' }}>{band.name}</span>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full w-full sm:w-auto">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="w-full sm:w-auto max-w-full rounded-lg border border-slate-200 px-3 py-2 text-xs sm:text-sm truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                      <option value="">{isDutch ? "Toewijzen aan performance..." : "Assign to performance..."}</option>
-                      {gigsList.map((g) => (
-                        <option key={g.id} value={g.id}>{g.date ? `${g.eventName} · ${new Date(g.date).toLocaleDateString(locale)}` : g.eventName}</option>
-                      ))}
-                    </select>
-                    <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-rose-600 shrink-0">{isDutch ? "Ontkoppelen" : "Unassign"}</button>
-                  </div>
-                  <button type="button" onClick={() => setShowPerformanceMode((current) => !current)} className="rounded-xl border border-purple-200 bg-purple-50 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-purple-700 hover:bg-purple-100 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
+                
+                {/* Compact action bar */}
+                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                  <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="max-w-[180px] rounded-lg border border-slate-200 px-2 py-1.5 text-xs truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">{isDutch ? "Toewijzen..." : "Assign..."}</option>
+                    {gigsList.map((g) => (
+                      <option key={g.id} value={g.id}>{g.date ? `${g.eventName} · ${new Date(g.date).toLocaleDateString(locale)}` : g.eventName}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-rose-600 shrink-0 dark:border-slate-700 dark:text-rose-400">×</button>
+                  <div className="flex-1 min-w-0" />
+                  <button type="button" onClick={() => setShowPerformanceMode((current) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
                     {copy.performanceMode}
                   </button>
-                  <button type="button" onClick={() => setShowExport(true)} className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-indigo-700 hover:bg-indigo-100 shrink-0 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20">
+                  <button type="button" onClick={() => setShowExport(true)} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 shrink-0 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20">
                     {copy.export}
                   </button>
-                  <button type="button" onClick={duplicateSetlist} className="rounded-xl border border-slate-200 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
+                  <button type="button" onClick={duplicateSetlist} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                     {copy.duplicate}
                   </button>
                 </div>
+
+                {/* Compact metadata grid */}
+                <div className="grid gap-1.5 grid-cols-2 sm:grid-cols-4 min-w-0">
+                  <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                  <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                  <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="concept">{isDutch ? "concept" : "Draft"}</option>
+                    <option value="klaar">{isDutch ? "klaar" : "Ready"}</option>
+                    <option value="gearchiveerd">{isDutch ? "gearchiveerd" : "Archived"}</option>
+                  </select>
+                  <select value={activeDraft.bandId || ""} onChange={(e) => updateDraft({ bandId: e.target.value || null })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">{isDutch ? "Band..." : "Band..."}</option>
+                    {bandsList.map((band) => (
+                      <option key={band.id} value={band.id}>{band.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400">{savingState === "saving" ? copy.saving : copy.saved}</div>
               </div>
 
-              <div className="grid gap-2 sm:gap-3 grid-cols-2 md:grid-cols-4 min-w-0 max-w-full">
-                <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                  <option value="concept">{isDutch ? "concept" : "Draft"}</option>
-                  <option value="klaar">{isDutch ? "klaar" : "Ready"}</option>
-                  <option value="gearchiveerd">{isDutch ? "gearchiveerd" : "Archived"}</option>
-                </select>
-                <select value={activeDraft.bandId || ""} onChange={(e) => updateDraft({ bandId: e.target.value || null })} className="min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                  <option value="">{isDutch ? "Selecteer band..." : "Select band..."}</option>
-                  {bandsList.map((band) => (
-                    <option key={band.id} value={band.id}>{band.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-4 sm:gap-6 md:grid-cols-[1fr_320px] min-w-0 max-w-full">
-                <section className="space-y-4 min-w-0 max-w-full">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-full">
-                    <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
-                      <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.pause}</button>
-                      <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.bis}</button>
-                      <button type="button" onClick={() => addSpecial(window.prompt(isDutch ? "Custom blok label" : "Custom block label") || "")} className="min-w-0 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{copy.customBlock}</button>
-                      <label className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 cursor-pointer flex items-center gap-2">
+              {/* Main editing area */}
+              <div className="flex flex-col lg:flex-row gap-4 min-h-0 min-w-0">
+                {/* Song list - takes available space */}
+                <section className="flex-1 min-w-0 flex flex-col space-y-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                      <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.pause}</button>
+                      <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.bis}</button>
+                      <button type="button" onClick={() => addSpecial(window.prompt(isDutch ? "Custom blok label" : "Custom block label") || "")} className="min-w-0 rounded-full border border-slate-300 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{copy.customBlock}</button>
+                      <label className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 cursor-pointer flex items-center gap-1">
                         <input type="checkbox" checked={includeTuningNotes} onChange={(e) => handleTuningToggle(e.target.checked)} className="sr-only" />
-                        <span>{includeTuningNotes ? "✓" : "⚠"} {isDutch ? "Tuningwissels" : "Tuning changes"}</span>
+                        <span>{includeTuningNotes ? "✓" : "⚠"} {isDutch ? "Tuning" : "Tuning"}</span>
                       </label>
-                      <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">{copy.autoGenerate}</button>
-                      <label className="ml-auto flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                      <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">{copy.autoGenerate}</button>
+                      <label className="ml-auto flex items-center gap-1 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300">
                         <input type="checkbox" checked={activeDraft.pauseOnTuningChange} onChange={(e) => updateDraft({ pauseOnTuningChange: e.target.checked })} />
-                        {isDutch ? "Voeg pauze in bij tuningwissel" : "Insert pause on tuning change"}
+                        {isDutch ? "Pauze bij tuning" : "Pause on tuning"}
                       </label>
                     </div>
                   </div>
 
-                  <div className="space-y-3 min-w-0 max-w-full">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-2 min-w-0">
                     {currentItems.map((item, index) => renderItem(item, index, false))}
                   </div>
 
@@ -1726,87 +1858,135 @@ export default function SetlistsTab() {
                   </div>
                 </section>
 
-                <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-full flex flex-col">
+                {/* Repertoire sidebar - collapsible drawer */}
+                <aside className={`hidden lg:flex flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-[280px] shrink-0 ${repertoireCollapsed ? 'w-0 opacity-0 p-0 border-0' : 'w-full opacity-100'}`}>
                   <button
                     type="button"
                     onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
-                    className="mb-1 flex items-center justify-between gap-2 w-full text-left shrink-0"
+                    className="flex items-center justify-between gap-2 w-full text-left shrink-0"
                   >
-                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
                       {repertoireCollapsed ? "▶" : "▼"} {copy.songPicker}
                     </div>
-                    <span className="rounded-full bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length} PDF</span>
+                    <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length}</span>
                   </button>
                   <div 
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${repertoireCollapsed ? 'max-h-0 opacity-0' : 'flex-1 opacity-100'}`}
                   >
                     <div className="flex flex-col h-full">
-                      <p className="mb-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400 shrink-0">{isDutch ? "Afbeeldingen zijn de tablatuur/notities die in de setlist-PDF worden opgenomen." : "Images are the tabs/notes included in the setlist PDF."}</p>
-                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0" />
-                      <div className="mt-2 flex flex-wrap gap-1.5 min-w-0 max-w-full shrink-0" aria-label={isDutch ? "Filter op afbeeldingsbijlage" : "Filter by image attachment"}>
-                    {([
-                      ["all", isDutch ? `Alle (${songs.length})` : `All (${songs.length})`],
-                      ["with", isDutch ? `Met PDF-afbeelding (${repertoireImageStats.withImages})` : `With PDF image (${repertoireImageStats.withImages})`],
-                      ["without", isDutch ? `Zonder PDF-afbeelding (${repertoireImageStats.withoutImages})` : `Without PDF image (${repertoireImageStats.withoutImages})`],
-                    ] as const).map(([value, label]) => (
-                      <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-xl border px-2 py-1.5 text-[11px] font-semibold leading-tight transition shrink-0 ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
-                    ))}
-                  </div>
-
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0">
-                    {songGroups.map(([tuning, group]) => (
-                      <div key={tuning}>
-                        <div className={`mb-2 inline-flex max-w-full rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
-                        <div className="space-y-2">
-                          {group.map((item) => {
-                            const song = (item as any).song || item as SongRow;
-                            const matchReasons = (item as any).matchReasons || [] as string[];
-                            const occurrenceCount = songOccurrences.get(song.id) || 0;
-                            const meta = parseSongNotes(song.notes).meta;
-                            const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
-                            const documentCount = (song.attachments?.length || 0) - imageCount;
-                            return (
-                              <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="break-words font-semibold leading-snug">{song.title}</div>
-                                    <div className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
-                                    {matchReasons.length > 0 && (
-                                      <div className="mt-1 flex flex-wrap gap-1">
-                                        {matchReasons.map((reason: string, idx: number) => (
-                                          <span key={idx} className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                                            {reason}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1 shrink-0">
-                                    <div className="flex items-center gap-1">
-                                      {imageCount
-                                        ? `🖼️ ${imageCount} ${isDutch ? (imageCount === 1 ? "afbeelding voor PDF" : "afbeeldingen voor PDF") : (imageCount === 1 ? "image for PDF" : "images for PDF")}`
-                                        : documentCount
-                                          ? `📎 ${documentCount} ${isDutch ? (documentCount === 1 ? "bijlage — niet in PDF" : "bijlagen — niet in PDF") : (documentCount === 1 ? "attachment — not in PDF" : "attachments — not in PDF")}`
-                                          : (isDutch ? "Geen afbeelding voor PDF" : "No image for PDF")}
-                                    </div>
-                                    {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}× {isDutch ? "in setlist" : "in setlist"}</span>}
-                                    <span className="rounded-full bg-brand-600 px-2 py-1 text-xs font-semibold text-white">{copy.addSong}</span>
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                      <p className="mb-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 shrink-0">{isDutch ? "Afbeeldingen voor PDF" : "Images for PDF"}</p>
+                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0" />
+                      <div className="mt-2 flex flex-wrap gap-1 min-w-0 max-w-full shrink-0">
+                        {([
+                          ["all", isDutch ? `Alle (${songs.length})` : `All (${songs.length})`],
+                          ["with", isDutch ? `Met PDF (${repertoireImageStats.withImages})` : `With PDF (${repertoireImageStats.withImages})`],
+                          ["without", isDutch ? `Zonder (${repertoireImageStats.withoutImages})` : `Without (${repertoireImageStats.withoutImages})`],
+                        ] as const).map(([value, label]) => (
+                          <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-lg border px-1.5 py-1 text-[10px] font-semibold leading-tight transition shrink-0 ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
 
-                  <div className="rounded-3xl border border-slate-200 bg-white p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 shrink-0">
-                    {isDutch ? "Songs worden gegroepeerd op tuning en gesorteerd op tempo binnen de groep." : "Songs are grouped by tuning and sorted by tempo within each group."}
-                  </div>
+                      <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0 mt-2">
+                        {songGroups.map(([tuning, group]) => (
+                          <div key={tuning}>
+                            <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
+                            <div className="space-y-1.5">
+                              {group.map((item) => {
+                                const song = (item as any).song || item as SongRow;
+                                const matchReasons = (item as any).matchReasons || [] as string[];
+                                const occurrenceCount = songOccurrences.get(song.id) || 0;
+                                const meta = parseSongNotes(song.notes).meta;
+                                const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
+                                const documentCount = (song.attachments?.length || 0) - imageCount;
+                                return (
+                                  <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
+                                    <div className="flex items-start justify-between gap-1.5">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="break-words font-semibold leading-snug text-[11px]">{song.title}</div>
+                                        <div className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                        <div className="text-[9px] text-slate-500">
+                                          {imageCount ? `🖼️${imageCount}` : documentCount ? `📎${documentCount}` : "—"}</div>
+                                        {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}×</span>}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </aside>
+
+                {/* Mobile repertoire toggle */}
+                <button
+                  type="button"
+                  onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
+                  className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  {repertoireCollapsed ? "▶ " : "▼ "}{copy.songPicker} ({songs.length})
+                </button>
+                {!repertoireCollapsed && (
+                  <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+                    <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {songGroups.map(([tuning, group]) => (
+                        <div key={tuning}>
+                          <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
+                          <div className="space-y-1.5">
+                            {group.map((item) => {
+                              const song = (item as any).song || item as SongRow;
+                              const occurrenceCount = songOccurrences.get(song.id) || 0;
+                              const meta = parseSongNotes(song.notes).meta;
+                              const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
+                              return (
+                                <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
+                                  <div className="flex items-start justify-between gap-1.5">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="break-words font-semibold leading-snug text-[11px]">{song.title}</div>
+                                      <div className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                      <div className="text-[9px] text-slate-500">{imageCount ? `🖼️${imageCount}` : "—"}</div>
+                                      {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}×</span>}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Collapsible notes sections */}
+                <div className="grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60">
+                    <button type="button" onClick={() => setShowGeneralNotes((current) => !current)} className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100">
+                      {showGeneralNotes ? "▼" : "▶"} {copy.generalNotes}
+                    </button>
+                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={copy.generalNotes} />}
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60">
+                    <button type="button" onClick={() => setShowTuningPanel((current) => !current)} className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100">
+                      {showTuningPanel ? "▼" : "▶"} {copy.tuningPanel}
+                    </button>
+                    {showTuningPanel && (
+                      <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                        {tuningExplanation.map((line, index) => (
+                          <div key={`${line}-${index}`} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-950">{line}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
