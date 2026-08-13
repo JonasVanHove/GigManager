@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
   const { user } = authResult as { user: { id: string } };
 
   try {
-    const cacheKey = getCacheKey(user.id, "setlists");
+    const { searchParams } = new URL(request.url);
+    const includeAttachments = searchParams.get("includeAttachments") === "true";
+
+    const cacheKey = getCacheKey(user.id, "setlists", { includeAttachments });
     const cached = getCacheEntry<unknown[]>(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { headers: getApiCacheHeaders(30, "HIT") });
@@ -64,7 +67,14 @@ export async function GET(request: NextRequest) {
     const setlists = await (prisma.setlist.findMany as any)({
       where: { userId: user.id },
       include: {
-        items: { orderBy: { order: "asc" } },
+        items: {
+          orderBy: { order: "asc" },
+          include: includeAttachments ? {
+            attachments: {
+              orderBy: { order: "asc" },
+            },
+          } : undefined,
+        },
         gigs: { select: { id: true, eventName: true, date: true } },
         band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
@@ -120,7 +130,14 @@ export async function POST(request: NextRequest) {
           : undefined,
       },
       include: {
-        items: { orderBy: { order: "asc" } },
+        items: {
+          orderBy: { order: "asc" },
+          include: {
+            attachments: {
+              orderBy: { order: "asc" },
+            },
+          },
+        },
         gigs: { select: { id: true, eventName: true, date: true } },
         band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },

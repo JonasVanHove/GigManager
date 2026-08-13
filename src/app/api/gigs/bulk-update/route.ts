@@ -61,12 +61,18 @@ export async function PATCH(request: NextRequest) {
 
     // Apply all updates in parallel
     const results = await Promise.all(
-      updates.map((update) =>
-        prisma.gig.update({
+      updates.map((update) => {
+        // If paymentReceived is being set to true, also set bandPaid to true
+        const updateData = { ...update.updates };
+        if (updateData.paymentReceived === true) {
+          updateData.bandPaid = true;
+          updateData.bandPaidDate = updateData.paymentReceivedDate || new Date();
+        }
+        return prisma.gig.update({
           where: { id: update.id },
-          data: update.updates,
-        })
-      )
+          data: updateData,
+        });
+      })
     );
 
     // Trigger notifications and webhooks for payment status changes

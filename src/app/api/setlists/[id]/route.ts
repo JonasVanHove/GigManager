@@ -57,10 +57,20 @@ export async function GET(
   const { user } = authResult as { user: { id: string } };
 
   try {
+    const { searchParams } = new URL(request.url);
+    const includeAttachments = searchParams.get("includeAttachments") === "true";
+
     const setlist = await (prisma.setlist.findFirst as any)({
       where: { id: params.id, userId: user.id },
       include: {
-        items: { orderBy: { order: "asc" } },
+        items: {
+          orderBy: { order: "asc" },
+          include: includeAttachments ? {
+            attachments: {
+              orderBy: { order: "asc" },
+            },
+          } : undefined,
+        },
         gigs: { select: { id: true, eventName: true, date: true } },
         band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
@@ -121,7 +131,14 @@ export async function PATCH(
         bandId: body.bandId !== undefined ? (body.bandId || null) : (existing as any).bandId,
       },
       include: {
-        items: { orderBy: { order: "asc" } },
+        items: {
+          orderBy: { order: "asc" },
+          include: {
+            attachments: {
+              orderBy: { order: "asc" },
+            },
+          },
+        },
         gigs: { select: { id: true, eventName: true, date: true, bandId: true } },
         band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
@@ -218,7 +235,14 @@ export async function PATCH(
     const refreshed = await (prisma.setlist.findFirst as any)({
       where: { id: existing.id, userId: user.id },
       include: {
-        items: { orderBy: { order: "asc" } },
+        items: {
+          orderBy: { order: "asc" },
+          include: {
+            attachments: {
+              orderBy: { order: "asc" },
+            },
+          },
+        },
         gigs: { select: { id: true, eventName: true, date: true } },
         band: { select: { id: true, name: true, color: true, logoUrl: true } },
       },
