@@ -50,16 +50,16 @@ export async function GET(request: NextRequest) {
     let attachmentsBySong = new Map<string, any[]>();
     if (includeAttachments) {
       const attachments = await prisma.$queryRaw<Array<any>>(Prisma.sql`
-        SELECT sa.id, sa.storage_path AS "storagePath", sa.public_url AS "publicUrl", sa.content_type AS "contentType", sa.caption, sa."songId"
+        SELECT sa.id, sa.storage_path AS "storagePath", sa.public_url AS "publicUrl", sa.content_type AS "contentType", sa.caption, sa."order", sa."songId"
         FROM song_attachments sa
         INNER JOIN songs s ON s.id = sa."songId"
         WHERE s."userId" = ${user.id} AND sa."deletedAt" IS NULL
-        ORDER BY sa."createdAt" ASC
+        ORDER BY sa."order" ASC
       `);
 
       for (const a of attachments) {
         const list = attachmentsBySong.get(a.songId) ?? [];
-        list.push({ id: a.id, storagePath: a.storagePath, publicUrl: a.publicUrl, contentType: a.contentType, caption: a.caption });
+        list.push({ id: a.id, storagePath: a.storagePath, publicUrl: a.publicUrl, contentType: a.contentType, caption: a.caption, order: a.order });
         attachmentsBySong.set(a.songId, list);
       }
     }
@@ -139,13 +139,13 @@ export async function POST(request: NextRequest) {
     const createdAttachments: any[] = [];
     if (Array.isArray(attachments) && attachments.length > 0) {
       for (const att of attachments) {
-        // Expect att to contain { storagePath, publicUrl, contentType, caption }
+        // Expect att to contain { storagePath, publicUrl, contentType, caption, order }
         const id = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`
-          INSERT INTO song_attachments (id, "songId", storage_path, public_url, content_type, caption, "createdAt")
-          VALUES (${id}, ${song.id}, ${att.storagePath}, ${att.publicUrl}, ${att.contentType}, ${att.caption || null}, NOW())
+          INSERT INTO song_attachments (id, "songId", storage_path, public_url, content_type, caption, "order", "createdAt")
+          VALUES (${id}, ${song.id}, ${att.storagePath}, ${att.publicUrl}, ${att.contentType}, ${att.caption || null}, ${att.order || 1}, NOW())
         `);
-        createdAttachments.push({ id, storagePath: att.storagePath, publicUrl: att.publicUrl, contentType: att.contentType, caption: att.caption || null });
+        createdAttachments.push({ id, storagePath: att.storagePath, publicUrl: att.publicUrl, contentType: att.contentType, caption: att.caption || null, order: att.order || 1 });
       }
     }
 
@@ -228,10 +228,10 @@ export async function PATCH(request: NextRequest) {
       for (const att of attachments) {
         const id = crypto.randomUUID();
         await prisma.$executeRaw(Prisma.sql`
-          INSERT INTO song_attachments (id, "songId", storage_path, public_url, content_type, caption, "createdAt")
-          VALUES (${id}, ${songId}, ${att.storagePath}, ${att.publicUrl}, ${att.contentType}, ${att.caption || null}, NOW())
+          INSERT INTO song_attachments (id, "songId", storage_path, public_url, content_type, caption, "order", "createdAt")
+          VALUES (${id}, ${songId}, ${att.storagePath}, ${att.publicUrl}, ${att.contentType}, ${att.caption || null}, ${att.order || 1}, NOW())
         `);
-        createdAttachments.push({ id, storagePath: att.storagePath, publicUrl: att.publicUrl, contentType: att.contentType, caption: att.caption || null });
+        createdAttachments.push({ id, storagePath: att.storagePath, publicUrl: att.publicUrl, contentType: att.contentType, caption: att.caption || null, order: att.order || 1 });
       }
     }
 
