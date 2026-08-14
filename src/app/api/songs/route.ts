@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
       for (const a of attachments) {
         const list = attachmentsBySong.get(a.songId) ?? [];
-        list.push({ id: a.id, storagePath: a.storagePath, publicUrl: a.publicUrl, contentType: a.contentType, caption: a.caption, order: a.order });
+        list.push({ id: a.id, storagePath: a.storagePath, publicUrl: a.publicUrl, contentType: a.contentType, caption: a.caption, order: a.order ?? 1 });
         attachmentsBySong.set(a.songId, list);
       }
     }
