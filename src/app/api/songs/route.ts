@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
 
     let attachmentsBySong = new Map<string, any[]>();
     if (includeAttachments) {
+      console.log('[DEBUG] Fetching attachments for user:', user.id);
       const attachments = await prisma.$queryRaw<Array<any>>(Prisma.sql`
         SELECT sa.id, sa.storage_path AS "storagePath", sa.public_url AS "publicUrl", sa.content_type AS "contentType", sa.caption, sa."order", sa."songId"
         FROM song_attachments sa
@@ -56,12 +57,14 @@ export async function GET(request: NextRequest) {
         WHERE s."userId" = ${user.id} AND sa."deletedAt" IS NULL
         ORDER BY sa."order" ASC
       `);
+      console.log('[DEBUG] Raw attachments from DB:', attachments.length, attachments);
 
       for (const a of attachments) {
         const list = attachmentsBySong.get(a.songId) ?? [];
         list.push({ id: a.id, storagePath: a.storagePath, publicUrl: a.publicUrl, contentType: a.contentType, caption: a.caption, order: a.order ?? 1 });
         attachmentsBySong.set(a.songId, list);
       }
+      console.log('[DEBUG] Attachments by song map:', Object.fromEntries(attachmentsBySong));
     }
 
     // tags
@@ -98,12 +101,14 @@ export async function GET(request: NextRequest) {
       bandsBySong.set(b.songId, list);
     }
 
-    return NextResponse.json(songs.map((s) => ({
+    const response = songs.map((s) => ({
       ...s,
       attachments: includeAttachments ? (attachmentsBySong.get(s.id) ?? []) : [],
       tags: tagsBySong.get(s.id) ?? [],
       bands: bandsBySong.get(s.id) ?? []
-    })));
+    }));
+    console.log('[DEBUG] Final response songs with attachments:', response.length, response.map(s => ({ id: s.id, title: s.title, attachmentsCount: s.attachments?.length })));
+    return NextResponse.json(response);
   } catch (error) {
     console.error("GET /api/songs error:", error);
     return NextResponse.json({ error: "Failed to fetch songs" }, { status: 500 });

@@ -8,6 +8,7 @@ import { SongMediaManager } from "./SongMediaManager";
 import FullscreenMediaViewer from "./FullscreenMediaViewer";
 import { Icons } from "./Icons";
 import { createPrintDocument } from "@/lib/print-document";
+import { useTranslation } from "react-i18next";
 
 type SongAttachment = {
   id: string;
@@ -91,6 +92,7 @@ export default function SongsTab() {
   const { getAccessToken } = useAuth();
   const { locale, settings } = useSettings();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const isDutch = locale.startsWith("nl");
 
@@ -119,57 +121,21 @@ export default function SongsTab() {
   const [viewerTitle, setViewerTitle] = useState<string | undefined>(undefined);
   const [viewerTuning, setViewerTuning] = useState<string | undefined>(undefined);
 
-  const copy = useMemo(
-    () => ({
-      title: isDutch ? "Repertoire & Songs" : "Repertoire & Songs",
-      newButton: isDutch ? "+ Nieuw nummer" : "+ New Song",
-      save: isDutch ? "Opslaan" : "Save",
-      cancel: isDutch ? "Annuleren" : "Cancel",
-      create: isDutch ? "Nieuw nummer toevoegen" : "Add new song",
-      placeholder: isDutch ? "Schrijf hier notities, akkoorden of tekst..." : "Write notes, chords or lyrics here...",
-      emptyState: isDutch ? "Nog geen nummers in repertoire" : "No songs in repertoire yet",
-      searchPlaceholder: isDutch ? "Zoek op titel, band, toonsoort of notities..." : "Search title, band, key or notes...",
-      withNotesOnly: isDutch ? "Alleen met notities" : "Only with notes",
-      noBand: isDutch ? "Geen band toegewezen" : "No band assigned",
-      tags: isDutch ? "Tags" : "Tags",
-      attachments: isDutch ? "bijlagen/afbeeldingen" : "attachments/images",
-      bandProject: isDutch ? "Band / Project" : "Band / Project",
-      genre: isDutch ? "Genre" : "Genre",
-      keySignature: isDutch ? "Toonsoort / Tuning" : "Key / Tuning",
-      bpm: "BPM",
-      comments: isDutch ? "Opmerkingen" : "Comments",
-      addTag: isDutch ? "Tag toevoegen" : "Add tag",
-      attachmentHint: isDutch ? "Partituren, chord sheets, tabs of screenshots van nummers" : "Score sheets, chord sheets, tabs or screenshots of songs",
-      exportSong: isDutch ? "Exporteer PDF / Print" : "Export PDF / Print",
-      filterAttachments: isDutch ? "Bijlagen" : "Attachments",
-      filterAttachmentsAll: isDutch ? "Alle" : "All",
-      filterAttachmentsWith: isDutch ? "Met bijlagen" : "With attachments",
-      filterAttachmentsWithout: isDutch ? "Zonder bijlagen" : "Without attachments",
-      filterTuning: isDutch ? "Tuning" : "Tuning",
-      filterTag: isDutch ? "Tag" : "Tag",
-      filterKey: isDutch ? "Toonsoort" : "Key",
-      resetFilters: isDutch ? "Filters wissen" : "Reset filters",
-      deleteSong: isDutch ? "Verwijderen" : "Delete",
-      deleteConfirm: isDutch ? "Weet je zeker dat je dit nummer wilt verwijderen?" : "Are you sure you want to delete this song?",
-      sortBy: isDutch ? "Sorteren op" : "Sort by",
-      sortTitle: isDutch ? "Titel" : "Title",
-      sortDate: isDutch ? "Datum" : "Date",
-      sortAttachments: isDutch ? "Bijlagen" : "Attachments",
-    }),
-    [isDutch]
-  );
-
   const fetchSongs = useCallback(async () => {
     setLoading(true);
     try {
       const token = await getAccessToken();
-      const res = await fetch("/api/songs", {
+      console.log('[DEBUG SongsTab] Fetching songs with attachments...');
+      const res = await fetch("/api/songs?includeAttachments=true", {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (!res.ok) throw new Error("Failed to load songs");
       const data = (await res.json()) as SongRecord[];
+      console.log('[DEBUG SongsTab] Received songs data:', data.length, data);
+      console.log('[DEBUG SongsTab] Songs with attachments:', data.filter(s => s.attachments && s.attachments.length > 0).map(s => ({ id: s.id, title: s.title, attachmentsCount: s.attachments?.length })));
       setSongs(Array.isArray(data) ? data : []);
     } catch (error: any) {
+      console.error('[DEBUG SongsTab] Error fetching songs:', error);
       toast.error(error?.message || "Failed to fetch songs");
     } finally {
       setLoading(false);
@@ -177,7 +143,7 @@ export default function SongsTab() {
   }, [getAccessToken, toast]);
 
   const deleteSong = useCallback(async (songId: string) => {
-    if (!confirm(copy.deleteConfirm)) return;
+    if (!confirm(t('songs.deleteConfirm'))) return;
     
     try {
       const token = await getAccessToken();
@@ -186,12 +152,12 @@ export default function SongsTab() {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (!res.ok) throw new Error("Failed to delete song");
-      toast.success(isDutch ? "Nummer verwijderd" : "Song deleted");
+      toast.success(t('songs.songDeleted'));
       fetchSongs();
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete song");
     }
-  }, [getAccessToken, toast, copy.deleteConfirm, isDutch, fetchSongs]);
+  }, [getAccessToken, toast, t('songs.deleteConfirm'), isDutch, fetchSongs]);
 
   useEffect(() => {
     fetchSongs();
@@ -274,7 +240,7 @@ export default function SongsTab() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      toast.error(isDutch ? "Titel is verplicht" : "Title is required");
+      toast.error(t('songs.titleRequired'));
       return;
     }
 
@@ -314,11 +280,11 @@ export default function SongsTab() {
         throw new Error(err?.error || "Failed to save song");
       }
 
-      toast.success(isDutch ? "Opgeslagen" : "Saved");
+      toast.success(t('songs.saved'));
       closeEditor();
       fetchSongs();
     } catch (error: any) {
-      toast.error(error?.message || (isDutch ? "Opslaan mislukt" : "Save failed"));
+      toast.error(error?.message || (t('songs.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -393,7 +359,7 @@ export default function SongsTab() {
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-cyan-500 animate-pulse" />
-            {copy.title}
+            {t('songs.repertoireTitle')}
           </h2>
           <p className="text-xs text-neutral-400 mt-1">Beheer nummers, akkorden, notities en bladmuziek afbeeldingen</p>
         </div>
@@ -402,7 +368,7 @@ export default function SongsTab() {
           onClick={() => openEditor()}
           className="rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]"
         >
-          {copy.newButton}
+          {t('songs.newButton')}
         </button>
       </div>
 
@@ -413,7 +379,7 @@ export default function SongsTab() {
             type="text"
             value={songSearch}
             onChange={(e) => setSongSearch(e.target.value)}
-            placeholder={copy.searchPlaceholder}
+            placeholder={t('songs.searchPlaceholder')}
             className="w-full rounded-xl border border-neutral-800 bg-black px-4 py-2.5 text-sm text-slate-100 placeholder-neutral-500 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
           />
           <label className="inline-flex items-center gap-2 text-sm text-neutral-300 cursor-pointer">
@@ -423,7 +389,7 @@ export default function SongsTab() {
               onChange={(e) => setShowOnlyWithNotes(e.target.checked)}
               className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-cyan-500 focus:ring-cyan-500"
             />
-            {copy.withNotesOnly}
+            {t('songs.withNotesOnly')}
           </label>
         </div>
         
@@ -431,7 +397,7 @@ export default function SongsTab() {
         <div className="mt-3 flex flex-col gap-3">
           {/* Attachment Filter - Prominent */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-neutral-800 bg-black p-2 min-w-0 max-w-full">
-            <span className="text-xs font-medium text-neutral-400 shrink-0">{copy.filterAttachments}:</span>
+            <span className="text-xs font-medium text-neutral-400 shrink-0">{t('songs.filterAttachments')}:</span>
             <div className="flex flex-wrap gap-1.5 min-w-0 w-full sm:w-auto">
               <button
                 type="button"
@@ -442,7 +408,7 @@ export default function SongsTab() {
                     : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
-                {copy.filterAttachmentsAll}
+                {t('songs.filterAttachmentsAll')}
               </button>
               <button
                 type="button"
@@ -453,7 +419,7 @@ export default function SongsTab() {
                     : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
-                {copy.filterAttachmentsWith}
+                {t('songs.filterAttachmentsWith')}
               </button>
               <button
                 type="button"
@@ -464,7 +430,7 @@ export default function SongsTab() {
                     : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
-                {copy.filterAttachmentsWithout}
+                {t('songs.filterAttachmentsWithout')}
               </button>
             </div>
           </div>
@@ -477,7 +443,7 @@ export default function SongsTab() {
               onChange={(e) => setTuningFilter(e.target.value)}
               className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
             >
-              <option value="">{copy.filterTuning}</option>
+              <option value="">{t('songs.filterTuning')}</option>
               {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(tuning => (
                 <option key={tuning} value={tuning}>{tuning}</option>
               ))}
@@ -489,7 +455,7 @@ export default function SongsTab() {
               onChange={(e) => setTagFilter(e.target.value)}
               className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
             >
-              <option value="">{copy.filterTag}</option>
+              <option value="">{t('songs.filterTag')}</option>
               {Array.from(new Set(songs.flatMap(s => s.tags?.map(t => t.name) || []))).sort().map(tag => (
                 <option key={tag} value={tag}>{tag}</option>
               ))}
@@ -501,7 +467,7 @@ export default function SongsTab() {
               onChange={(e) => setKeyFilter(e.target.value)}
               className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
             >
-              <option value="">{copy.filterKey}</option>
+              <option value="">{t('songs.filterKey')}</option>
               {Array.from(new Set(songs.map(s => parseSongNotes(s.notes).meta.keySignature).filter(Boolean))).sort().map(key => (
                 <option key={key} value={key}>{key}</option>
               ))}
@@ -513,9 +479,9 @@ export default function SongsTab() {
               onChange={(e) => setSortBy(e.target.value as "title" | "date" | "attachments")}
               className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
             >
-              <option value="title">{copy.sortTitle}</option>
-              <option value="date">{copy.sortDate}</option>
-              <option value="attachments">{copy.sortAttachments}</option>
+              <option value="title">{t('songs.sortTitle')}</option>
+              <option value="date">{t('songs.sortDate')}</option>
+              <option value="attachments">{t('songs.sortAttachments')}</option>
             </select>
             <button
               type="button"
@@ -537,7 +503,7 @@ export default function SongsTab() {
               }}
               className="self-start rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-neutral-800 transition"
             >
-              {copy.resetFilters}
+              {t('songs.resetFilters')}
             </button>
           )}
         </div>
@@ -548,7 +514,7 @@ export default function SongsTab() {
             <div className="py-12 text-center text-sm text-neutral-400 col-span-full">Repertoire laden...</div>
           ) : filteredSongs.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400 col-span-full">
-              {copy.emptyState}
+              {t('songs.emptyState')}
             </div>
           ) : (
             filteredSongs.map((song) => {
@@ -564,7 +530,7 @@ export default function SongsTab() {
                       <div className="truncate text-base font-bold text-white">{song.title}</div>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="truncate text-xs font-medium text-neutral-400">
-                          {(song.bands || []).map((b) => b.name).join(", ") || copy.noBand}
+                          {(song.bands || []).map((b) => b.name).join(", ") || t('songs.noBand')}
                         </span>
                         {parsed.meta.keySignature && (
                           <span className="rounded-full bg-cyan-950/60 border border-cyan-800/50 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-300">
@@ -577,7 +543,7 @@ export default function SongsTab() {
                           </span>
                         )}
                         <span className="text-[11px] text-neutral-400">
-                          {attachmentCount} {copy.attachments}
+                          {attachmentCount} {t('songs.attachments')}
                         </span>
                       </div>
                     </div>
@@ -588,20 +554,20 @@ export default function SongsTab() {
                         className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 transition flex-1 min-w-[80px]"
                         title="Export song details and images to PDF/Print"
                       >
-                        {copy.exportSong}
+                        {t('songs.exportSong')}
                       </button>
                       <button
                         type="button"
                         onClick={() => openEditor(song)}
                         className="rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500 transition flex-1 min-w-[60px]"
                       >
-                        {isDutch ? "Bewerken" : "Edit"}
+                        {t('songs.edit')}
                       </button>
                       <button
                         type="button"
                         onClick={() => deleteSong(song.id)}
                         className="rounded-xl border border-rose-900/50 bg-rose-950/30 px-3 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/50 transition"
-                        title={copy.deleteSong}
+                        title={t('songs.deleteSong')}
                       >
                         ×
                       </button>
@@ -614,50 +580,56 @@ export default function SongsTab() {
                     </p>
                   )}
 
-                  {song.attachments && song.attachments.length > 0 && (
-                    <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
-                      {song.attachments.map((attachment, aIdx) => (
-                        <button
-                          key={attachment.id}
-                          type="button"
-                          onClick={() => {
-                            setViewerAttachments(song.attachments || []);
-                            setViewerIndex(aIdx);
-                            setViewerTitle(song.title);
-                            const parsedMeta = parseSongNotes(song.notes).meta;
-                            setViewerTuning(parsedMeta.keySignature || undefined);
-                            setViewerOpen(true);
-                          }}
-                          className="group relative rounded-xl overflow-hidden border border-neutral-800 hover:border-cyan-500 transition shrink-0"
-                        >
-                          {isImageAttachment(attachment) ? (
-                            <img
-                              src={attachment.publicUrl}
-                              alt={attachment.caption || song.title}
-                              className="h-20 w-20 object-cover group-hover:scale-105 transition"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.parentElement?.classList.add('bg-neutral-900');
+                  {(() => {
+                    if (song.attachments && song.attachments.length > 0) {
+                      console.log('[DEBUG SongsTab] Rendering attachments for song:', song.title, song.attachments.length, song.attachments);
+                      return (
+                        <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+                          {song.attachments.map((attachment, aIdx) => (
+                            <button
+                              key={attachment.id}
+                              type="button"
+                              onClick={() => {
+                                setViewerAttachments(song.attachments || []);
+                                setViewerIndex(aIdx);
+                                setViewerTitle(song.title);
+                                const parsedMeta = parseSongNotes(song.notes).meta;
+                                setViewerTuning(parsedMeta.keySignature || undefined);
+                                setViewerOpen(true);
                               }}
-                            />
-                          ) : isPdfAttachment(attachment) ? (
-                            <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-950/70 to-neutral-950 px-2 text-white">
-                              <Icons.Document className="h-6 w-6" />
-                              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-200">PDF</span>
-                            </div>
-                          ) : (
-                            <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 bg-neutral-900 px-2 text-white">
-                              <Icons.Document className="h-6 w-6" />
-                              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-300">Doc</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-medium">
-                            Bekijk
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                              className="group relative rounded-xl overflow-hidden border border-neutral-800 hover:border-cyan-500 transition shrink-0"
+                            >
+                              {isImageAttachment(attachment) ? (
+                                <img
+                                  src={attachment.publicUrl}
+                                  alt={attachment.caption || song.title}
+                                  className="h-20 w-20 object-cover group-hover:scale-105 transition"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.parentElement?.classList.add('bg-neutral-900');
+                                  }}
+                                />
+                              ) : isPdfAttachment(attachment) ? (
+                                <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-950/70 to-neutral-950 px-2 text-white">
+                                  <Icons.Document className="h-6 w-6" />
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-200">PDF</span>
+                                </div>
+                              ) : (
+                                <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 bg-neutral-900 px-2 text-white">
+                                  <Icons.Document className="h-6 w-6" />
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-300">Doc</span>
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-medium">
+                                Bekijk
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               );
             })
@@ -672,9 +644,9 @@ export default function SongsTab() {
             <div className="flex items-start justify-between gap-3 border-b border-neutral-800 pb-4">
               <div>
                 <h3 className="text-xl font-bold text-white">
-                  {editingSong ? editingSong.title : copy.create}
+                  {editingSong ? editingSong.title : t('songs.create')}
                 </h3>
-                <p className="text-xs text-neutral-400 mt-1">{copy.attachmentHint}</p>
+                <p className="text-xs text-neutral-400 mt-1">{t('songs.attachmentHint')}</p>
               </div>
               <div className="flex items-center gap-2">
                 {editingSong && (
@@ -683,7 +655,7 @@ export default function SongsTab() {
                     onClick={() => handleExportSong(editingSong)}
                     className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-200 hover:bg-neutral-800 transition"
                   >
-                    {copy.exportSong}
+                    {t('songs.exportSong')}
                   </button>
                 )}
                 <button
@@ -691,7 +663,7 @@ export default function SongsTab() {
                   onClick={closeEditor}
                   className="rounded-xl border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 hover:text-white transition"
                 >
-                  {copy.cancel}
+                  {t('songs.cancel')}
                 </button>
               </div>
             </div>
@@ -700,7 +672,7 @@ export default function SongsTab() {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={isDutch ? "Titel van nummer" : "Song title"}
+                placeholder={t('songs.songTitlePlaceholder')}
                 className="w-full rounded-xl border border-neutral-800 bg-black px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
               />
 
@@ -708,25 +680,25 @@ export default function SongsTab() {
                 <input
                   value={songMeta.bandProject}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, bandProject: e.target.value }))}
-                  placeholder={copy.bandProject}
+                  placeholder={t('songs.bandProject')}
                   className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <input
                   value={songMeta.genre}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, genre: e.target.value }))}
-                  placeholder={copy.genre}
+                  placeholder={t('songs.genre')}
                   className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <input
                   value={songMeta.keySignature}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, keySignature: e.target.value }))}
-                  placeholder={copy.keySignature}
+                  placeholder={t('songs.keySignature')}
                   className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <input
                   value={songMeta.bpm}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, bpm: e.target.value }))}
-                  placeholder={copy.bpm}
+                  placeholder={"BPM"}
                   className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
               </div>
@@ -734,7 +706,7 @@ export default function SongsTab() {
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder={copy.placeholder}
+                placeholder={t('songs.placeholder')}
                 className="min-h-36 w-full rounded-xl border border-neutral-800 bg-black px-4 py-3 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
               />
 
@@ -750,7 +722,7 @@ export default function SongsTab() {
                       setTagInput("");
                     }
                   }}
-                  placeholder={copy.addTag}
+                  placeholder={t('songs.addTag')}
                   className="min-w-[220px] flex-1 rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
                 <button
@@ -762,7 +734,7 @@ export default function SongsTab() {
                   }}
                   className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800"
                 >
-                  {copy.addTag}
+                  {t('songs.addTag')}
                 </button>
               </div>
 
@@ -787,7 +759,7 @@ export default function SongsTab() {
                   onClick={closeEditor}
                   className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-300 hover:bg-neutral-800"
                 >
-                  {copy.cancel}
+                  {t('songs.cancel')}
                 </button>
                 <button
                   type="button"
@@ -795,7 +767,7 @@ export default function SongsTab() {
                   disabled={saving || !title.trim()}
                   className="rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 px-5 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-50"
                 >
-                  {saving ? `${copy.save}...` : copy.save}
+                  {saving ? `${t('songs.save')}...` : t('songs.save')}
                 </button>
               </div>
             </div>
