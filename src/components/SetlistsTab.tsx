@@ -282,7 +282,7 @@ export default function SetlistsTab() {
   const [performanceActiveSong, setPerformanceActiveSong] = useState<DraftItem | null>(null);
   const [showGeneralNotes, setShowGeneralNotes] = useState(true);
   const [showTuningPanel, setShowTuningPanel] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Default to expanded (navigation-style)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Default to expanded
   const [showExport, setShowExport] = useState(false);
   const [exportIncludeAttachments, setExportIncludeAttachments] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
