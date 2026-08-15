@@ -676,7 +676,6 @@ export default function SetlistsTab() {
     setShowPerformanceMode(false);
     setActiveItemId(null);
     // Auto-collapse sidebar on mobile when setlist is selected
-  }, []);
     setSidebarCollapsed(true);
   }, []);
 
