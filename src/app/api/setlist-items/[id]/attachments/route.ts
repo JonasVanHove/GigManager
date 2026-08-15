@@ -28,14 +28,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) return authResult;
   try {
+    console.log('[DEBUG Setlist Attachments API] Fetching attachments for item:', params.id);
     const p: any = prisma;
     const attachments = await p.setlistItemAttachment.findMany({
       where: { setlistItemId: params.id },
       orderBy: { order: 'asc' },
     });
+    console.log('[DEBUG Setlist Attachments API] Found attachments:', attachments.length, attachments);
     return NextResponse.json(attachments);
   } catch (err) {
-    console.error('GET /api/setlist-items/[id]/attachments error:', err);
+    console.error('[DEBUG Setlist Attachments API] Error:', err);
     return NextResponse.json({ error: 'Failed to fetch attachments' }, { status: 500 });
   }
 }

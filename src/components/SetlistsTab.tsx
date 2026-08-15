@@ -7,6 +7,7 @@ import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
 import { createPrintDocument } from "@/lib/print-document";
 import { supabaseClient } from "@/lib/supabase-client";
+import { useTranslation } from "react-i18next";
 
 type SongRow = {
   id: string;
@@ -262,6 +263,7 @@ export default function SetlistsTab() {
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [gigsList, setGigsList] = useState<GigOption[]>([]);
@@ -301,35 +303,6 @@ export default function SetlistsTab() {
   const draftVersionRef = useRef(0);
 
   const isDutch = locale.startsWith("nl");
-
-  const copy = useMemo(() => ({
-    title: isDutch ? "Setlists" : "Setlists",
-    newSetlist: isDutch ? "Nieuwe setlist" : "New setlist",
-    searchSongs: isDutch ? "Zoek in repertoire" : "Search repertoire",
-    save: isDutch ? "Opslaan" : "Save",
-    saved: isDutch ? "Opgeslagen" : "Saved",
-    saving: isDutch ? "Opslaan..." : "Saving...",
-    performanceMode: isDutch ? "Uitvoermodus" : "Performance mode",
-    backToEditor: isDutch ? "Terug naar editor" : "Back to editor",
-    export: isDutch ? "Exporteer" : "Export",
-    duplicate: isDutch ? "Dupliceer" : "Duplicate",
-    autoGenerate: isDutch ? "Auto-genereer" : "Auto-generate",
-    addSong: isDutch ? "Voeg toe" : "Add",
-    pause: isDutch ? "⏸ PAUZE" : "⏸ PAUSE",
-    bis: isDutch ? "🎸 BIS" : "🎸 ENCORE",
-    customBlock: isDutch ? "＋ Aangepast blok" : "＋ Custom block",
-    noSetlists: isDutch ? "Maak je eerste setlist aan" : "Create your first setlist",
-    noSelection: isDutch ? "Selecteer een setlist of maak een nieuwe aan" : "Select a setlist or create a new one",
-    name: isDutch ? "Naam" : "Name",
-    location: isDutch ? "Locatie" : "Location",
-    generalNotes: isDutch ? "Algemene setlist notities" : "General setlist notes",
-    tuningPanel: isDutch ? "Tuning uitleg" : "Tuning explanation",
-    linkedNotes: isDutch ? "Gekoppelde nota's" : "Linked notes",
-    songPicker: isDutch ? "Repertoire" : "Repertoire",
-    create: isDutch ? "Maken" : "Create",
-    cancel: isDutch ? "Annuleren" : "Cancel",
-    statusAll: isDutch ? "Alle" : "All",
-  }), [isDutch]);
 
   const activeDraft = draft;
   const songOccurrences = useMemo(() => {
@@ -549,7 +522,7 @@ export default function SetlistsTab() {
       if (!token) return;
 
       const [songsResponse, setlistsResponse, bandsResponse] = await Promise.all([
-        fetch("/api/songs", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/songs?includeAttachments=true", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/setlists", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
@@ -645,6 +618,16 @@ export default function SetlistsTab() {
     loadData();
   }, [loadData]);
 
+  // Load attachments for items in the currently selected setlist
+  useEffect(() => {
+    if (draft && draft.items.length > 0) {
+      console.log('[DEBUG SetlistsTab] Loading attachments for setlist items:', draft.items.length);
+      draft.items.forEach(item => {
+        loadItemAttachments(item.id);
+      });
+    }
+  }, [draft?.id, loadItemAttachments]);
+
   // Handle URL parameter to open specific setlist from gig card
   useEffect(() => {
     const setlistIdFromUrl = searchParams.get('setlist');
@@ -693,6 +676,7 @@ export default function SetlistsTab() {
     setShowPerformanceMode(false);
     setActiveItemId(null);
     // Auto-collapse sidebar on mobile when setlist is selected
+  }, []);
     setSidebarCollapsed(true);
   }, []);
 
@@ -879,6 +863,7 @@ export default function SetlistsTab() {
         status: meta.status,
         pauseOnTuningChange: meta.pauseOnTuningChange,
         bandId: draft.bandId || null,
+        band: draft.band || null,
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
       };
@@ -1151,23 +1136,26 @@ export default function SetlistsTab() {
   };
 
   const loadItemAttachments = useCallback(async (itemId: string) => {
-    if (!session?.user) return;
     try {
       const token = await getAccessToken();
       if (!token) return;
       
+      console.log('[DEBUG SetlistsTab] Loading attachments for item:', itemId);
       const response = await fetch(`/api/setlist-items/${itemId}/attachments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
       if (response.ok) {
         const attachments = await response.json();
+        console.log('[DEBUG SetlistsTab] Loaded attachments for item:', itemId, attachments.length, attachments);
         setItemAttachments(prev => new Map(prev).set(itemId, attachments));
+      } else {
+        console.error('[DEBUG SetlistsTab] Failed to load attachments for item:', itemId, response.status);
       }
     } catch (error) {
-      console.error('Failed to load attachments:', error);
+      console.error('[DEBUG SetlistsTab] Failed to load attachments:', error);
     }
-  }, [session, getAccessToken]);
+  }, [getAccessToken]);
 
   const handleAttachmentUpload = async (itemId: string, file: File) => {
     if (!session?.user) return;
@@ -1267,9 +1255,18 @@ export default function SetlistsTab() {
           <div className="flex items-center justify-between gap-2">
             <span>{item.specialLabel}</span>
             <div className="flex gap-1">
-              <button type="button" onClick={() => { setConvertingItemId(item.id); setShowSongPicker(true); }} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={isDutch ? "Naar nummer converteren" : "Convert to song"}>🎵</button>
-              <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"}>↑</button>
-              <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"}>↓</button>
+              <button type="button" onClick={() => { setConvertingItemId(item.id); setShowSongPicker(true); }} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={t('setlists.convertToSong')} aria-label={t('setlists.convertToSong')}>
+                🎵
+              </button>
+              <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.moveUp')} aria-label={t('setlists.moveUp')}>
+                ↑
+              </button>
+              <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.moveDown')} aria-label={t('setlists.moveDown')}>
+                ↓
+              </button>
+              <button type="button" onClick={() => convertToCustom(item.id)} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={t('setlists.convertToCustom')} aria-label={t('setlists.convertToCustom')}>
+                📝
+              </button>
               <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">×</button>
             </div>
           </div>
@@ -1289,7 +1286,7 @@ export default function SetlistsTab() {
             <div className="min-w-0">
               <div className="text-4xl font-black text-white/90">{index + 1}</div>
               <div className="mt-2 text-2xl font-semibold">{song?.title || item.label}</div>
-              {hasImages && <div className="mt-2 text-sm font-medium text-cyan-200 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); updateItem(item.id, { expanded: !item.expanded }); }}>{item.expanded ? "🖼️ " + (isDutch ? "Afbeelding verbergen" : "Hide image") : "🖼️ " + (isDutch ? "Afbeelding tonen" : "Show image")}</div>}
+              {hasImages && <div className="mt-2 text-sm font-medium text-cyan-200 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); updateItem(item.id, { expanded: !item.expanded }); }}>{item.expanded ? "🖼️ " + t('setlists.hideImage') : "🖼️ " + t('setlists.showImage')}</div>}
               {item.artist && <div className="text-sm text-slate-300">{item.artist}</div>}
             </div>
             <div className="flex flex-col items-end gap-2 text-right">
@@ -1313,7 +1310,7 @@ export default function SetlistsTab() {
                   <div className="mt-3 whitespace-pre-wrap text-sm text-slate-300">{note.inhoud}</div>
                   <div className="mt-3 flex justify-end">
                     <button type="button" onClick={() => openNoteTab(note.id)} className="text-sm font-semibold text-brand-300 hover:underline">
-                      {isDutch ? "Bewerk nota" : "Edit note"}
+                      {t('setlists.editNote')}
                     </button>
                   </div>
                 </details>
@@ -1350,26 +1347,26 @@ export default function SetlistsTab() {
               <span className={`rounded-full border px-1.5 py-0.5 text-[11px] font-semibold shrink-0 ${tuningBadgeClass(item.tuning || "Onbekend")}`}>{item.tuning || "Onbekend"}</span>
               {item.key && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0">{item.key}</span>}
               {item.tempo && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0">{item.tempo}</span>}
-              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300 shrink-0" title={isDutch ? "Afbeelding wordt meegenomen in de PDF" : "Image is included in the PDF"}>🖼️</span>}
+              {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300 shrink-0" title={t('setlists.imageIncluded')} aria-label={t('setlists.imageIncluded')}>🖼️</span>}
               {tuningChanged && <span className="text-sm text-amber-600 shrink-0">⚠</span>}
             </div>
             {item.notitie && <div className="mt-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
             {item.songId && songNoteMap.get(item.songId)?.length ? (
               <div className="mt-1.5 flex flex-wrap gap-2">
-                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Gekoppelde notities" : "Linked notes"} aria-label={isDutch ? "Gekoppelde notities" : "Linked notes"}>
+                <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.linkedNotes')} aria-label={t('setlists.linkedNotes')}>
                   📝 {songNoteMap.get(item.songId)?.length}
                 </button>
               </div>
             ) : null}
           </div>
           <div className="flex shrink-0 flex-col gap-1">
-            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omhoog" : "Move up"} aria-label={isDutch ? "Omhoog" : "Move up"}>
+            <button type="button" onClick={() => moveItemById(item.id, -1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.moveUp')} aria-label={t('setlists.moveUp')}>
               ↑
             </button>
-            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Omlaag" : "Move down"} aria-label={isDutch ? "Omlaag" : "Move down"}>
+            <button type="button" onClick={() => moveItemById(item.id, 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.moveDown')} aria-label={t('setlists.moveDown')}>
               ↓
             </button>
-            <button type="button" onClick={() => convertToCustom(item.id)} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={isDutch ? "Naar aangepast blok" : "Convert to custom"} aria-label={isDutch ? "Naar aangepast blok" : "Convert to custom"}>
+            <button type="button" onClick={() => convertToCustom(item.id)} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={t('setlists.convertToCustom')} aria-label={t('setlists.convertToCustom')}>
               📝
             </button>
             <button type="button" onClick={() => {
@@ -1377,10 +1374,10 @@ export default function SetlistsTab() {
               if (!item.expanded) {
                 loadItemAttachments(item.id);
               }
-            }} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={isDutch ? "Details uitklappen" : "Expand details"} aria-label={isDutch ? "Details uitklappen" : "Expand details"}>
+            }} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.expandDetails')} aria-label={t('setlists.expandDetails')}>
               🔧
             </button>
-            <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
+            <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={t('setlists.delete')} aria-label={t('setlists.delete')}>
               ×
             </button>
           </div>
@@ -1388,27 +1385,19 @@ export default function SetlistsTab() {
 
         {item.expanded && (
           <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
-            <input value={item.notitie} onChange={(e) => updateItem(item.id, { notitie: e.target.value })} placeholder={isDutch ? "Inline notitie" : "Inline note"} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+            <input value={item.notitie} onChange={(e) => updateItem(item.id, { notitie: e.target.value })} placeholder={t('setlists.inlineNote')} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              <input value={item.tuning} onChange={(e) => updateItem(item.id, { tuning: e.target.value })} placeholder="Tuning" className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-              <input value={item.key} onChange={(e) => updateItem(item.id, { key: e.target.value })} placeholder={isDutch ? "Toonsoort" : "Key"} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+              <input value={item.tuning} onChange={(e) => updateItem(item.id, { tuning: e.target.value })} placeholder={t('setlists.tuning')} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+              <input value={item.key} onChange={(e) => updateItem(item.id, { key: e.target.value })} placeholder={t('setlists.key')} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
             </div>
             
             {/* Attachments Section */}
             <div className="sm:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {isDutch ? "Bijlagen" : "Attachments"}
+                  {t('setlists.attachments')}
                 </span>
-                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                  {uploadingAttachment === item.id ? (
-                    <span className="flex items-center gap-1">
-                      <span className="h-3 w-3 animate-spin rounded-full border border-slate-400 border-t-transparent" />
-                      {isDutch ? "Uploaden..." : "Uploading..."}
-                    </span>
-                  ) : (
-                    <span>+ {isDutch ? "Toevoegen" : "Add"}</span>
-                  )}
+                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <input
                     type="file"
                     className="hidden"
@@ -1418,32 +1407,44 @@ export default function SetlistsTab() {
                     }}
                     disabled={uploadingAttachment === item.id}
                   />
+                  {uploadingAttachment === item.id ? (
+                    <span className="flex items-center gap-1">
+                      <span className="h-3 w-3 animate-spin rounded-full border border-slate-400 border-t-transparent" />
+                      {t('setlists.uploading')}
+                    </span>
+                  ) : (
+                    <span>+ {t('setlists.add')}</span>
+                  )}
                 </label>
               </div>
               
               <div className="flex flex-wrap gap-2">
-                {itemAttachments.get(item.id)?.map((att) => (
-                  <div key={att.id} className="relative group">
-                    {att.type === 'image' ? (
-                      <img src={att.url} alt={att.title || ''} className="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
-                    ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        📄
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAttachment(item.id, att.id)}
-                      className="absolute -right-1 -top-1 hidden rounded-full bg-rose-500 p-1 text-white shadow-sm group-hover:block hover:bg-rose-600"
-                      title={isDutch ? "Verwijderen" : "Delete"}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {(() => {
+                  const attachments = itemAttachments.get(item.id);
+                  console.log('[DEBUG SetlistsTab] Rendering attachments for item:', item.id, attachments?.length, attachments);
+                  return attachments?.map((att) => (
+                    <div key={att.id} className="relative group">
+                      {att.type === 'image' ? (
+                        <img src={att.url} alt={att.title || ''} className="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          📄
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttachment(item.id, att.id)}
+                        className="absolute -right-1 -top-1 hidden rounded-full bg-rose-500 p-1 text-white shadow-sm group-hover:block hover:bg-rose-600"
+                        title={t('setlists.deleteAttachment')}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )) || null;
+                })()}
                 {itemAttachments.get(item.id)?.length === 0 && (
                   <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {isDutch ? "Geen bijlagen" : "No attachments"}
+                    {t('setlists.noAttachments')}
                   </span>
                 )}
               </div>
@@ -1467,13 +1468,13 @@ export default function SetlistsTab() {
         {/* Header - compact for mobile, optimized touch targets */}
         <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-950/95 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur shrink-0">
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] sm:text-xs uppercase tracking-[0.18em] text-slate-400">{copy.performanceMode}</div>
+            <div className="text-[10px] sm:text-xs uppercase tracking-[0.18em] text-slate-400">{t('setlists.performanceMode')}</div>
             <div className="truncate text-base sm:text-xl font-semibold">{activeDraft.naam}</div>
             <div className="text-[10px] sm:text-sm text-slate-300">{[activeDraft.datum, activeDraft.locatie].filter(Boolean).join(" · ")}</div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="rounded-full border border-white/10 px-2 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-sm">{position}</div>
-            <button type="button" onClick={() => setShowPerformanceMode(false)} className="rounded-full bg-white/10 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-semibold hover:bg-white/20 min-h-[36px] sm:min-h-[40px]">{copy.backToEditor}</button>
+            <button type="button" onClick={() => setShowPerformanceMode(false)} className="rounded-full bg-white/10 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-semibold hover:bg-white/20 min-h-[36px] sm:min-h-[40px]">{t('setlists.backToEditor')}</button>
           </div>
         </header>
 
@@ -1524,7 +1525,7 @@ export default function SetlistsTab() {
                 {currentSongAttachments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-8">
                     <div className="text-3xl mb-2">📎</div>
-                    <div className="text-sm text-slate-400">{isDutch ? "Geen bijlagen" : "No attachments"}</div>
+                    <div className="text-sm text-slate-400">{t('setlists.noAttachments')}</div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1557,7 +1558,7 @@ export default function SetlistsTab() {
                               rel="noopener noreferrer"
                               className="inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold hover:bg-brand-700"
                             >
-                              {isDutch ? "Openen" : "Open"}
+                              {t('setlists.open')}
                             </a>
                           </div>
                         )}
@@ -1586,10 +1587,10 @@ export default function SetlistsTab() {
                   setPerformanceAttachmentsOpen(false);
                 }
               }} 
-              className="flex-1 rounded-full bg-white/10 px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold hover:bg-white/20 min-h-[48px] sm:min-h-[52px] flex items-center justify-center gap-2"
+              className="flex-1 rounded-full bg-white/10 px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold text-slate-600 hover:bg-white/20 min-h-[48px] sm:min-h-[52px] flex items-center justify-center gap-2"
             >
               <span className="text-lg sm:text-xl">←</span>
-              <span className="hidden sm:inline">{isDutch ? "Vorig" : "Prev"}</span>
+              <span>{t('setlists.prev')}</span>
             </button>
             <div className="text-xs sm:text-sm text-slate-300 px-2">{position}</div>
             <button 
@@ -1605,9 +1606,9 @@ export default function SetlistsTab() {
                   setPerformanceAttachmentsOpen(false);
                 }
               }} 
-              className="flex-1 rounded-full bg-white/10 px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold hover:bg-white/20 min-h-[48px] sm:min-h-[52px] flex items-center justify-center gap-2"
+              className="flex-1 rounded-full bg-white/10 px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold text-slate-600 hover:bg-white/20 min-h-[48px] sm:min-h-[52px] flex items-center justify-center gap-2"
             >
-              <span className="hidden sm:inline">{isDutch ? "Volgend" : "Next"}</span>
+              <span>{t('setlists.next')}</span>
               <span className="text-lg sm:text-xl">→</span>
             </button>
           </div>
@@ -1634,11 +1635,11 @@ export default function SetlistsTab() {
       <div className="flex items-center justify-between gap-2 border-b border-neutral-800/80 px-3 py-2 sm:px-4 sm:py-3 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="h-2 w-2 rounded-full bg-brand-500 animate-pulse shrink-0" />
-          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white truncate">{copy.title}</h2>
+          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white truncate">{t('setlists.title')}</h2>
           {error && <p className="hidden sm:block text-xs text-rose-400">{error}</p>}
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{copy.newSetlist}</button>
+          <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{t('setlists.newSetlist')}</button>
           <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}>
             {sidebarCollapsed ? "☰" : "✕"}
           </button>
@@ -1671,9 +1672,11 @@ export default function SetlistsTab() {
               <button
                 type="button"
                 onClick={() => setSetlistListCollapsed(!setlistListCollapsed)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 py-1"
+                className="flex items-center justify-between gap-2 w-full text-left shrink-0"
               >
-                {setlistListCollapsed ? "▶" : "▼"} {isDutch ? "Setlists" : "Setlists"} ({filteredSetlists.length})
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {setlistListCollapsed ? "▶" : "▼"} {t('setlists.setlists')} ({filteredSetlists.length})
+                </div>
               </button>
               <div 
                 className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${setlistListCollapsed ? 'max-h-0 opacity-0' : 'max-h-full opacity-100'}`}
@@ -1689,7 +1692,7 @@ export default function SetlistsTab() {
                     ))}
                   </div>
                 ) : filteredSetlists.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">{copy.noSetlists}</div>
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">{t('setlists.noSetlists')}</div>
                 ) : (
                   <div className="space-y-2 py-2 animate-in fade-in duration-300">
                     {filteredSetlists.map((setlist) => (
@@ -1699,7 +1702,7 @@ export default function SetlistsTab() {
                             <div className="min-w-0 flex-1">
                               <div className="break-words text-xs sm:text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">{setlist.naam}</div>
                               <div className="mt-0.5 line-clamp-1 text-[10px] sm:text-xs leading-snug text-slate-500 dark:text-slate-400">{[setlist.datum, setlist.locatie].filter(Boolean).join(" · ")}</div>
-                              <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{setlist.items.filter((item) => item.kind === "song").length} {isDutch ? "nummers" : "songs"}</div>
+                              <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{setlist.items.filter((item) => item.kind === "song").length} {t('setlists.songs')}</div>
                             </div>
                             <span className="max-w-[80px] rounded-full border border-slate-200 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none text-slate-600 dark:border-slate-700 dark:text-slate-300 shrink-0">
                               <span className="block truncate">{statusLabels[setlist.status]}</span>
@@ -1707,10 +1710,10 @@ export default function SetlistsTab() {
                           </div>
                         </button>
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          <button type="button" onClick={duplicateSetlist} className="min-w-0 rounded-md border border-slate-200 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={copy.duplicate} aria-label={copy.duplicate}>
-                            {copy.duplicate}
+                          <button type="button" onClick={duplicateSetlist} className="min-w-0 rounded-md border border-slate-200 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.duplicate')} aria-label={t('setlists.duplicate')}>
+                            {t('setlists.duplicate')}
                           </button>
-                          <button type="button" onClick={() => deleteSetlist(setlist.id)} className="min-w-0 rounded-md border border-rose-200 px-2 py-1 text-[10px] sm:text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={isDutch ? "Verwijderen" : "Delete"} aria-label={isDutch ? "Verwijderen" : "Delete"}>
+                          <button type="button" onClick={() => deleteSetlist(setlist.id)} className="min-w-0 rounded-md border border-rose-200 px-2 py-1 text-[10px] sm:text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title={t('setlists.delete')} aria-label={t('setlists.delete')}>
                             ×
                           </button>
                         </div>
@@ -1728,9 +1731,9 @@ export default function SetlistsTab() {
           {!activeDraft ? (
             <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
               <div className="text-4xl sm:text-5xl">🎼</div>
-              <div className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{setlists.length === 0 ? copy.noSetlists : copy.noSelection}</div>
+              <div className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{setlists.length === 0 ? t('setlists.noSetlists') : t('setlists.noSelection')}</div>
               <button type="button" onClick={() => setShowCreateModal(true)} className="mt-6 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-                {copy.newSetlist}
+                {t('setlists.newSetlist')}
               </button>
               {/* Mobile toggle button when no setlist selected */}
               {sidebarCollapsed && (
@@ -1739,7 +1742,7 @@ export default function SetlistsTab() {
                   onClick={() => setSidebarCollapsed(false)}
                   className="mt-4 lg:hidden rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  {isDutch ? "Toon setlists" : "Show setlists"}
+                  {t('setlists.showSetlists')}
                 </button>
               )}
             </div>
@@ -1775,7 +1778,7 @@ export default function SetlistsTab() {
                 {/* Compact action bar */}
                 <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                   <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="max-w-[180px] rounded-lg border border-slate-200 px-2 py-1.5 text-xs truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">{isDutch ? "Toewijzen..." : "Assign..."}</option>
+                    <option value="">{t('setlists.assign')}</option>
                     {gigsList.map((g) => (
                       <option key={g.id} value={g.id}>{g.date ? `${g.eventName} · ${new Date(g.date).toLocaleDateString(locale)}` : g.eventName}</option>
                     ))}
@@ -1783,52 +1786,52 @@ export default function SetlistsTab() {
                   <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-rose-600 shrink-0 dark:border-slate-700 dark:text-rose-400">×</button>
                   <div className="flex-1 min-w-0" />
                   <button type="button" onClick={() => setShowPerformanceMode((current) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
-                    {copy.performanceMode}
+                    {t('setlists.performanceMode')}
                   </button>
                   <button type="button" onClick={() => setShowExport(true)} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 shrink-0 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20">
-                    {copy.export}
+                    {t('setlists.export')}
                   </button>
                   <button type="button" onClick={duplicateSetlist} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
-                    {copy.duplicate}
+                    {t('setlists.duplicate')}
                   </button>
                 </div>
 
                 {/* Compact metadata grid */}
                 <div className="grid gap-1.5 grid-cols-2 sm:grid-cols-4 min-w-0">
                   <input type="date" value={parseDateOnly(activeDraft.datum)} onChange={(e) => updateDraft({ datum: e.target.value || null })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                  <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={copy.location} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                  <input value={activeDraft.locatie || ""} onChange={(e) => updateDraft({ locatie: e.target.value })} placeholder={t('setlists.location')} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
                   <select value={activeDraft.status} onChange={(e) => updateDraft({ status: e.target.value as SetlistMeta["status"] })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="concept">{isDutch ? "concept" : "Draft"}</option>
-                    <option value="klaar">{isDutch ? "klaar" : "Ready"}</option>
-                    <option value="gearchiveerd">{isDutch ? "gearchiveerd" : "Archived"}</option>
+                    <option value="concept">{t('setlists.concept')}</option>
+                    <option value="klaar">{t('setlists.klaar')}</option>
+                    <option value="gearchiveerd">{t('setlists.gearchiveerd')}</option>
                   </select>
                   <select value={activeDraft.bandId || ""} onChange={(e) => updateDraft({ bandId: e.target.value || null })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">{isDutch ? "Band..." : "Band..."}</option>
+                    <option value="">{t('setlists.band')}</option>
                     {bandsList.map((band) => (
                       <option key={band.id} value={band.id}>{band.name}</option>
                     ))}
                   </select>
                 </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400">{savingState === "saving" ? copy.saving : copy.saved}</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400">{savingState === "saving" ? t('common.saving') : t('common.saved')}</div>
               </div>
 
               {/* Main editing area */}
               <div className="flex flex-col lg:flex-row gap-4 min-h-0 min-w-0">
                 {/* Song list - takes available space */}
                 <section className="flex-1 min-w-0 flex flex-col space-y-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60">
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                      <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.pause}</button>
-                      <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{copy.bis}</button>
-                      <button type="button" onClick={() => addSpecial(window.prompt(isDutch ? "Custom blok label" : "Custom block label") || "")} className="min-w-0 rounded-full border border-slate-300 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{copy.customBlock}</button>
+                      <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{t('setlists.pause')}</button>
+                      <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{t('setlists.bis')}</button>
+                      <button type="button" onClick={() => addSpecial(window.prompt(t('setlists.customBlockLabel')) || "")} className="min-w-0 rounded-full border border-slate-300 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{t('setlists.customBlock')}</button>
                       <label className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 cursor-pointer flex items-center gap-1">
                         <input type="checkbox" checked={includeTuningNotes} onChange={(e) => handleTuningToggle(e.target.checked)} className="sr-only" />
-                        <span>{includeTuningNotes ? "✓" : "⚠"} {isDutch ? "Tuning" : "Tuning"}</span>
+                        <span>{includeTuningNotes ? "✓" : "⚠"} {t('setlists.tuning')}</span>
                       </label>
-                      <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">{copy.autoGenerate}</button>
+                      <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">{t('setlists.autoGenerate')}</button>
                       <label className="ml-auto flex items-center gap-1 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300">
                         <input type="checkbox" checked={activeDraft.pauseOnTuningChange} onChange={(e) => updateDraft({ pauseOnTuningChange: e.target.checked })} />
-                        {isDutch ? "Pauze bij tuning" : "Pause on tuning"}
+                        {t('setlists.pauseOnTuning')}
                       </label>
                     </div>
                   </div>
@@ -1839,14 +1842,14 @@ export default function SetlistsTab() {
 
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <button type="button" onClick={() => setShowGeneralNotes((current) => !current)} className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {showGeneralNotes ? "▼" : "▶"} {copy.generalNotes}
+                      {showGeneralNotes ? "▼" : "▶"} {t('setlists.generalNotes')}
                     </button>
-                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-32 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={copy.generalNotes} />}
+                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-32 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />}
                   </div>
 
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <button type="button" onClick={() => setShowTuningPanel((current) => !current)} className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {showTuningPanel ? "▼" : "▶"} {copy.tuningPanel}
+                      {showTuningPanel ? "▼" : "▶"} {t('setlists.tuningPanel')}
                     </button>
                     {showTuningPanel && (
                       <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
@@ -1859,14 +1862,14 @@ export default function SetlistsTab() {
                 </section>
 
                 {/* Repertoire sidebar - collapsible drawer */}
-                <aside className={`hidden lg:flex flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-[280px] shrink-0 ${repertoireCollapsed ? 'w-0 opacity-0 p-0 border-0' : 'w-full opacity-100'}`}>
+                <aside className={`hidden lg:flex flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-[280px] shrink-0 ${repertoireCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
                   <button
                     type="button"
                     onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
                     className="flex items-center justify-between gap-2 w-full text-left shrink-0"
                   >
                     <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {repertoireCollapsed ? "▶" : "▼"} {copy.songPicker}
+                      {repertoireCollapsed ? "▶" : "▼"} {t('setlists.songPicker')}
                     </div>
                     <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length}</span>
                   </button>
@@ -1874,13 +1877,13 @@ export default function SetlistsTab() {
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${repertoireCollapsed ? 'max-h-0 opacity-0' : 'flex-1 opacity-100'}`}
                   >
                     <div className="flex flex-col h-full">
-                      <p className="mb-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 shrink-0">{isDutch ? "Afbeeldingen voor PDF" : "Images for PDF"}</p>
-                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0" />
+                      <p className="mb-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 shrink-0">{t('setlists.pdfImages')}</p>
+                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0" />
                       <div className="mt-2 flex flex-wrap gap-1 min-w-0 max-w-full shrink-0">
                         {([
-                          ["all", isDutch ? `Alle (${songs.length})` : `All (${songs.length})`],
-                          ["with", isDutch ? `Met PDF (${repertoireImageStats.withImages})` : `With PDF (${repertoireImageStats.withImages})`],
-                          ["without", isDutch ? `Zonder (${repertoireImageStats.withoutImages})` : `Without (${repertoireImageStats.withoutImages})`],
+                          ["all", t('setlists.all') + ` (${songs.length})`],
+                          ["with", t('setlists.with') + ` (${repertoireImageStats.withImages})`],
+                          ["without", t('setlists.without') + ` (${repertoireImageStats.withoutImages})`],
                         ] as const).map(([value, label]) => (
                           <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-lg border px-1.5 py-1 text-[10px] font-semibold leading-tight transition shrink-0 ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
                         ))}
@@ -1894,7 +1897,6 @@ export default function SetlistsTab() {
                               {group.map((item) => {
                                 const song = (item as any).song || item as SongRow;
                                 const matchReasons = (item as any).matchReasons || [] as string[];
-                                const occurrenceCount = songOccurrences.get(song.id) || 0;
                                 const meta = parseSongNotes(song.notes).meta;
                                 const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
                                 const documentCount = (song.attachments?.length || 0) - imageCount;
@@ -1906,9 +1908,8 @@ export default function SetlistsTab() {
                                         <div className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
                                       </div>
                                       <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                        <div className="text-[9px] text-slate-500">
-                                          {imageCount ? `🖼️${imageCount}` : documentCount ? `📎${documentCount}` : "—"}</div>
-                                        {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}×</span>}
+                                        <div className="text-[9px] text-slate-500">{imageCount ? `🖼️${imageCount}` : documentCount ? `📎${documentCount}` : "—"}</div>
+                                        {songOccurrences.get(song.id) && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{songOccurrences.get(song.id)}×</span>}
                                       </div>
                                     </div>
                                   </button>
@@ -1926,13 +1927,13 @@ export default function SetlistsTab() {
                 <button
                   type="button"
                   onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
-                  className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900"
                 >
-                  {repertoireCollapsed ? "▶ " : "▼ "}{copy.songPicker} ({songs.length})
+                  {repertoireCollapsed ? "▶ " : "▼ "}{t('setlists.songPicker')} ({songs.length})
                 </button>
                 {!repertoireCollapsed && (
                   <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
-                    <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
+                    <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                       {songGroups.map(([tuning, group]) => (
                         <div key={tuning}>
@@ -1967,16 +1968,16 @@ export default function SetlistsTab() {
 
                 {/* Collapsible notes sections */}
                 <div className="grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
                     <button type="button" onClick={() => setShowGeneralNotes((current) => !current)} className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {showGeneralNotes ? "▼" : "▶"} {copy.generalNotes}
+                      {showGeneralNotes ? "▼" : "▶"} {t('setlists.generalNotes')}
                     </button>
-                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={copy.generalNotes} />}
+                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />}
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
                     <button type="button" onClick={() => setShowTuningPanel((current) => !current)} className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {showTuningPanel ? "▼" : "▶"} {copy.tuningPanel}
+                      {showTuningPanel ? "▼" : "▶"} {t('setlists.tuningPanel')}
                     </button>
                     {showTuningPanel && (
                       <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
@@ -1998,7 +1999,7 @@ export default function SetlistsTab() {
           <div className="h-full w-full max-w-xl overflow-y-auto bg-white p-5 shadow-2xl dark:bg-slate-950">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.linkedNotes}</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{t('setlists.linkedNotes')}</div>
                 <div className="text-xl font-semibold text-slate-900 dark:text-slate-100">{activeSongMap.get(drawerSongId)?.title || ""}</div>
               </div>
               <button type="button" onClick={() => setDrawerSongId(null)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
@@ -2007,10 +2008,10 @@ export default function SetlistsTab() {
             <div className="mt-4 space-y-3">
               {activeNotes.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  {isDutch ? "Geen gekoppelde nota's" : "No linked notes"}
+                  {t('setlists.noLinkedNotes')}
                 </div>
               ) : activeNotes.map((note) => (
-                <div key={note.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <div key={note.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{note.titel}</div>
@@ -2019,7 +2020,7 @@ export default function SetlistsTab() {
                       </div>
                     </div>
                     <button type="button" onClick={() => openNoteTab(note.id)} className="text-sm font-semibold text-brand-600 hover:underline">
-                      {isDutch ? "Bewerk nota" : "Edit note"}
+                      {t('setlists.editNote')}
                     </button>
                   </div>
                   <div className="mt-3 whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">{note.inhoud}</div>
@@ -2034,10 +2035,10 @@ export default function SetlistsTab() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-3xl max-h-[80vh] rounded-3xl bg-white p-5 shadow-2xl dark:bg-slate-950 flex flex-col">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{isDutch ? "Kies een nummer" : "Select a song"}</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('setlists.selectSong')}</div>
               <button type="button" onClick={() => { setShowSongPicker(false); setConvertingItemId(null); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
             </div>
-            <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={copy.searchSongs} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-4" />
+            <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-4" />
             <div className="flex-1 overflow-y-auto space-y-2">
               {songGroups.map(([tuning, group]) => (
                 <div key={tuning}>
@@ -2063,7 +2064,7 @@ export default function SetlistsTab() {
                                 </div>
                               )}
                             </div>
-                            <span className="rounded-full bg-brand-600 px-2 py-1 text-xs font-semibold text-white shrink-0">{isDutch ? "Kies" : "Select"}</span>
+                            <span className="rounded-full bg-brand-600 px-2 py-1 text-xs font-semibold text-white shrink-0">{t('setlists.select')}</span>
                           </div>
                         </button>
                       );
@@ -2080,7 +2081,7 @@ export default function SetlistsTab() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-3xl rounded-3xl bg-white p-5 shadow-2xl dark:bg-slate-950">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{copy.export}</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('setlists.export')}</div>
               <button type="button" onClick={() => setShowExport(false)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
             </div>
             <textarea readOnly value={exportText} className="mt-4 min-h-80 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
@@ -2093,7 +2094,7 @@ export default function SetlistsTab() {
                 className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900"
               />
               <label htmlFor="exportIncludeAttachments" className="text-sm text-slate-700 dark:text-slate-300">
-                {isDutch ? "Bijlagen opnemen in PDF" : "Include attachments in PDF"}
+                {t('setlists.includeAttachments')}
               </label>
             </div>
             <div className="mt-4 flex justify-end gap-2">
@@ -2224,7 +2225,7 @@ export default function SetlistsTab() {
                 // Printing is handled by the small script that waits for images to load
               }} className="flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition shadow-md">
                 <span>📄</span>
-                <span>{isDutch ? "Exporteer als PDF" : "Export as PDF"}</span>
+                <span>{t('setlists.exportPdf')}</span>
               </button>
             </div>
           </div>
@@ -2234,15 +2235,15 @@ export default function SetlistsTab() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl dark:bg-slate-950">
-            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{copy.newSetlist}</div>
+            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('setlists.newSetlist')}</div>
             <div className="mt-4 grid gap-3">
-              <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={copy.name} className="rounded-2xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+              <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('setlists.name')} className="rounded-2xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
               <input value={newDate} onChange={(e) => setNewDate(e.target.value)} type="date" className="rounded-2xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
-              <input value={newLocation} onChange={(e) => setNewLocation(e.target.value)} placeholder={copy.location} className="rounded-2xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+              <input value={newLocation} onChange={(e) => setNewLocation(e.target.value)} placeholder={t('setlists.location')} className="rounded-2xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{copy.cancel}</button>
-              <button type="button" onClick={createSetlist} disabled={!newName.trim()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{copy.create}</button>
+              <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{t('setlists.cancel')}</button>
+              <button type="button" onClick={createSetlist} disabled={!newName.trim()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{t('setlists.create')}</button>
             </div>
           </div>
         </div>
