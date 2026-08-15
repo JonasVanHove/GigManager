@@ -91,7 +91,21 @@
     "concept": "Draft",
     "klaar": "Ready",
     "gearchiveerd": "Archived",
-    "select": "Select"
+    "select": "Select",
+    "convertToSong": "To song",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "convertToCustom": "To custom",
+    "hideImage": "Hide image",
+    "showImage": "Show image",
+    "imageIncluded": "Image included",
+    "expandDetails": "Expand details",
+    "inlineNote": "Note",
+    "attachments": "Attachments",
+    "uploading": "Uploading...",
+    "add": "Add",
+    "deleteAttachment": "Delete attachment",
+    "next": "Next"
   },
   "songs": {
     "title": "Songs",

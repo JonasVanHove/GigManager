@@ -282,7 +282,7 @@ export default function SetlistsTab() {
   const [performanceActiveSong, setPerformanceActiveSong] = useState<DraftItem | null>(null);
   const [showGeneralNotes, setShowGeneralNotes] = useState(true);
   const [showTuningPanel, setShowTuningPanel] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Default to expanded
   const [showExport, setShowExport] = useState(false);
   const [exportIncludeAttachments, setExportIncludeAttachments] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -1639,8 +1639,8 @@ export default function SetlistsTab() {
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{t('setlists.newSetlist')}</button>
-          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}>
-            {sidebarCollapsed ? "☰" : "✕"}
+          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show setlists" : "Hide setlists"}>
+            {sidebarCollapsed ? "📋 Setlists" : "✕"}
           </button>
         </div>
       </div>

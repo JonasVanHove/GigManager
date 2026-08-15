@@ -87,7 +87,21 @@
     "concept": "Concept",
     "klaar": "Klaar",
     "gearchiveerd": "Gearchiveerd",
-    "select": "Selecteer"
+    "select": "Selecteer",
+    "convertToSong": "Naar nummer",
+    "moveUp": "Omhoog",
+    "moveDown": "Omlaag",
+    "convertToCustom": "Naar aangepast",
+    "hideImage": "Verberg afbeelding",
+    "showImage": "Toon afbeelding",
+    "imageIncluded": "Afbeelding toegevoegd",
+    "expandDetails": "Details uitklappen",
+    "inlineNote": "Notitie",
+    "attachments": "Bijlagen",
+    "uploading": "Uploaden...",
+    "add": "Toevoegen",
+    "deleteAttachment": "Bijlage verwijderen",
+    "next": "Volgende"
   },
   "songs": {
     "title": "Nummers",
