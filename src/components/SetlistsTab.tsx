@@ -505,6 +505,28 @@ export default function SetlistsTab() {
     }));
   }, [getAccessToken, session?.user]);
 
+  const loadItemAttachments = useCallback(async (itemId: string) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      
+      console.log('[DEBUG SetlistsTab] Loading attachments for item:', itemId);
+      const response = await fetch(`/api/setlist-items/${itemId}/attachments`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const attachments = await response.json();
+        console.log('[DEBUG SetlistsTab] Loaded attachments for item:', itemId, attachments.length, attachments);
+        setItemAttachments(prev => new Map(prev).set(itemId, attachments));
+      } else {
+        console.error('[DEBUG SetlistsTab] Failed to load attachments for item:', itemId, response.status);
+      }
+    } catch (error) {
+      console.error('[DEBUG SetlistsTab] Failed to load attachments:', error);
+    }
+  }, [getAccessToken]);
+
   const loadData = useCallback(async () => {
     if (!session?.user) {
       setSongs([]);
@@ -1133,28 +1155,6 @@ export default function SetlistsTab() {
   const toggleDrawerSong = (songId: string) => {
     setDrawerSongId((current) => (current === songId ? null : songId));
   };
-
-  const loadItemAttachments = useCallback(async (itemId: string) => {
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
-      
-      console.log('[DEBUG SetlistsTab] Loading attachments for item:', itemId);
-      const response = await fetch(`/api/setlist-items/${itemId}/attachments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      if (response.ok) {
-        const attachments = await response.json();
-        console.log('[DEBUG SetlistsTab] Loaded attachments for item:', itemId, attachments.length, attachments);
-        setItemAttachments(prev => new Map(prev).set(itemId, attachments));
-      } else {
-        console.error('[DEBUG SetlistsTab] Failed to load attachments for item:', itemId, response.status);
-      }
-    } catch (error) {
-      console.error('[DEBUG SetlistsTab] Failed to load attachments:', error);
-    }
-  }, [getAccessToken]);
 
   const handleAttachmentUpload = async (itemId: string, file: File) => {
     if (!session?.user) return;
