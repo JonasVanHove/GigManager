@@ -101,7 +101,9 @@
     "uploading": "Uploaden...",
     "add": "Toevoegen",
     "deleteAttachment": "Bijlage verwijderen",
-    "next": "Volgende"
+    "next": "Volgende",
+    "key": "Toonsoort",
+    "save": "Opslaan"
   },
   "songs": {
     "title": "Nummers",

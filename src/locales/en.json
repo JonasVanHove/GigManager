@@ -105,7 +105,8 @@
     "uploading": "Uploading...",
     "add": "Add",
     "deleteAttachment": "Delete attachment",
-    "next": "Next"
+    "next": "Next",
+    "key": "Key"
   },
   "songs": {
     "title": "Songs",
