@@ -2229,13 +2229,13 @@ export default function SetlistsTab() {
 
       {showSongPicker && convertingItemId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl max-h-[80vh] rounded-3xl bg-white p-5 shadow-2xl dark:bg-slate-950 flex flex-col">
-            <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="w-full max-w-3xl max-h-[85vh] rounded-3xl bg-white p-5 shadow-2xl dark:bg-slate-950 flex flex-col">
+            <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
               <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('setlists.selectSong')}</div>
               <button type="button" onClick={() => { setShowSongPicker(false); setConvertingItemId(null); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
             </div>
-            <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-4" />
-            <div className="flex-1 overflow-y-auto space-y-2">
+            <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-4 shrink-0" />
+            <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
               {songGroups.map(([tuning, group]) => (
                 <div key={tuning}>
                   <div className={`mb-2 inline-flex max-w-full rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
