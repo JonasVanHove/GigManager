@@ -1706,33 +1706,53 @@ export default function SetlistsTab() {
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{t('setlists.newSetlist')}</button>
+          
+          {/* Toggle Left Sidebar Button */}
           <button 
             type="button" 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
-            className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105 active:scale-95" 
+            className={`rounded-lg border px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+              !sidebarCollapsed
+                ? "border-brand-500/50 bg-brand-500/10 text-brand-400 dark:border-brand-400 dark:bg-brand-500/20"
+                : "border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            }`}
             title={sidebarCollapsed ? t('setlists.showSetlists') : t('setlists.hideSetlists')}
             aria-label={sidebarCollapsed ? t('setlists.showSetlists') : t('setlists.hideSetlists')}
           >
-            {sidebarCollapsed ? (
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                <span className="hidden sm:inline">{t('setlists.setlists')}</span>
-              </span>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            )}
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className="hidden sm:inline">{t('setlists.setlists')}</span>
+            <span className="rounded-full bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 text-[10px]">{filteredSetlists.length}</span>
+          </button>
+
+          {/* Toggle Right Repertoire Drawer Button */}
+          <button 
+            type="button" 
+            onClick={() => setRepertoireCollapsed(!repertoireCollapsed)} 
+            className={`rounded-lg border px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+              !repertoireCollapsed
+                ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 dark:border-cyan-400 dark:bg-cyan-500/20"
+                : "border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            }`}
+            title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
+            aria-label={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
+          >
+            <span className="text-sm">🎵</span>
+            <span className="hidden sm:inline">{t('setlists.songPicker')}</span>
+            <span className="rounded-full bg-cyan-950/60 border border-cyan-800/50 px-1.5 py-0.2 text-[10px] text-cyan-300">{songs.length}</span>
           </button>
         </div>
       </div>
 
       {/* Main content area - flexible layout */}
-      <div className="flex flex-col md:flex-row min-h-0 overflow-hidden">
-        {/* Sidebar - collapsible, optimized for mobile */}
-        <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ease-in-out overflow-hidden ${sidebarCollapsed ? 'w-0 opacity-0 pointer-events-none' : 'w-full md:w-72 lg:w-80 opacity-100 pointer-events-auto'}`}>
+      <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden relative">
+        {/* Sidebar - collapsible desktop/mobile drawer */}
+        <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ease-in-out ${
+          sidebarCollapsed 
+            ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
+            : 'w-full md:w-72 lg:w-80 opacity-100 pointer-events-auto overflow-y-auto'
+        }`}>
           <div className="flex flex-col h-full p-2 sm:p-3 space-y-2">
             {/* Status filters - compact */}
             <div className="grid grid-cols-4 gap-1.5">
@@ -1743,7 +1763,7 @@ export default function SetlistsTab() {
                   onClick={() => setStatusFilter(value as typeof statusFilter)}
                   title={statusTooltips[value as keyof typeof statusTooltips]}
                   aria-label={statusLabels[value as keyof typeof statusLabels]}
-                  className={`rounded-lg px-1.5 py-1.5 text-sm font-semibold ${statusFilter === value ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
+                  className={`rounded-lg px-1.5 py-1.5 text-sm font-semibold transition ${statusFilter === value ? "bg-brand-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"}`}
                 >
                   <span aria-hidden className="block text-center leading-none text-xs">{statusIcons[value as keyof typeof statusIcons]}</span>
                 </button>
@@ -1819,8 +1839,8 @@ export default function SetlistsTab() {
           </div>
         </aside>
 
-        {/* Main content - full width when sidebar collapsed */}
-        <main className="flex-1 min-h-0 overflow-hidden rounded-none md:rounded-3xl border border-slate-200/80 bg-white/95 dark:border-slate-800 dark:bg-slate-950/85 transition-all duration-300 ease-in-out">
+        {/* Main content - full width & dynamic expansion */}
+        <main className="flex-1 min-h-0 min-w-0 overflow-hidden bg-white/95 dark:bg-slate-950/85 transition-all duration-300 ease-in-out flex flex-col">
           {!activeDraft ? (
             <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
               <div className="text-4xl sm:text-5xl">🎼</div>
@@ -1846,7 +1866,7 @@ export default function SetlistsTab() {
           ) : (
             <div className="flex flex-col h-full min-h-0 overflow-y-auto p-3 sm:p-4 space-y-4">
               {/* Compact header for editing */}
-              <div className="flex flex-col gap-3 min-w-0">
+              <div className="flex flex-col gap-3 min-w-0 bg-slate-50/70 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <select 
                     value={activeDraft.id} 
@@ -1872,7 +1892,7 @@ export default function SetlistsTab() {
                   })()}
                 </div>
                 
-                {/* Compact action bar */}
+                {/* Action bar */}
                 <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                   <select value={activeDraft.gigIds[0] || ""} onChange={(e) => assignSetlistToGig(e.target.value || null)} className="max-w-[180px] rounded-lg border border-slate-200 px-2 py-1.5 text-xs truncate dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                     <option value="">{t('setlists.assign')}</option>
@@ -1882,14 +1902,36 @@ export default function SetlistsTab() {
                   </select>
                   <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-rose-600 shrink-0 dark:border-slate-700 dark:text-rose-400">×</button>
                   <div className="flex-1 min-w-0" />
+                  
+                  {/* Performance Mode */}
                   <button type="button" onClick={() => setShowPerformanceMode((current: boolean) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
                     {t('setlists.performanceMode')}
                   </button>
+                  
+                  {/* Export */}
                   <button type="button" onClick={() => setShowExport(true)} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 shrink-0 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20">
                     {t('setlists.export')}
                   </button>
+                  
+                  {/* Duplicate */}
                   <button type="button" onClick={duplicateSetlist} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shrink-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                     {t('setlists.duplicate')}
+                  </button>
+
+                  {/* Toggle Repertoire Drawer */}
+                  <button 
+                    type="button" 
+                    onClick={() => setRepertoireCollapsed(!repertoireCollapsed)} 
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition shrink-0 flex items-center gap-1 ${
+                      !repertoireCollapsed
+                        ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-600 dark:border-cyan-400 dark:bg-cyan-500/20 dark:text-cyan-300"
+                        : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                    }`}
+                    title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
+                  >
+                    <span>🎵</span>
+                    <span>{t('setlists.songPicker')}</span>
+                    <span className="text-[10px] opacity-75">{repertoireCollapsed ? "▸" : "◂"}</span>
                   </button>
                 </div>
 
@@ -1912,195 +1954,172 @@ export default function SetlistsTab() {
                 <div className="text-[10px] text-slate-500 dark:text-slate-400">{savingState === "saving" ? t('common.saving') : t('common.saved')}</div>
               </div>
 
-              {/* Main editing area */}
-              <div className="flex flex-col lg:flex-row gap-4 min-h-0 min-w-0">
-                {/* Song list - takes available space */}
+              {/* Main workspace layout: Songs column (flex-1) + Repertoire Drawer (collapsible) */}
+              <div className="flex flex-col lg:flex-row gap-4 min-h-0 min-w-0 flex-1">
+                {/* Song list column - expands dynamically */}
                 <section className="flex-1 min-w-0 flex flex-col space-y-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60 shrink-0">
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                      <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{t('setlists.pause')}</button>
-                      <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900">{t('setlists.bis')}</button>
-                      <button type="button" onClick={() => addSpecial(window.prompt(t('setlists.customBlockLabel')) || "")} className="min-w-0 rounded-full border border-slate-300 px-2 py-1 text-[10px] sm:text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">{t('setlists.customBlock')}</button>
-                      <label className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 cursor-pointer flex items-center gap-1">
+                      <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900 hover:scale-105 active:scale-95 transition">{t('setlists.pause')}</button>
+                      <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900 hover:scale-105 active:scale-95 transition">{t('setlists.bis')}</button>
+                      <button type="button" onClick={() => addSpecial(window.prompt(t('setlists.customBlockLabel')) || "")} className="min-w-0 rounded-full border border-slate-300 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">{t('setlists.customBlock')}</button>
+                      <label className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 cursor-pointer flex items-center gap-1 hover:bg-amber-100 transition">
                         <input type="checkbox" checked={includeTuningNotes} onChange={(e) => handleTuningToggle(e.target.checked)} className="sr-only" />
                         <span>{includeTuningNotes ? "✓" : "⚠"} {t('setlists.tuning')}</span>
                       </label>
-                      <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] sm:text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">{t('setlists.autoGenerate')}</button>
-                      <label className="ml-auto flex items-center gap-1 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300">
-                        <input type="checkbox" checked={activeDraft.pauseOnTuningChange} onChange={(e) => updateDraft({ pauseOnTuningChange: e.target.checked })} />
+                      <button type="button" onClick={autoGenerate} className="min-w-0 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 hover:bg-brand-100 transition">{t('setlists.autoGenerate')}</button>
+                      <label className="ml-auto flex items-center gap-1 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+                        <input type="checkbox" checked={activeDraft.pauseOnTuningChange} onChange={(e) => updateDraft({ pauseOnTuningChange: e.target.checked })} className="rounded" />
                         {t('setlists.pauseOnTuning')}
                       </label>
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-2 min-w-0">
-                    {currentItems.map((item, index) => renderItem(item, index, false))}
+                  {/* Items List */}
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-2 min-w-0 pr-1">
+                    {currentItems.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 text-center text-sm text-slate-400">
+                        <p className="text-2xl mb-2">🎵</p>
+                        <p className="font-semibold text-slate-700 dark:text-slate-300">{t('setlists.songPicker')}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Selecteer songs uit het repertoire rechts om je setlist op te bouwen.</p>
+                      </div>
+                    ) : (
+                      currentItems.map((item, index) => renderItem(item, index, false))
+                    )}
                   </div>
 
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <button 
-                      type="button" 
-                      onClick={() => setShowGeneralNotes((current: boolean) => !current)} 
-                      className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
-                      title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
-                    >
-                      {showGeneralNotes ? (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                      {t('setlists.generalNotes')}
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showGeneralNotes ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-32 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />
+                  {/* Bottom Accordion Panels (General Notes & Tuning Analysis) */}
+                  <div className="grid gap-3 grid-cols-1 md:grid-cols-2 shrink-0 pt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+                    {/* General Notes Accordion */}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 overflow-hidden shadow-sm">
+                      <button 
+                        type="button" 
+                        onClick={() => setShowGeneralNotes((current: boolean) => !current)} 
+                        className="flex items-center justify-between gap-2 text-left text-xs font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2.5 transition-colors w-full"
+                        title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg className={`w-4 h-4 transition-transform duration-200 ${showGeneralNotes ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <span>📝 {t('setlists.generalNotes')}</span>
+                        </div>
+                        {activeDraft.notities && <span className="text-[10px] text-brand-600 dark:text-brand-400 font-medium">Ingevuld</span>}
+                      </button>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showGeneralNotes ? 'max-h-72 opacity-100 p-3 pt-0' : 'max-h-0 opacity-0 p-0'}`}>
+                        <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 placeholder-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 outline-none focus:border-brand-500" placeholder={t('setlists.generalNotes')} />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <button 
-                      type="button" 
-                      onClick={() => setShowTuningPanel((current: boolean) => !current)} 
-                      className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
-                      title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
-                    >
-                      {showTuningPanel ? (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                      {t('setlists.tuningPanel')}
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showTuningPanel ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                        {tuningExplanation.map((line, index) => (
-                          <div key={`${line}-${index}`} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950">{line}</div>
-                        ))}
+                    {/* Tuning Panel Accordion */}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 overflow-hidden shadow-sm">
+                      <button 
+                        type="button" 
+                        onClick={() => setShowTuningPanel((current: boolean) => !current)} 
+                        className="flex items-center justify-between gap-2 text-left text-xs font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2.5 transition-colors w-full"
+                        title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg className={`w-4 h-4 transition-transform duration-200 ${showTuningPanel ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <span>🎸 {t('setlists.tuningPanel')}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">{tuningExplanation.length} regels</span>
+                      </button>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showTuningPanel ? 'max-h-72 opacity-100 p-3 pt-0' : 'max-h-0 opacity-0 p-0'}`}>
+                        <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 max-h-48 overflow-y-auto pr-1">
+                          {tuningExplanation.map((line, index) => (
+                            <div key={`${line}-${index}`} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-950">{line}</div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </section>
 
-                {/* Repertoire sidebar - collapsible drawer */}
-                <aside className={`hidden lg:flex flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-[280px] shrink-0 transition-all duration-300 ${repertoireCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-full opacity-100'}`}>
-                  <button
-                    type="button"
-                    onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
-                    className="flex items-center justify-between gap-2 w-full text-left shrink-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors"
-                    title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
-                  >
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {repertoireCollapsed ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      )}
-                      {t('setlists.songPicker')}
+                {/* Right Repertoire Drawer (Desktop & Large screens) */}
+                <aside className={`hidden lg:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm ${
+                  repertoireCollapsed 
+                    ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
+                    : 'w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3'
+                }`}>
+                  <div className="flex items-center justify-between gap-2 shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-100">
+                      <span>🎵 {t('setlists.songPicker')}</span>
                     </div>
-                    <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length}</span>
-                  </button>
-                  <div 
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${repertoireCollapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'flex-1 opacity-100 pointer-events-auto'}`}
-                  >
-                    <div className="flex flex-col h-full animate-in fade-in duration-300">
-                      <p className="mb-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 shrink-0">{t('setlists.pdfImages')}</p>
-                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0" />
-                      <div className="mt-2 flex flex-wrap gap-1 min-w-0 max-w-full shrink-0">
-                        {([
-                          ["all", t('setlists.all') + ` (${songs.length})`],
-                          ["with", t('setlists.with') + ` (${repertoireImageStats.withImages})`],
-                          ["without", t('setlists.without') + ` (${repertoireImageStats.withoutImages})`],
-                        ] as const).map(([value, label]) => (
-                          <button key={value} type="button" onClick={() => setAttachmentFilter(value)} className={`rounded-lg border px-1.5 py-1 text-[10px] font-semibold leading-tight transition shrink-0 ${attachmentFilter === value ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"}`}>{label}</button>
-                        ))}
-                      </div>
-
-                      <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0 mt-2">
-                        {songGroups.map(([tuning, group]) => (
-                          <div key={tuning}>
-                            <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
-                            <div className="space-y-1.5">
-                              {group.map((item) => {
-                                const song = (item as any).song || item as SongRow;
-                                const matchReasons = (item as any).matchReasons || [] as string[];
-                                const meta = parseSongNotes(song.notes).meta;
-                                const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
-                                const documentCount = (song.attachments?.length || 0) - imageCount;
-                                return (
-                                  <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
-                                    <div className="flex items-start justify-between gap-1.5">
-                                      <div className="min-w-0 flex-1">
-                                        <div className="break-words font-semibold leading-snug text-[11px]">{song.title}</div>
-                                        <div className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
-                                      </div>
-                                      <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                        <div className="text-[9px] text-slate-500">{imageCount ? `🖼️${imageCount}` : documentCount ? `📎${documentCount}` : "—"}</div>
-                                        {songOccurrences.get(song.id) && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{songOccurrences.get(song.id)}×</span>}
-                                      </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setRepertoireCollapsed(true)} 
+                        className="rounded p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title={t('setlists.hideSongPicker')}
+                        aria-label={t('setlists.hideSongPicker')}
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
-                </aside>
 
-                {/* Mobile repertoire toggle */}
-                <button
-                  type="button"
-                  onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
-                  className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
-                  title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
-                >
-                  {repertoireCollapsed ? (
-                    <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
-                  {t('setlists.songPicker')} ({songs.length})
-                </button>
-                {!repertoireCollapsed && (
-                  <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                    <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  <div className="flex flex-col flex-1 min-h-0 space-y-2">
+                    <input 
+                      value={songSearch} 
+                      onChange={(e) => setSongSearch(e.target.value)} 
+                      placeholder={t('setlists.searchSongs')} 
+                      className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0 outline-none focus:border-cyan-500" 
+                    />
+
+                    {/* Attachment Filters */}
+                    <div className="flex flex-wrap gap-1 min-w-0 max-w-full shrink-0">
+                      {([
+                        ["all", t('setlists.all')],
+                        ["with", "Met PDF/img"],
+                        ["without", "Zonder"],
+                      ] as const).map(([value, label]) => (
+                        <button 
+                          key={value} 
+                          type="button" 
+                          onClick={() => setAttachmentFilter(value)} 
+                          className={`rounded-lg border px-2 py-1 text-[10px] font-semibold leading-tight transition shrink-0 ${
+                            attachmentFilter === value 
+                              ? "border-cyan-500 bg-cyan-500 text-white" 
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Songs grouped by tuning */}
+                    <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0">
                       {songGroups.map(([tuning, group]) => (
-                        <div key={tuning}>
-                          <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
-                          <div className="space-y-1.5">
+                        <div key={tuning} className="space-y-1">
+                          <div className={`inline-flex max-w-full rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}>
+                            <span className="block truncate">{tuning} ({group.length})</span>
+                          </div>
+                          <div className="space-y-1">
                             {group.map((item) => {
                               const song = (item as any).song || item as SongRow;
-                              const occurrenceCount = songOccurrences.get(song.id) || 0;
                               const meta = parseSongNotes(song.notes).meta;
                               const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
+                              const documentCount = (song.attachments?.length || 0) - imageCount;
                               return (
-                                <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
+                                <button 
+                                  key={song.id} 
+                                  type="button" 
+                                  onClick={() => addSong(song)} 
+                                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-xs transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10 group"
+                                >
                                   <div className="flex items-start justify-between gap-1.5">
                                     <div className="min-w-0 flex-1">
-                                      <div className="break-words font-semibold leading-snug text-[11px]">{song.title}</div>
+                                      <div className="break-words font-semibold leading-snug text-[11px] group-hover:text-brand-600 dark:group-hover:text-brand-400">{song.title}</div>
                                       <div className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
                                     </div>
                                     <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                      <div className="text-[9px] text-slate-500">{imageCount ? `🖼️${imageCount}` : "—"}</div>
-                                      {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}×</span>}
+                                      <div className="text-[9px] text-slate-500">{imageCount ? `🖼️${imageCount}` : documentCount ? `📎${documentCount}` : "—"}</div>
+                                      {songOccurrences.get(song.id) && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{songOccurrences.get(song.id)}×</span>}
                                     </div>
                                   </div>
                                 </button>
@@ -2111,59 +2130,59 @@ export default function SetlistsTab() {
                       ))}
                     </div>
                   </div>
-                )}
+                </aside>
 
-                {/* Collapsible notes sections */}
-                <div className="grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
-                    <button 
-                      type="button" 
-                      onClick={() => setShowGeneralNotes((current: boolean) => !current)} 
-                      className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
-                      title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
-                    >
-                      {showGeneralNotes ? (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                      {t('setlists.generalNotes')}
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showGeneralNotes ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />
+                {/* Mobile Repertoire Drawer (<LG) */}
+                <div className="lg:hidden shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between"
+                    title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg className={`w-4 h-4 transition-transform duration-200 ${!repertoireCollapsed ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span>🎵 {t('setlists.songPicker')} ({songs.length})</span>
                     </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
-                    <button 
-                      type="button" 
-                      onClick={() => setShowTuningPanel((current: boolean) => !current)} 
-                      className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
-                      title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
-                    >
-                      {showTuningPanel ? (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                      {t('setlists.tuningPanel')}
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showTuningPanel ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                        {tuningExplanation.map((line, index) => (
-                          <div key={`${line}-${index}`} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-950">{line}</div>
+                    <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}</span>
+                  </button>
+                  
+                  {!repertoireCollapsed && (
+                    <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
+                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
+                      <div className="space-y-2 max-h-[350px] overflow-y-auto">
+                        {songGroups.map(([tuning, group]) => (
+                          <div key={tuning}>
+                            <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
+                            <div className="space-y-1.5">
+                              {group.map((item) => {
+                                const song = (item as any).song || item as SongRow;
+                                const occurrenceCount = songOccurrences.get(song.id) || 0;
+                                const meta = parseSongNotes(song.notes).meta;
+                                const imageCount = song.attachments?.filter(isImageAttachment).length || 0;
+                                return (
+                                  <button key={song.id} type="button" onClick={() => addSong(song)} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10">
+                                    <div className="flex items-start justify-between gap-1.5">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="break-words font-semibold leading-snug text-[11px]">{song.title}</div>
+                                        <div className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">{meta.bandProject || meta.genre || ""}</div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                        <div className="text-[9px] text-slate-500">{imageCount ? `🖼️${imageCount}` : "—"}</div>
+                                        {occurrenceCount > 0 && <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{occurrenceCount}×</span>}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
