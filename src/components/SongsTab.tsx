@@ -94,8 +94,6 @@ export default function SongsTab() {
   const toast = useToast();
   const { t } = useTranslation();
 
-  const isDutch = locale.startsWith("nl");
-
   const [songs, setSongs] = useState<SongRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [songSearch, setSongSearch] = useState("");
@@ -157,7 +155,7 @@ export default function SongsTab() {
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete song");
     }
-  }, [getAccessToken, toast, t('songs.deleteConfirm'), isDutch, fetchSongs]);
+  }, [getAccessToken, toast, t, fetchSongs]);
 
   useEffect(() => {
     fetchSongs();
@@ -334,8 +332,7 @@ export default function SongsTab() {
         body.push('</section>');
       }
     }
-    
-    body.push('<footer class="document-footer">GigManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
+
     win.document.open();
     win.document.write(createPrintDocument(escapeHtml(song.title), body.join('\n'), {
       includeLogo: settings.pdfIncludeLogo ?? true,
@@ -361,7 +358,7 @@ export default function SongsTab() {
             <span className="h-3 w-3 rounded-full bg-cyan-500 animate-pulse" />
             {t('songs.repertoireTitle')}
           </h2>
-          <p className="text-xs text-neutral-400 mt-1">Beheer nummers, akkorden, notities en bladmuziek afbeeldingen</p>
+          <p className="text-xs text-neutral-400 mt-1">{t('songs.repertoireSubtitle')}</p>
         </div>
         <button
           type="button"
@@ -511,7 +508,7 @@ export default function SongsTab() {
         {/* Songs List */}
         <div className="mt-5 grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {loading ? (
-            <div className="py-12 text-center text-sm text-neutral-400 col-span-full">Repertoire laden...</div>
+            <div className="py-12 text-center text-sm text-neutral-400 col-span-full">{t('songs.loadingRepertoire')}</div>
           ) : filteredSongs.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400 col-span-full">
               {t('songs.emptyState')}
@@ -621,7 +618,7 @@ export default function SongsTab() {
                                 </div>
                               )}
                               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-medium">
-                                Bekijk
+                                {t('songs.view')}
                               </div>
                             </button>
                           ))}

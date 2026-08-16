@@ -280,9 +280,27 @@ export default function SetlistsTab() {
   const [showPerformanceMode, setShowPerformanceMode] = useState(false);
   const [performanceAttachmentsOpen, setPerformanceAttachmentsOpen] = useState(false);
   const [performanceActiveSong, setPerformanceActiveSong] = useState<DraftItem | null>(null);
-  const [showGeneralNotes, setShowGeneralNotes] = useState(true);
-  const [showTuningPanel, setShowTuningPanel] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Default to expanded
+  const [showGeneralNotes, setShowGeneralNotes] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('setlists_showGeneralNotes');
+      return saved ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
+  const [showTuningPanel, setShowTuningPanel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('setlists_showTuningPanel');
+      return saved ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('setlists_sidebarCollapsed');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
   const [showExport, setShowExport] = useState(false);
   const [exportIncludeAttachments, setExportIncludeAttachments] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -297,12 +315,22 @@ export default function SetlistsTab() {
   const [showSongPicker, setShowSongPicker] = useState(false);
   const [convertingItemId, setConvertingItemId] = useState<string | null>(null);
   const [includeTuningNotes, setIncludeTuningNotes] = useState(false);
-  const [setlistListCollapsed, setSetlistListCollapsed] = useState(false);
-  const [repertoireCollapsed, setRepertoireCollapsed] = useState(false);
+  const [setlistListCollapsed, setSetlistListCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('setlists_setlistListCollapsed');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+  const [repertoireCollapsed, setRepertoireCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('setlists_repertoireCollapsed');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftVersionRef = useRef(0);
-
-  const isDutch = locale.startsWith("nl");
 
   const activeDraft = draft;
   const songOccurrences = useMemo(() => {
@@ -335,19 +363,19 @@ export default function SetlistsTab() {
     [setlists, statusFilter]
   );
 
-  const statusLabels = useMemo(() => (({
-    alle: isDutch ? "Alle" : "All",
-    concept: isDutch ? "Concept" : "Draft",
-    klaar: isDutch ? "Klaar" : "Ready",
-    gearchiveerd: isDutch ? "Gearchiveerd" : "Archived",
-  })), [isDutch]);
+  const statusLabels = useMemo(() => ({
+    alle: t('setlists.all'),
+    concept: t('setlists.concept'),
+    klaar: t('setlists.klaar'),
+    gearchiveerd: t('setlists.gearchiveerd'),
+  }), [t]);
 
   const statusTooltips = useMemo(() => ({
-    alle: isDutch ? "Toon alle setlists" : "Show all setlists",
-    concept: isDutch ? "Toon concept setlists (nog in bewerking)" : "Show draft setlists (still in progress)",
-    klaar: isDutch ? "Toon klaargemaakte setlists" : "Show ready setlists",
-    gearchiveerd: isDutch ? "Toon gearchiveerde setlists" : "Show archived setlists",
-  }), [isDutch]);
+    alle: t('setlists.statusAll'),
+    concept: t('setlists.statusConcept'),
+    klaar: t('setlists.statusReady'),
+    gearchiveerd: t('setlists.statusArchived'),
+  }), [t]);
 
   const statusIcons = useMemo(() => ({
     alle: "◉",
@@ -375,10 +403,10 @@ export default function SetlistsTab() {
         // Check title (exact match gets highest score)
         if (song.title.toLowerCase() === q) {
           score += 100;
-          reasons.push(isDutch ? "Exacte titelmatch" : "Exact title match");
+          reasons.push(t('setlists.exactTitleMatch'));
         } else if (song.title.toLowerCase().includes(q)) {
           score += 50;
-          reasons.push(isDutch ? "Titel bevat zoekterm" : "Title contains search term");
+          reasons.push(t('setlists.titleContainsSearchTerm'));
         } else {
           // Fuzzy title match (allow 1-2 character differences)
           const titleLower = song.title.toLowerCase();
@@ -392,36 +420,36 @@ export default function SetlistsTab() {
           }
           if (matches >= q.length * 0.7) {
             score += 25;
-            reasons.push(isDutch ? "Gedeeltelijke titelmatch" : "Partial title match");
+            reasons.push(t('setlists.partialTitleMatch'));
           }
         }
         
         // Check body content
         if (parsed.body.toLowerCase().includes(q)) {
           score += 30;
-          reasons.push(isDutch ? "In songtekst" : "In lyrics");
+          reasons.push(t('setlists.inLyrics'));
         }
         
         // Check metadata fields
         if (parsed.meta.bandProject?.toLowerCase().includes(q)) {
           score += 20;
-          reasons.push(isDutch ? "In band/project" : "In band/project");
+          reasons.push(t('setlists.inBandProject'));
         }
         if (parsed.meta.genre?.toLowerCase().includes(q)) {
           score += 15;
-          reasons.push(isDutch ? "In genre" : "In genre");
+          reasons.push(t('setlists.inGenre'));
         }
         if (parsed.meta.keySignature?.toLowerCase().includes(q)) {
           score += 15;
-          reasons.push(isDutch ? "In toonsoort" : "In key signature");
+          reasons.push(t('setlists.inKeySignature'));
         }
         if (parsed.meta.bpm?.toLowerCase().includes(q)) {
           score += 10;
-          reasons.push(isDutch ? "In BPM" : "In BPM");
+          reasons.push(t('setlists.inBPM'));
         }
         if (parsed.meta.comments?.toLowerCase().includes(q)) {
           score += 10;
-          reasons.push(isDutch ? "In opmerkingen" : "In comments");
+          reasons.push(t('setlists.inComments'));
         }
         
         if (score > 0) {
@@ -466,24 +494,38 @@ export default function SetlistsTab() {
     for (const item of currentItems) {
       if (item.kind === "special") {
         const label = item.specialLabel.toUpperCase();
-        if (label.includes("PAUZE")) lines.push("Goed moment voor tuningwissel");
-        else if (label.includes("BIS")) lines.push("BIS-nummer");
+        if (label.includes("PAUZE")) lines.push(t('setlists.goodMomentForTuningChange'));
+        else if (label.includes("BIS")) lines.push(t('setlists.encoreNumber'));
         continue;
       }
 
       if (!sawFirstSong) {
-        lines.push("Opener");
+        lines.push(t('setlists.opener'));
         sawFirstSong = true;
       } else if ((item.tuning || "Onbekend") === previousTuning) {
-        lines.push(`✓ ${item.tuning || "Onbekend"} — geen wissel`);
+        lines.push(`✓ ${item.tuning || "Onbekend"} — ${t('setlists.noChange')}`);
       } else {
-        lines.push(`⚠ Tuningwissel: ${previousTuning || "Onbekend"} → ${item.tuning || "Onbekend"}`);
+        lines.push(`⚠ ${t('setlists.tuningChange')}: ${previousTuning || "Onbekend"} → ${item.tuning || "Onbekend"}`);
       }
       previousTuning = item.tuning || "Onbekend";
     }
 
     return lines;
   }, [currentItems]);
+
+  // Helper function to calculate song number (only counts actual songs, not special items)
+  const getSongNumber = useCallback((items: DraftItem[], currentIndex: number): number => {
+    if (!items || items.length === 0 || currentIndex < 0 || currentIndex >= items.length) {
+      return 0;
+    }
+    let songCount = 0;
+    for (let i = 0; i <= currentIndex; i++) {
+      if (items[i]?.kind === "song") {
+        songCount++;
+      }
+    }
+    return songCount;
+  }, []);
 
   const loadNotes = useCallback(async () => {
     if (!session?.user) return;
@@ -549,8 +591,8 @@ export default function SetlistsTab() {
         fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
-      if (!songsResponse.ok) throw new Error(isDutch ? "Songs laden mislukt" : "Failed to load songs");
-      if (!setlistsResponse.ok) throw new Error(isDutch ? "Setlists laden mislukt" : "Failed to load setlists");
+      if (!songsResponse.ok) throw new Error(t('setlists.failedToLoadSongs'));
+      if (!setlistsResponse.ok) throw new Error(t('setlists.failedToLoadSetlists'));
 
       const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; attachments?: any[] }>;
       const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; gigs?: Array<{ id: string; eventName?: string; date?: string | null }>; createdAt: string; updatedAt: string }>;
@@ -634,7 +676,7 @@ export default function SetlistsTab() {
     } finally {
       setLoading(false);
     }
-  }, [getAccessToken, isDutch, loadNotes, session?.user, selectedId, toast]);
+  }, [getAccessToken, loadNotes, session?.user, selectedId, toast, t]);
 
   useEffect(() => {
     loadData();
@@ -670,6 +712,27 @@ export default function SetlistsTab() {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, []);
+
+  // Persist collapsible states to localStorage
+  useEffect(() => {
+    localStorage.setItem('setlists_showGeneralNotes', JSON.stringify(showGeneralNotes));
+  }, [showGeneralNotes]);
+
+  useEffect(() => {
+    localStorage.setItem('setlists_showTuningPanel', JSON.stringify(showTuningPanel));
+  }, [showTuningPanel]);
+
+  useEffect(() => {
+    localStorage.setItem('setlists_sidebarCollapsed', JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem('setlists_setlistListCollapsed', JSON.stringify(setlistListCollapsed));
+  }, [setlistListCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem('setlists_repertoireCollapsed', JSON.stringify(repertoireCollapsed));
+  }, [repertoireCollapsed]);
 
   const updateDraft = useCallback((patch: Partial<StoredSetlist>) => {
     draftVersionRef.current += 1;
@@ -708,7 +771,7 @@ export default function SetlistsTab() {
     if (!token) return;
 
     const payload = {
-      title: nextDraft.naam.trim() || (isDutch ? "Nieuwe setlist" : "New setlist"),
+      title: nextDraft.naam.trim() || t('setlists.newSetlist'),
       description: serializeSetlistMeta({
         datum: nextDraft.datum,
         locatie: nextDraft.locatie || "",
@@ -738,7 +801,7 @@ export default function SetlistsTab() {
     });
 
     if (!response.ok) {
-      throw new Error(isDutch ? "Opslaan mislukt" : "Save failed");
+      throw new Error(t('setlists.saveFailed'));
     }
 
     const refreshed = (await response.json()) as { id: string; title?: string; description?: string | null; gigs?: Array<{ id: string }>; createdAt: string; updatedAt: string; bandId?: string | null; band?: any };
@@ -767,7 +830,7 @@ export default function SetlistsTab() {
       setSelectedId(saved.id);
       setSavingState("saved");
     }
-  }, [getAccessToken, isDutch, session?.user]);
+  }, [getAccessToken, session?.user, t]);
 
   useEffect(() => {
     if (!draft || savingState !== "dirty") return;
@@ -805,7 +868,7 @@ export default function SetlistsTab() {
         }),
       });
 
-      if (!response.ok) throw new Error(isDutch ? "Setlist aanmaken mislukt" : "Failed to create setlist");
+      if (!response.ok) throw new Error(t('setlists.failedToCreateSetlist'));
 
       const created = (await response.json()) as { id: string; title?: string; description?: string | null; createdAt: string; updatedAt: string };
       const meta = parseSetlistMeta(created.description);
@@ -831,11 +894,11 @@ export default function SetlistsTab() {
       setNewName("");
       setNewDate("");
       setNewLocation("");
-      toast.success(isDutch ? "Setlist aangemaakt" : "Setlist created");
+      toast.success(t('setlists.setlistCreated'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
-  }, [getAccessToken, isDutch, newDate, newLocation, newName, selectSetlist, session?.user, toast]);
+  }, [getAccessToken, newDate, newLocation, newName, selectSetlist, session?.user, toast, t]);
 
   const duplicateSetlist = useCallback(async () => {
     if (!draft || !session?.user) return;
@@ -868,7 +931,7 @@ export default function SetlistsTab() {
         }),
       });
 
-      if (!response.ok) throw new Error(isDutch ? "Kopiëren mislukt" : "Duplicate failed");
+      if (!response.ok) throw new Error(t('setlists.duplicateFailed'));
 
       const created = (await response.json()) as { id: string; title?: string; description?: string | null; createdAt: string; updatedAt: string };
       const meta = parseSetlistMeta(created.description);
@@ -890,11 +953,11 @@ export default function SetlistsTab() {
       };
 
       setSetlists((prev) => [next, ...prev]);
-      toast.success(isDutch ? "Setlist gedupliceerd" : "Setlist duplicated");
+      toast.success(t('setlists.setlistDuplicated'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
-  }, [draft, getAccessToken, isDutch, session?.user, toast]);
+  }, [draft, getAccessToken, session?.user, toast, t]);
 
   const assignSetlistToGig = useCallback(async (gigId: string | null) => {
     if (!draft) return;
@@ -941,7 +1004,7 @@ export default function SetlistsTab() {
         body: JSON.stringify({ gigIds: nextGigIds, datum: gigDatum, locatie: gigLocatie, bandId }),
       });
 
-      if (!res.ok) throw new Error(gigId ? (isDutch ? 'Toewijzen mislukt' : 'Assign failed') : (isDutch ? 'Ontkoppelen mislukt' : 'Unassign failed'));
+      if (!res.ok) throw new Error(gigId ? t('setlists.assignFailed') : t('setlists.unassignFailed'));
 
       const refreshed = (await res.json()) as { gigs?: Array<{ id: string }>; bandId?: string | null; band?: any; datum?: string | null; locatie?: string | null };
       const resolvedGigIds = Array.isArray(refreshed.gigs) ? refreshed.gigs.map((gig) => gig.id) : nextGigIds;
@@ -972,7 +1035,7 @@ export default function SetlistsTab() {
         })
       );
 
-      toast.success(gigId ? (isDutch ? 'Setlist toegewezen' : 'Setlist assigned') : (isDutch ? 'Setlist ontkoppeld' : 'Setlist unassigned'));
+      toast.success(gigId ? t('setlists.setlistAssigned') : t('setlists.setlistUnassigned'));
 
       const gigsRes = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${await getAccessToken()}` } });
       if (gigsRes.ok) {
@@ -982,10 +1045,10 @@ export default function SetlistsTab() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
-  }, [draft, getAccessToken, isDutch, toast]);
+  }, [draft, getAccessToken, toast, t]);
 
   const deleteSetlist = useCallback(async (setlistId: string) => {
-    if (!window.confirm(isDutch ? "Deze setlist verwijderen?" : "Delete this setlist?")) return;
+    if (!window.confirm(t('setlists.deleteSetlistConfirm'))) return;
     const token = await getAccessToken();
     if (!token) return;
     const response = await fetch(`/api/setlists/${setlistId}`, {
@@ -993,7 +1056,7 @@ export default function SetlistsTab() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
-      toast.error(isDutch ? "Verwijderen mislukt" : "Delete failed");
+      toast.error(t('setlists.deleteFailed'));
       return;
     }
     setSetlists((prev) => prev.filter((item) => item.id !== setlistId));
@@ -1001,7 +1064,7 @@ export default function SetlistsTab() {
       setSelectedId(null);
       setDraft(null);
     }
-  }, [getAccessToken, isDutch, selectedId, toast]);
+  }, [getAccessToken, selectedId, toast, t]);
 
   const addSong = useCallback((song: SongRow) => {
     updateDraftItems((items) => [...items, createSongItem(song)]);
@@ -1043,13 +1106,13 @@ export default function SetlistsTab() {
       
       const currentTuning = item.tuning || "Onbekend";
       if (previousTuning && currentTuning !== previousTuning) {
-        notes.push(createSpecialItem(`⚠ Tuningwissel: ${previousTuning} → ${currentTuning}`));
+        notes.push(createSpecialItem(`⚠ ${t('setlists.tuningChange')}: ${previousTuning} → ${currentTuning}`));
       }
       previousTuning = currentTuning;
     }
     
     if (notes.length === 0) {
-      toast.error(isDutch ? "Geen tuningwissels gevonden" : "No tuning changes found");
+      toast.error(t('setlists.noTuningChangesFound'));
       return;
     }
     
@@ -1078,13 +1141,13 @@ export default function SetlistsTab() {
       return newItems;
     });
     
-    toast.success(isDutch ? `${notes.length} tuningwissels toegevoegd` : `${notes.length} tuning changes added`);
-  }, [currentItems, updateDraftItems, toast, isDutch]);
+    toast.success(`${notes.length} ${t('setlists.tuningChangesAdded')}`);
+  }, [currentItems, updateDraftItems, toast, t]);
 
   const removeTuningNotes = useCallback(() => {
-    updateDraftItems((items) => items.filter(item => !(item.kind === "special" && item.specialLabel.startsWith("⚠ Tuningwissel:"))));
-    toast.success(isDutch ? "Tuningwissels verwijderd" : "Tuning changes removed");
-  }, [updateDraftItems, toast, isDutch]);
+    updateDraftItems((items) => items.filter(item => !(item.kind === "special" && item.specialLabel.startsWith(`⚠ ${t('setlists.tuningChange')}:`))));
+    toast.success(t('setlists.tuningChangesRemoved'));
+  }, [updateDraftItems, toast, t]);
 
   const handleTuningToggle = useCallback((checked: boolean) => {
     setIncludeTuningNotes(checked);
@@ -1196,11 +1259,11 @@ export default function SetlistsTab() {
       
       if (response.ok) {
         await loadItemAttachments(itemId);
-        toast.success(isDutch ? 'Bijlage toegevoegd' : 'Attachment added');
+        toast.success(t('setlists.attachmentAdded'));
       }
     } catch (error) {
       console.error('Failed to upload attachment:', error);
-      toast.error(isDutch ? 'Upload mislukt' : 'Upload failed');
+      toast.error(t('setlists.uploadFailed'));
     } finally {
       setUploadingAttachment(null);
     }
@@ -1220,15 +1283,17 @@ export default function SetlistsTab() {
       
       if (response.ok) {
         await loadItemAttachments(itemId);
-        toast.success(isDutch ? 'Bijlage verwijderd' : 'Attachment deleted');
+        toast.success(t('setlists.attachmentDeleted'));
       }
     } catch (error) {
       console.error('Failed to delete attachment:', error);
-      toast.error(isDutch ? 'Verwijderen mislukt' : 'Delete failed');
+      toast.error(t('setlists.deleteFailed'));
     }
   };
 
   const renderItem = (item: DraftItem, index: number, performance = false) => {
+    const songNumber = getSongNumber(currentItems, index);
+
     if (item.kind === "special") {
       if (performance) {
         return (
@@ -1283,7 +1348,7 @@ export default function SetlistsTab() {
         <section key={item.id} className={`rounded-3xl border px-5 py-5 ${activeItemId === item.id ? "border-brand-400 bg-brand-500/10" : "border-white/10 bg-white/5"}`}>
           <button type="button" onClick={() => setActiveItemId(item.id)} className="flex w-full items-start justify-between gap-4 text-left">
             <div className="min-w-0">
-              <div className="text-4xl font-black text-white/90">{index + 1}</div>
+              <div className="text-4xl font-black text-white/90">{songNumber}</div>
               <div className="mt-2 text-2xl font-semibold">{song?.title || item.label}</div>
               {hasImages && <div className="mt-2 text-sm font-medium text-cyan-200 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); updateItem(item.id, { expanded: !item.expanded }); }}>{item.expanded ? "🖼️ " + t('setlists.hideImage') : "🖼️ " + t('setlists.showImage')}</div>}
               {item.artist && <div className="text-sm text-slate-300">{item.artist}</div>}
@@ -1335,7 +1400,7 @@ export default function SetlistsTab() {
       >
         <div className="flex items-start gap-2 min-w-0 max-w-full">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-            {index + 1}
+            {songNumber}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
@@ -1458,7 +1523,9 @@ export default function SetlistsTab() {
 
   if (showPerformanceMode && activeDraft) {
     const songsOnly = currentItems.filter((item) => item.kind === "song");
-    const position = songsOnly.length > 0 ? `${Math.max(0, songsOnly.findIndex((item) => item.id === activeItemId)) + 1} / ${songsOnly.length}` : "0 / 0";
+    const activeIndex = currentItems.findIndex((item) => item.id === activeItemId);
+    const currentSongNumber = activeIndex >= 0 ? getSongNumber(currentItems, activeIndex) : 0;
+    const position = songsOnly.length > 0 ? `${currentSongNumber} / ${songsOnly.length}` : "0 / 0";
     const currentSong = performanceActiveSong || songsOnly.find((item) => item.id === activeItemId) || null;
     const currentSongAttachments = currentSong?.songId ? itemAttachments.get(currentSong.songId) || [] : [];
 
@@ -1639,8 +1706,25 @@ export default function SetlistsTab() {
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{t('setlists.newSetlist')}</button>
-          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={sidebarCollapsed ? "Show setlists" : "Hide setlists"}>
-            {sidebarCollapsed ? "📋 Setlists" : "✕"}
+          <button 
+            type="button" 
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
+            className="rounded-lg border border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105 active:scale-95" 
+            title={sidebarCollapsed ? t('setlists.showSetlists') : t('setlists.hideSetlists')}
+            aria-label={sidebarCollapsed ? t('setlists.showSetlists') : t('setlists.hideSetlists')}
+          >
+            {sidebarCollapsed ? (
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span className="hidden sm:inline">{t('setlists.setlists')}</span>
+              </span>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
           </button>
         </div>
       </div>
@@ -1648,7 +1732,7 @@ export default function SetlistsTab() {
       {/* Main content area - flexible layout */}
       <div className="flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Sidebar - collapsible, optimized for mobile */}
-        <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 overflow-hidden ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-full md:w-72 lg:w-80 opacity-100'}`}>
+        <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ease-in-out overflow-hidden ${sidebarCollapsed ? 'w-0 opacity-0 pointer-events-none' : 'w-full md:w-72 lg:w-80 opacity-100 pointer-events-auto'}`}>
           <div className="flex flex-col h-full p-2 sm:p-3 space-y-2">
             {/* Status filters - compact */}
             <div className="grid grid-cols-4 gap-1.5">
@@ -1671,14 +1755,24 @@ export default function SetlistsTab() {
               <button
                 type="button"
                 onClick={() => setSetlistListCollapsed(!setlistListCollapsed)}
-                className="flex items-center justify-between gap-2 w-full text-left shrink-0"
+                className="flex items-center justify-between gap-2 w-full text-left shrink-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors"
+                title={setlistListCollapsed ? t('setlists.showSetlists') : t('setlists.hideSetlists')}
               >
-                <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  {setlistListCollapsed ? "▶" : "▼"} {t('setlists.setlists')} ({filteredSetlists.length})
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {setlistListCollapsed ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                  {t('setlists.setlists')} ({filteredSetlists.length})
                 </div>
               </button>
               <div 
-                className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${setlistListCollapsed ? 'max-h-0 opacity-0' : 'max-h-full opacity-100'}`}
+                className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${setlistListCollapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-full opacity-100 pointer-events-auto'}`}
               >
                 {loading ? (
                   <div className="space-y-2 py-2">
@@ -1726,7 +1820,7 @@ export default function SetlistsTab() {
         </aside>
 
         {/* Main content - full width when sidebar collapsed */}
-        <main className="flex-1 min-h-0 overflow-hidden rounded-none md:rounded-3xl border border-slate-200/80 bg-white/95 dark:border-slate-800 dark:bg-slate-950/85">
+        <main className="flex-1 min-h-0 overflow-hidden rounded-none md:rounded-3xl border border-slate-200/80 bg-white/95 dark:border-slate-800 dark:bg-slate-950/85 transition-all duration-300 ease-in-out">
           {!activeDraft ? (
             <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
               <div className="text-4xl sm:text-5xl">🎼</div>
@@ -1739,8 +1833,12 @@ export default function SetlistsTab() {
                 <button
                   type="button"
                   onClick={() => setSidebarCollapsed(false)}
-                  className="mt-4 lg:hidden rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="mt-4 lg:hidden rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                  title={t('setlists.showSetlists')}
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
                   {t('setlists.showSetlists')}
                 </button>
               )}
@@ -1840,42 +1938,82 @@ export default function SetlistsTab() {
                   </div>
 
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <button type="button" onClick={() => setShowGeneralNotes((current) => !current)} className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {showGeneralNotes ? "▼" : "▶"} {t('setlists.generalNotes')}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowGeneralNotes((current) => !current)} 
+                      className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
+                      title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
+                    >
+                      {showGeneralNotes ? (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                      {t('setlists.generalNotes')}
                     </button>
-                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-32 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />}
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showGeneralNotes ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-32 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />
+                    </div>
                   </div>
 
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <button type="button" onClick={() => setShowTuningPanel((current) => !current)} className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {showTuningPanel ? "▼" : "▶"} {t('setlists.tuningPanel')}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowTuningPanel((current) => !current)} 
+                      className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
+                      title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
+                    >
+                      {showTuningPanel ? (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                      {t('setlists.tuningPanel')}
                     </button>
-                    {showTuningPanel && (
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showTuningPanel ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                       <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
                         {tuningExplanation.map((line, index) => (
                           <div key={`${line}-${index}`} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950">{line}</div>
                         ))}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </section>
 
                 {/* Repertoire sidebar - collapsible drawer */}
-                <aside className={`hidden lg:flex flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-[280px] shrink-0 ${repertoireCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
+                <aside className={`hidden lg:flex flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60 min-w-0 max-w-[280px] shrink-0 transition-all duration-300 ${repertoireCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-full opacity-100'}`}>
                   <button
                     type="button"
                     onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
-                    className="flex items-center justify-between gap-2 w-full text-left shrink-0"
+                    className="flex items-center justify-between gap-2 w-full text-left shrink-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors"
+                    title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
                   >
-                    <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {repertoireCollapsed ? "▶" : "▼"} {t('setlists.songPicker')}
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-100">
+                      {repertoireCollapsed ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
+                      {t('setlists.songPicker')}
                     </div>
                     <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">🖼️ {repertoireImageStats.withImages}/{songs.length}</span>
                   </button>
                   <div 
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${repertoireCollapsed ? 'max-h-0 opacity-0' : 'flex-1 opacity-100'}`}
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${repertoireCollapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'flex-1 opacity-100 pointer-events-auto'}`}
                   >
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full animate-in fade-in duration-300">
                       <p className="mb-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 shrink-0">{t('setlists.pdfImages')}</p>
                       <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 shrink-0" />
                       <div className="mt-2 flex flex-wrap gap-1 min-w-0 max-w-full shrink-0">
@@ -1926,12 +2064,22 @@ export default function SetlistsTab() {
                 <button
                   type="button"
                   onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
-                  className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900"
+                  className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                  title={repertoireCollapsed ? t('setlists.showSongPicker') : t('setlists.hideSongPicker')}
                 >
-                  {repertoireCollapsed ? "▶ " : "▼ "}{t('setlists.songPicker')} ({songs.length})
+                  {repertoireCollapsed ? (
+                    <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                  {t('setlists.songPicker')} ({songs.length})
                 </button>
                 {!repertoireCollapsed && (
-                  <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+                  <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                     <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                       {songGroups.map(([tuning, group]) => (
@@ -1968,23 +2116,53 @@ export default function SetlistsTab() {
                 {/* Collapsible notes sections */}
                 <div className="grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
-                    <button type="button" onClick={() => setShowGeneralNotes((current) => !current)} className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {showGeneralNotes ? "▼" : "▶"} {t('setlists.generalNotes')}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowGeneralNotes((current) => !current)} 
+                      className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
+                      title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
+                    >
+                      {showGeneralNotes ? (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                      {t('setlists.generalNotes')}
                     </button>
-                    {showGeneralNotes && <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />}
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showGeneralNotes ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <textarea value={activeDraft.notities} onChange={(e) => updateDraft({ notities: e.target.value })} className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" placeholder={t('setlists.generalNotes')} />
+                    </div>
                   </div>
 
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
-                    <button type="button" onClick={() => setShowTuningPanel((current) => !current)} className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {showTuningPanel ? "▼" : "▶"} {t('setlists.tuningPanel')}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowTuningPanel((current) => !current)} 
+                      className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
+                      title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
+                    >
+                      {showTuningPanel ? (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                      {t('setlists.tuningPanel')}
                     </button>
-                    {showTuningPanel && (
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showTuningPanel ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                       <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
                         {tuningExplanation.map((line, index) => (
                           <div key={`${line}-${index}`} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-950">{line}</div>
                         ))}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2200,8 +2378,7 @@ export default function SetlistsTab() {
                 
                 htmlParts.push('</section>');
                 if (draft.notities.trim()) htmlParts.push(`<section class="section"><h2 class="section-heading">General Notes</h2><div class="note-content">${escapeHtml(draft.notities)}</div></section>`);
-                htmlParts.push('<footer class="document-footer">GigsManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>');
-                
+
                 // Get band logo if setlist is linked to a band
                 const band = draft.bandId ? bandsList.find(b => b.id === draft.bandId) : null;
                 const logoUrl = band?.logoUrl || undefined;
