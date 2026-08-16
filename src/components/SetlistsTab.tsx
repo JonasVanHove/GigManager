@@ -1882,7 +1882,7 @@ export default function SetlistsTab() {
                   </select>
                   <button type="button" onClick={() => assignSetlistToGig(null)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-rose-600 shrink-0 dark:border-slate-700 dark:text-rose-400">×</button>
                   <div className="flex-1 min-w-0" />
-                  <button type="button" onClick={() => setShowPerformanceMode((current) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
+                  <button type="button" onClick={() => setShowPerformanceMode((current: boolean) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
                     {t('setlists.performanceMode')}
                   </button>
                   <button type="button" onClick={() => setShowExport(true)} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 shrink-0 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20">
@@ -1940,7 +1940,7 @@ export default function SetlistsTab() {
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <button 
                       type="button" 
-                      onClick={() => setShowGeneralNotes((current) => !current)} 
+                      onClick={() => setShowGeneralNotes((current: boolean) => !current)} 
                       className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
                       title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
                     >
@@ -1963,7 +1963,7 @@ export default function SetlistsTab() {
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <button 
                       type="button" 
-                      onClick={() => setShowTuningPanel((current) => !current)} 
+                      onClick={() => setShowTuningPanel((current: boolean) => !current)} 
                       className="mb-3 flex items-center gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
                       title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
                     >
@@ -2118,7 +2118,7 @@ export default function SetlistsTab() {
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
                     <button 
                       type="button" 
-                      onClick={() => setShowGeneralNotes((current) => !current)} 
+                      onClick={() => setShowGeneralNotes((current: boolean) => !current)} 
                       className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
                       title={showGeneralNotes ? t('setlists.hideGeneralNotes') : t('setlists.showGeneralNotes')}
                     >
@@ -2141,7 +2141,7 @@ export default function SetlistsTab() {
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900">
                     <button 
                       type="button" 
-                      onClick={() => setShowTuningPanel((current) => !current)} 
+                      onClick={() => setShowTuningPanel((current: boolean) => !current)} 
                       className="mb-2 flex items-center gap-2 text-left text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-2 py-1.5 transition-colors w-full"
                       title={showTuningPanel ? t('setlists.hideTuningPanel') : t('setlists.showTuningPanel')}
                     >
