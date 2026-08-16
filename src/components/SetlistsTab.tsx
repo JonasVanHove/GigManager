@@ -477,7 +477,7 @@ export default function SetlistsTab() {
     return Array.from(songsByGroup.entries())
       .map(([tuning, list]) => [tuning, list.slice().sort((a, b) => a.title.localeCompare(b.title))] as const)
       .sort((a, b) => tuningIndex(a[0]) - tuningIndex(b[0]));
-  }, [attachmentFilter, songSearch, songs]);
+  }, [attachmentFilter, songSearch, songs, t]);
 
   const repertoireImageStats = useMemo(() => {
     const withImages = songs.filter((song) => song.attachments?.some(isImageAttachment)).length;
@@ -511,7 +511,7 @@ export default function SetlistsTab() {
     }
 
     return lines;
-  }, [currentItems]);
+  }, [currentItems, t]);
 
   // Helper function to calculate song number (only counts actual songs, not special items)
   const getSongNumber = useCallback((items: DraftItem[], currentIndex: number): number => {

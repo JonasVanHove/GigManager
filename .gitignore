@@ -44,3 +44,7 @@ prisma/dev.db-journal
 
 # generated files
 src/lib/version.ts
+
+# test results & reports
+/playwright-report/
+/test-results/

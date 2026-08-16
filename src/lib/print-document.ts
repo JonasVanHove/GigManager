@@ -168,14 +168,13 @@ export function createPrintDocument(title: string, content: string, options?: {
       
       /* Footer */
       .document-footer { border-top: 2px solid ${darkModeColors.footerBorder}; color: ${darkModeColors.footerText}; font-size: 8pt; margin-top: 12mm; padding-top: 4mm; text-align: center; font-weight: 500; display: ${showPageNumbers ? 'block' : 'none'}; }
-      .document-footer .page-number::after { content: counter(page); }
       
-      @media print { 
-        .print-document { max-width: none; } 
+      @media print {
+        .print-document { max-width: none; }
         .document-footer { position: fixed; bottom: 0; left: 0; right: 0; }
         .section { break-after: ${pageBreakMode === 'auto' ? 'auto' : pageBreakMode === 'none' ? 'avoid' : 'always'}; }
-        @page { counter-increment: page; margin: ${cssMargin}; }
-        body { counter-reset: page; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        @page { margin: ${cssMargin}; }
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
       }
     </style>
@@ -233,7 +232,7 @@ export function createPrintDocument(title: string, content: string, options?: {
       <h1 class="document-title">${title}</h1>
     </header>
     ${processedContent}
-    <footer class="document-footer">GigsManager <span aria-hidden="true">·</span> Page <span class="page-number"></span></footer>
+    ${showPageNumbers ? '<footer class="document-footer">GigsManager</footer>' : ''}
   </main></body>
 </html>`;
 }

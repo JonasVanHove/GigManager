@@ -20,6 +20,7 @@ import Footer from "./Footer";
 import KeyboardShortcuts from "./KeyboardShortcuts";
 import { DashboardSummary as DashboardSummaryComponent } from "./DashboardSummary";
 import BulkEditor from "./BulkEditor";
+import { useTranslation } from "react-i18next";
 
 import LoadingSpinner, { CardSkeleton } from "./LoadingSpinner";
 
@@ -82,19 +83,19 @@ const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   superadmin: () => import("./SuperAdminTab"),
 };
 
-const TAB_LABELS: Record<DashboardTab, string> = {
-  gigs: "Overview",
-  "all-gigs": "All Gigs",
-  analytics: "Insights",
-  investments: "Investments",
-  songs: "Songs",
-  bands: "Bands",
-  "band-members": "Band Members",
-  calendar: "Calendar",
-  setlists: "Setlists",
-  "shared-links": "Share",
-  superadmin: "Superadmin",
-};
+const getTabLabels = (t: (key: string) => string): Record<DashboardTab, string> => ({
+  gigs: t('dashboard.overview'),
+  "all-gigs": t('dashboard.allGigs'),
+  analytics: t('dashboard.insights'),
+  investments: t('dashboard.investments'),
+  songs: t('dashboard.songs'),
+  bands: t('dashboard.bands'),
+  "band-members": t('dashboard.bandMembers'),
+  calendar: t('dashboard.calendar'),
+  setlists: t('dashboard.setlists'),
+  "shared-links": t('dashboard.share'),
+  superadmin: t('dashboard.superadmin'),
+});
 
 const PRIMARY_NAV_TABS: DashboardTab[] = ["gigs", "calendar", "setlists", "songs", "bands"];
 const SECONDARY_NAV_TABS: DashboardTab[] = ["all-gigs", "band-members", "shared-links", "analytics", "investments", "superadmin"];
@@ -128,8 +129,8 @@ const renderTabIcon = (tab: DashboardTab, className = "h-4 w-4") => {
   }
 };
 
-const TabLoader = () => (
-  <LoadingSpinner size="lg" message="Loading section..." />
+const TabLoader = ({ message }: { message: string }) => (
+  <LoadingSpinner size="lg" message={message} />
 );
 
 const OverviewKpiSkeleton = () => (
@@ -191,6 +192,7 @@ export default function Dashboard() {
   const searchParams = useSearchParams();
   const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
   const { settings, fmtCurrency, locale } = useSettings();
+  const { t } = useTranslation();
   const toast = useToast();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [totalGigCount, setTotalGigCount] = useState(0);
@@ -226,6 +228,7 @@ export default function Dashboard() {
   const [selectedGigIds, setSelectedGigIds] = useState<Set<string>>(new Set());
   const [showBulkEditor, setShowBulkEditor] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(activeTab === "gigs");
+  const tabLabels = useMemo(() => getTabLabels(t), [t]);
   const [exportingType, setExportingType] = useState<"gigs" | "summary" | "report" | null>(null);
   const [isActiveSectionExpanded, setIsActiveSectionExpanded] = useState(true);
   const [isHandledSectionExpanded, setIsHandledSectionExpanded] = useState(false);
@@ -1189,7 +1192,7 @@ export default function Dashboard() {
                   }`}
                 >
                   {renderTabIcon(tab)}
-                  <span>{TAB_LABELS[tab]}</span>
+                  <span>{tabLabels[tab]}</span>
                 </button>
               ))}
             </nav>
@@ -1259,7 +1262,7 @@ export default function Dashboard() {
             {!PRIMARY_NAV_TABS.includes(selectedTab) && (
               <div className="hidden lg:flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-800/40 dark:text-slate-200">
                 {renderTabIcon(selectedTab)}
-                <span className="font-medium">{TAB_LABELS[selectedTab]}</span>
+                <span className="font-medium">{tabLabels[selectedTab]}</span>
               </div>
             )}
 
@@ -1287,7 +1290,7 @@ export default function Dashboard() {
                   {/* Profile info header */}
                   <div className="border-b border-slate-200 dark:border-slate-700 p-3">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">
-                      {session.user?.user_metadata?.name || "Profile"}
+                      {session.user?.user_metadata?.name || t('settings.profileFallback')}
                     </p>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {session.user?.email}
@@ -1311,7 +1314,7 @@ export default function Dashboard() {
                           }`}
                         >
                           {renderTabIcon(tab)}
-                          <span className="font-medium">{TAB_LABELS[tab]}</span>
+                          <span className="font-medium">{tabLabels[tab]}</span>
                         </button>
                       ))}
                     </div>
@@ -1384,7 +1387,7 @@ export default function Dashboard() {
           >
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                {TAB_LABELS[selectedTab]}
+                {tabLabels[selectedTab]}
               </span>
             </span>
             <Icons.ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
@@ -1924,7 +1927,7 @@ export default function Dashboard() {
             )}
           </>
         ) : selectedTab === "all-gigs" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <AllGigsTab 
               gigs={gigs}
               onEdit={handleEditGig}
@@ -1956,7 +1959,7 @@ export default function Dashboard() {
                 Reports
               </button>
             </div>
-            <Suspense fallback={<TabLoader />}>
+            <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
               {insightsView === "analytics" ? (
                 <AnalyticsPage gigs={gigs} fmtCurrency={fmtCurrency} />
               ) : (
@@ -1965,32 +1968,32 @@ export default function Dashboard() {
             </Suspense>
           </div>
         ) : selectedTab === "investments" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <InvestmentsTab fmtCurrency={fmtCurrency} />
           </Suspense>
         ) : selectedTab === "band-members" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <BandMembers fmtCurrency={fmtCurrency} gigs={gigs} />
           </Suspense>
         ) : selectedTab === "setlists" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <SetlistsTab />
           </Suspense>
         ) : selectedTab === "songs" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <SongsTab />
           </Suspense>
         ) : selectedTab === "bands" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <BandsTab />
           </Suspense>
 
         ) : selectedTab === "shared-links" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <SharedLinksTab />
           </Suspense>
         ) : selectedTab === "calendar" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <CalendarView 
               fmtCurrency={fmtCurrency} 
               gigs={gigs}
@@ -1998,7 +2001,7 @@ export default function Dashboard() {
             />
           </Suspense>
         ) : selectedTab === "superadmin" ? (
-          <Suspense fallback={<TabLoader />}>
+          <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <SuperAdminTab />
           </Suspense>
         ) : null}

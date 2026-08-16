@@ -8,6 +8,7 @@ import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 import { useImmersiveMode } from "@/lib/use-immersive-mode";
 import type { AppLanguage } from "@/types";
+import { useTranslation } from "react-i18next";
 
 const CURRENCIES = [
   { code: "EUR", label: "Euro (€)", symbol: "€" },
@@ -33,6 +34,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const { session } = useAuth();
   const { settings, updateSettings, language, setLanguage } = useSettings();
   const { isFullscreen, canRequestFullscreen, toggleFullscreen } = useImmersiveMode();
+  const { t } = useTranslation();
   const [currency, setCurrency] = useState(settings.currency);
   const [claimPerf, setClaimPerf] = useState(settings.claimPerformanceFee);
   const [claimTech, setClaimTech] = useState(settings.claimTechnicalFee);
@@ -110,12 +112,12 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file");
+      setError(t('settings.errorUploadImage'));
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setError("Image must be smaller than 2MB");
+      setError(t('settings.errorImageSize'));
       return;
     }
 
@@ -147,7 +149,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
       setAvatarUrl(publicUrl);
     } catch (err: any) {
       console.error("Avatar upload failed:", err);
-      setError(err.message || "Failed to upload image");
+      setError(err.message || t('settings.errorUploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -198,7 +200,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
       }
       onClose();
     } catch {
-      setError("Failed to save settings. Please try again.");
+      setError(t('settings.errorSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -209,7 +211,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
       <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 modal-content-enter">
         <div className="flex items-center justify-between border-b border-slate-100/50 px-6 py-5 dark:border-slate-700/50">
           <h2 className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-lg font-semibold text-transparent dark:from-white dark:to-slate-200">
-            Settings
+            {t('settings.title')}
           </h2>
           <button
             onClick={onClose}
@@ -222,7 +224,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Profile
+              {t('settings.profile')}
             </label>
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-200 text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-100">
@@ -245,7 +247,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Display name"
+                  placeholder={t('settings.displayName')}
                   className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
                 />
                 <div className="flex gap-2">
@@ -253,12 +255,12 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                     type="url"
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="Avatar image URL"
+                    placeholder={t('settings.avatarUrl')}
                     className="flex-1 rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
                   />
                   <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur transition-all duration-200 hover:bg-slate-50/90 hover:shadow-md dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-400 dark:hover:bg-slate-700/70">
                     {uploading ? <Icons.Spinner className="h-4 w-4" /> : <Icons.Download className="h-4 w-4" />}
-                    <span className="hidden sm:inline">Upload</span>
+                    <span className="hidden sm:inline">{t('settings.upload')}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -271,13 +273,13 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Upload an image or paste a URL. Max 2MB.
+              {t('settings.uploadHint')}
             </p>
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Project
+              {t('settings.project')}
             </label>
             <a
               href={githubRepoUrl}
@@ -287,16 +289,16 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               title="Open GitHub repository"
             >
               <Icons.GitHub className="h-4 w-4" />
-              GitHub repository
+              {t('settings.githubRepo')}
             </a>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Opens the repository you can use for version bumps, tags, and releases.
+              {t('settings.githubRepoHint')}
             </p>
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Currency
+              {t('settings.currency')}
             </label>
             <select
               value={currency}
@@ -310,64 +312,64 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              All amounts will be displayed in this currency.
+              {t('settings.currencyHint')}
             </p>
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Language
+              {t('settings.language')}
             </label>
             <select
               value={appLanguage}
               onChange={(e) => setAppLanguage(e.target.value as AppLanguage)}
               className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
             >
-              <option value="system">System language</option>
-              <option value="en">English</option>
-              <option value="nl">Nederlands</option>
+              <option value="system">{t('settings.languageSystem')}</option>
+              <option value="en">{t('settings.languageEnglish')}</option>
+              <option value="nl">{t('settings.languageDutch')}</option>
             </select>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {appLanguage === "system"
-                ? "Matches your device language and date/time format."
+                ? t('settings.languageHintSystem')
                 : appLanguage === "nl"
-                ? "Dutch interface with Dutch date/time formatting."
-                : "English interface with English date/time formatting."}
+                ? t('settings.languageHintDutch')
+                : t('settings.languageHintEnglish')}
             </p>
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Appearance
+              {t('settings.appearance')}
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {(["light", "dark", "system"] as const).map((t) => (
+              {(["light", "dark", "system"] as const).map((themeOption) => (
                 <button
-                  key={t}
-                  onClick={() => setTheme(t)}
+                  key={themeOption}
+                  onClick={() => setTheme(themeOption)}
                   className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                    theme === t
+                    theme === themeOption
                       ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950/30 dark:text-brand-300"
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600"
                   }`}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}
                 </button>
               ))}
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {theme === "system"
-                ? "Matches your device settings"
+                ? t('settings.themeHintSystem')
                 : theme === "dark"
-                ? "Always dark mode"
-                : "Always light mode"}
+                ? t('settings.themeHintDark')
+                : t('settings.themeHintLight')}
             </p>
           </div>
 
           {canRequestFullscreen && (
             <div>
               <label className="mb-3 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Display
+                {t('settings.display')}
               </label>
               <button
                 onClick={toggleFullscreen}
@@ -378,24 +380,24 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                 }`}
               >
                 <span className={`text-sm font-medium ${isFullscreen ? "text-brand-700 dark:text-brand-300" : "text-slate-700 dark:text-slate-300"}`}>
-                  Fullscreen Mode
+                  {t('settings.fullscreenMode')}
                 </span>
                 <div className={`h-5 w-9 rounded-full transition ${isFullscreen ? "bg-brand-500 dark:bg-brand-600" : "bg-slate-300 dark:bg-slate-600"}`}>
                   <div className={`h-4 w-4 rounded-full bg-white transition-transform ${isFullscreen ? "translate-x-4" : "translate-x-0.5"}`} />
                 </div>
               </button>
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                {isFullscreen ? "Fullscreen mode is active. Tap/click to exit." : "Toggle fullscreen to maximize your display space."}
+                {isFullscreen ? t('settings.fullscreenActive') : t('settings.fullscreenInactive')}
               </p>
             </div>
           )}
 
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-              Fee components you claim
+              {t('settings.feeComponents')}
             </legend>
             <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-              Toggle which fee components count towards your personal earnings.
+              {t('settings.feeComponentsHint')}
             </p>
 
             <div className="space-y-3">
@@ -407,9 +409,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Performance fee</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.performanceFee')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Your share of the performance fee split among all musicians
+                    {t('settings.performanceFeeHint')}
                   </p>
                 </div>
               </label>
@@ -422,9 +424,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Technical fee</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.technicalFee')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    The full technical fee (not split, goes to the manager)
+                    {t('settings.technicalFeeHint')}
                   </p>
                 </div>
               </label>
@@ -433,10 +435,10 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-              PDF Export Settings
+              {t('settings.pdfExportSettings')}
             </legend>
             <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-              Customize how your PDF exports are generated.
+              {t('settings.pdfExportSettingsHint')}
             </p>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -448,9 +450,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Include band logo</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.includeLogo')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Show logo in PDF header
+                    {t('settings.includeLogoHint')}
                   </p>
                 </div>
               </label>
@@ -463,9 +465,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show headers</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.showHeaders')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Display section headers
+                    {t('settings.showHeadersHint')}
                   </p>
                 </div>
               </label>
@@ -478,9 +480,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Show metadata</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.showMetadata')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Tuning, key, tempo
+                    {t('settings.showMetadataHint')}
                   </p>
                 </div>
               </label>
@@ -493,9 +495,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Page numbers</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.pageNumbers')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Display in footer
+                    {t('settings.pageNumbersHint')}
                   </p>
                 </div>
               </label>
@@ -508,9 +510,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Dark mode</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.darkMode')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Dark background
+                    {t('settings.darkModeHint')}
                   </p>
                 </div>
               </label>
@@ -523,9 +525,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:text-brand-400 dark:focus:ring-brand-400"
                 />
                 <div>
-                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Images only</span>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.imagesOnly')}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No text content
+                    {t('settings.imagesOnlyHint')}
                   </p>
                 </div>
               </label>
@@ -534,7 +536,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Font
+                  {t('settings.font')}
                 </label>
                 <select
                   value={pdfFont}
@@ -551,7 +553,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Size
+                  {t('settings.size')}
                 </label>
                 <select
                   value={pdfPageSize}
@@ -566,7 +568,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Breaks
+                  {t('settings.breaks')}
                 </label>
                 <select
                   value={pdfPageBreakMode}
@@ -582,7 +584,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Margin
+                  {t('settings.margin')}
                 </label>
                 <select
                   value={pdfMarginSize}
@@ -599,16 +601,16 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
           <fieldset className="rounded-2xl border border-slate-200/60 bg-white/50 p-4 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/50">
             <legend className="mb-3 px-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Band Settings
+              {t('settings.bandSettings')}
             </legend>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Include yourself in band member count
+                    {t('settings.includeSelfInCount')}
                   </label>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    When enabled, you'll be counted as a member in bands you play with
+                    {t('settings.includeSelfInCountHint')}
                   </p>
                 </div>
                 <button
@@ -639,7 +641,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            Cancel
+            {t('settings.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -652,7 +654,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            {saving ? "Saving…" : "Save"}
+            {saving ? t('settings.saving') : t('settings.save')}
           </button>
         </div>
       </div>

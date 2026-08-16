@@ -6,6 +6,7 @@ import GigCard from "./GigCard";
 import BandTag from "./BandTag";
 import { useSettings } from "./SettingsProvider";
 import { Icons } from "./Icons";
+import { useTranslation } from "react-i18next";
 
 interface AllGigsTabProps {
   gigs: Gig[];
@@ -23,6 +24,7 @@ export default function AllGigsTab({
   loading,
 }: AllGigsTabProps) {
   const { language } = useSettings();
+  const { t } = useTranslation();
   const PAGE_SIZE = 24;
   const [sortBy, setSortBy] = useState<SortOption>("date-asc");
   const [selectedArtists, setSelectedArtists] = useState<Set<string>>(new Set());
@@ -35,82 +37,18 @@ export default function AllGigsTab({
   const [showUnpaid, setShowUnpaid] = useState(true);
   const deferredGigs = useDeferredValue(gigs);
 
-  const copy = language === "nl"
-    ? {
-        noPerformancesYet: "Nog geen optredens",
-        sortBy: "Sorteer op",
-          soonestFirst: "Eerstkomende eerst",
-          latestFirst: "Laatste eerst",
-          bandAz: "Band A-Z",
-          bandZa: "Band Z-A",
-          highestFee: "Hoogste vergoeding",
-          lowestFee: "Laagste vergoeding",
-        paymentStatus: "Betaalstatus",
-          chronology: "Chronologie (eerstkomend eerst)",
-        filterByArtist: "Filter op artiest",
-        clearAll: "Alles wissen",
-        performances: "optredens",
-        noMatches: "Geen optredens komen overeen met je filters",
-        loadMore: "Meer laden",
-        left: "over",
-        hidePastGigs: "Verbergen voorbije optredens",
-        expandAll: "Alles uitklappen",
-        collapseAll: "Alles inklappen",
-        showCharity: "Charity",
-        showTentative: "Tentative",
-        paid: "Betaald",
-        unpaid: "Niet betaald",
-        filters: "Filters",
-        sortDirection: "Sorteerrichting",
-        ascending: "Oplopend",
-        descending: "Aflopend",
-        sortHint: "Tik op een chip om direct te sorteren",
-        active: "Actief",
-      }
-    : {
-        noPerformancesYet: "No performances yet",
-        sortBy: "Sort by",
-        soonestFirst: "Soonest first",
-        latestFirst: "Latest first",
-        bandAz: "Band A-Z",
-        bandZa: "Band Z-A",
-        highestFee: "Highest Fee",
-        lowestFee: "Lowest Fee",
-        paymentStatus: "Payment Status",
-        chronology: "Chronology (upcoming first)",
-        filterByArtist: "Filter by Artist",
-        clearAll: "Clear all",
-        performances: "performances",
-        noMatches: "No performances match your filters",
-        loadMore: "Load more",
-        left: "left",
-        hidePastGigs: "Hide past performances",
-        expandAll: "Expand all",
-        collapseAll: "Collapse all",
-        showCharity: "Charity",
-        showTentative: "Tentative",
-        paid: "Paid",
-        unpaid: "Unpaid",
-        filters: "Filters",
-        sortDirection: "Sort direction",
-        ascending: "Ascending",
-        descending: "Descending",
-        sortHint: "Tap a chip to sort instantly",
-        active: "Active",
-      };
-
   const sortOptions = [
-    { value: "date-asc" as const, label: copy.soonestFirst },
-    { value: "date-desc" as const, label: copy.latestFirst },
-    { value: "band-asc" as const, label: copy.bandAz },
-    { value: "band-desc" as const, label: copy.bandZa },
-    { value: "fee-high" as const, label: copy.highestFee },
-    { value: "fee-low" as const, label: copy.lowestFee },
-    { value: "payment-status" as const, label: copy.paymentStatus },
-    { value: "chronology" as const, label: copy.chronology },
+    { value: "date-asc" as const, label: t('gigs.soonestFirst') },
+    { value: "date-desc" as const, label: t('gigs.latestFirst') },
+    { value: "band-asc" as const, label: t('gigs.bandAz') },
+    { value: "band-desc" as const, label: t('gigs.bandZa') },
+    { value: "fee-high" as const, label: t('gigs.highestFee') },
+    { value: "fee-low" as const, label: t('gigs.lowestFee') },
+    { value: "payment-status" as const, label: t('gigs.paymentStatus') },
+    { value: "chronology" as const, label: t('gigs.chronology') },
   ];
 
-  const activeSortLabel = sortOptions.find((option) => option.value === sortBy)?.label ?? copy.soonestFirst;
+  const activeSortLabel = sortOptions.find((option) => option.value === sortBy)?.label ?? t('gigs.ascending');
 
   // Get all unique artists
   const artists = useMemo(() => {
@@ -257,7 +195,7 @@ export default function AllGigsTab({
       <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 py-20 text-center">
         <Icons.Music2 className="mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" />
         <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-          {copy.noPerformancesYet}
+          {t('gigs.noPerformancesYet')}
         </h3>
       </div>
     );
@@ -271,14 +209,14 @@ export default function AllGigsTab({
         <div>
           <div className="mb-2 flex items-center justify-between gap-3">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {copy.sortBy}
+              {t('gigs.sortBy')}
             </label>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
               {activeSortLabel}
             </span>
           </div>
           <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-            {copy.sortHint}
+            {t('gigs.sortHint')}
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {sortOptions.map((option) => {
@@ -295,7 +233,7 @@ export default function AllGigsTab({
                   }`}
                 >
                   <span className="block">{option.label}</span>
-                  {active && <span className="mt-1 block text-[11px] font-normal opacity-80">{copy.active}</span>}
+                  {active && <span className="mt-1 block text-[11px] font-normal opacity-80">{t('gigs.active')}</span>}
                 </button>
               );
             })}
@@ -307,18 +245,18 @@ export default function AllGigsTab({
           <button
             onClick={() => setGlobalExpandState(true)}
             className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition font-medium"
-            title={copy.expandAll}
+            title={t('gigs.expandAll')}
           >
             <Icons.ChevronDown className="h-4 w-4 rotate-180" />
-            {copy.expandAll}
+            {t('gigs.expandAll')}
           </button>
           <button
             onClick={() => setGlobalExpandState(false)}
             className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition font-medium"
-            title={copy.collapseAll}
+            title={t('gigs.collapseAll')}
           >
             <Icons.ChevronDown className="h-4 w-4" />
-            {copy.collapseAll}
+            {t('gigs.collapseAll')}
           </button>
 
           <label className="flex items-center gap-2 cursor-pointer">
@@ -329,7 +267,7 @@ export default function AllGigsTab({
               className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
             />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              {copy.hidePastGigs}
+              {t('gigs.hidePastGigs')}
             </span>
           </label>
         </div>
@@ -337,7 +275,7 @@ export default function AllGigsTab({
         {/* Payment & Gig Type Filters */}
         <div className="space-y-2">
           <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-            {copy.filters}
+            {t('gigs.filters')}
           </p>
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -347,7 +285,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowPaid(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500/20 cursor-pointer"
               />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">✓ {copy.paid}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">✓ {t('gigs.paid')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -356,7 +294,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowUnpaid(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
               />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">⏳ {copy.unpaid}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">⏳ {t('gigs.unpaid')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -365,7 +303,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowCharity(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-red-600 focus:ring-2 focus:ring-red-500/20 cursor-pointer"
               />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">💕 {copy.showCharity}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">💕 {t('gigs.showCharity')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -374,7 +312,7 @@ export default function AllGigsTab({
                 onChange={(e) => setShowTentative(e.target.checked)}
                 className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 text-yellow-600 focus:ring-2 focus:ring-yellow-500/20 cursor-pointer"
               />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">⏳ {copy.showTentative}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">⏳ {t('gigs.showTentative')}</span>
             </label>
           </div>
         </div>
@@ -384,14 +322,14 @@ export default function AllGigsTab({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {copy.filterByArtist}
+                {t('gigs.filterByArtist')}
               </label>
               {selectedArtists.size > 0 && (
                 <button
                   onClick={() => setSelectedArtists(new Set())}
                   className="text-xs text-brand-600 dark:text-brand-400 hover:underline"
                 >
-                  {copy.clearAll}
+                  {t('gigs.clearAll')}
                 </button>
               )}
             </div>
@@ -420,10 +358,10 @@ export default function AllGigsTab({
       {/* -- Results -------------------------------------------------------- */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 p-3">
         <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-          <span className="text-brand-600 dark:text-brand-400">{sortedGigs.length}</span> {copy.performances}
+          <span className="text-brand-600 dark:text-brand-400">{sortedGigs.length}</span> {t('gigs.performances')}
           {sortedGigs.length !== deferredGigs.length && (
             <span className="ml-2 text-slate-500 dark:text-slate-400">
-              ({deferredGigs.length} {copy.left})
+              ({deferredGigs.length} {t('gigs.left')})
             </span>
           )}
         </p>
@@ -433,12 +371,10 @@ export default function AllGigsTab({
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-900/30 py-12 text-center">
           <Icons.AlertCircle className="mb-3 h-10 w-10 text-slate-400 dark:text-slate-500" />
           <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
-            {copy.noMatches}
+            {t('gigs.noMatches')}
           </p>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            {language === "nl" 
-              ? "Pas je filters aan of kies andere sorteeropties"
-              : "Adjust your filters or try different sort options"}
+            {t('gigs.adjustFilters')}
           </p>
         </div>
       ) : (
@@ -465,7 +401,7 @@ export default function AllGigsTab({
                 onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
                 className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-700"
               >
-                {copy.loadMore} ({remainingCount} {copy.left})
+                {t('gigs.loadMore')} ({remainingCount} {t('gigs.left')})
               </button>
             </div>
           )}

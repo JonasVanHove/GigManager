@@ -6,6 +6,7 @@ import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
 import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
+import { useTranslation } from "react-i18next";
 
 interface Band {
   id: string;
@@ -30,6 +31,7 @@ export default function BandsTab() {
   const { getAccessToken, session } = useAuth();
   const { language, excludeSelfFromMemberCount } = useSettings();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const [bands, setBands] = useState<Band[]>([]);
   const [members, setMembers] = useState<BandMember[]>([]);
@@ -41,56 +43,6 @@ export default function BandsTab() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  const copy = language === "nl"
-    ? {
-        title: "Bands",
-        addBand: "Nieuwe band",
-        editBand: "Band bewerken",
-        deleteBand: "Band verwijderen",
-        cancel: "Annuleren",
-        save: "Opslaan",
-        name: "Naam",
-        logo: "Logo",
-        members: "Leden",
-        noBands: "Nog geen bands",
-        addFirstBand: "Maak je eerste band aan om te beginnen",
-        uploadLogo: "Logo uploaden",
-        removeLogo: "Logo verwijderen",
-        bandMembers: "Bandleden",
-        assignMembers: "Leden toewijzen",
-        noMembers: "Geen leden toegewezen",
-        successAdd: "Band toegevoegd",
-        successUpdate: "Band bijgewerkt",
-        successDelete: "Band verwijderd",
-        errorLoad: "Fout bij laden bands",
-        errorSave: "Fout bij opslaan band",
-        errorDelete: "Fout bij verwijderen band",
-      }
-    : {
-        title: "Bands",
-        addBand: "New Band",
-        editBand: "Edit Band",
-        deleteBand: "Delete Band",
-        cancel: "Cancel",
-        save: "Save",
-        name: "Name",
-        logo: "Logo",
-        members: "Members",
-        noBands: "No bands yet",
-        addFirstBand: "Create your first band to get started",
-        uploadLogo: "Upload Logo",
-        removeLogo: "Remove Logo",
-        bandMembers: "Band Members",
-        assignMembers: "Assign Members",
-        noMembers: "No members assigned",
-        successAdd: "Band added",
-        successUpdate: "Band updated",
-        successDelete: "Band deleted",
-        errorLoad: "Error loading bands",
-        errorSave: "Error saving band",
-        errorDelete: "Error deleting band",
-      };
-
   const loadBands = useCallback(async () => {
     try {
       const token = await getAccessToken();
@@ -98,13 +50,13 @@ export default function BandsTab() {
       const response = await fetch("/api/bands", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch bands");
+      if (!response.ok) throw new Error(t('bands.errorLoad'));
       const data = await response.json();
       setBands(data);
     } catch (error) {
-      toast.error(copy.errorLoad);
+      toast.error(t('bands.errorLoad'));
     }
-  }, [getAccessToken, toast, copy.errorLoad]);
+  }, [getAccessToken, toast, t('bands.errorLoad')]);
 
   const loadMembers = useCallback(async () => {
     try {
@@ -113,13 +65,13 @@ export default function BandsTab() {
       const response = await fetch("/api/band-members", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch members");
+      if (!response.ok) throw new Error(t('bands.errorMembers'));
       const data = await response.json();
       setMembers(data);
     } catch (error) {
       console.error("Failed to load members:", error);
     }
-  }, [getAccessToken]);
+  }, [getAccessToken, t('bands.errorMembers')]);
 
   const loadUserAsMember = useCallback(async () => {
     if (!session?.user) return;
@@ -209,7 +161,7 @@ export default function BandsTab() {
         });
         setLogoPreview(fallbackUrl);
         setFormData({ ...formData, logoUrl: fallbackUrl });
-        toast.warning(language === "nl" ? "Logo opgeslagen lokaal (Supabase niet beschikbaar)" : "Logo saved locally (Supabase not available)");
+        toast.warning(t('bands.logoUploadWarning'));
         return;
       }
       
@@ -220,7 +172,7 @@ export default function BandsTab() {
       setFormData({ ...formData, logoUrl: publicUrlData.publicUrl });
     } catch (error: any) {
       console.error("Logo upload error:", error);
-      toast.error(error.message || "Failed to upload logo");
+      toast.error(t('bands.logoUploadError'));
     } finally {
       setUploadingLogo(false);
     }
@@ -229,7 +181,7 @@ export default function BandsTab() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      toast.error(language === "nl" ? "Naam is verplicht" : "Name is required");
+      toast.error(t('bands.nameRequired'));
       return;
     }
 
@@ -248,8 +200,8 @@ export default function BandsTab() {
           body: JSON.stringify({ id: editingBand.id, logoUrl: formData.logoUrl || null, color: formData.color }),
         });
 
-        if (!response.ok) throw new Error(copy.errorSave);
-        toast.success(copy.successUpdate);
+        if (!response.ok) throw new Error(t('bands.errorSave'));
+        toast.success(t('bands.successUpdate'));
       } else {
         // Create new band
         const response = await fetch("/api/bands", {
@@ -261,8 +213,8 @@ export default function BandsTab() {
           body: JSON.stringify({ name: formData.name.trim(), logoUrl: formData.logoUrl || null, color: formData.color }),
         });
 
-        if (!response.ok) throw new Error(copy.errorSave);
-        toast.success(copy.successAdd);
+        if (!response.ok) throw new Error(t('bands.errorSave'));
+        toast.success(t('bands.successAdd'));
       }
 
       setShowForm(false);
@@ -272,7 +224,7 @@ export default function BandsTab() {
       setLogoPreview(null);
       loadBands();
     } catch (error) {
-      toast.error(copy.errorSave);
+      toast.error(t('bands.errorSave'));
     }
   };
 
@@ -291,7 +243,7 @@ export default function BandsTab() {
   };
 
   const handleDelete = async (band: Band) => {
-    if (!confirm(language === "nl" ? `Ben je zeker dat je "${band.name}" wilt verwijderen?` : `Are you sure you want to delete "${band.name}"?`)) {
+    if (!confirm(t('bands.confirmDelete'))) {
       return;
     }
 
@@ -304,12 +256,12 @@ export default function BandsTab() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error(copy.errorDelete);
+      if (!response.ok) throw new Error(t('bands.errorDelete'));
 
-      toast.success(copy.successDelete);
+      toast.success(t('bands.successDelete'));
       loadBands();
     } catch (error) {
-      toast.error(copy.errorDelete);
+      toast.error(t('bands.errorDelete'));
     }
   };
 
@@ -336,7 +288,7 @@ export default function BandsTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{copy.title}</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('bands.title')}</h1>
         <button
           onClick={() => {
             setEditingBand(null);
@@ -346,19 +298,19 @@ export default function BandsTab() {
           }}
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600"
         >
-          {copy.addBand}
+          {t('bands.addBand')}
         </button>
       </div>
 
       {showForm && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {editingBand ? copy.editBand : copy.addBand}
+            {editingBand ? t('bands.editBand') : t('bands.addBand')}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {copy.name}
+                {t('bands.name')}
               </label>
               <input
                 type="text"
@@ -421,14 +373,14 @@ export default function BandsTab() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {copy.logo}
+                {t('bands.logo')}
               </label>
               <div className="mt-2 flex items-center gap-4">
                 {logoPreview && (
                   <img src={logoPreview} alt="Logo preview" className="h-16 w-16 rounded-lg object-cover" />
                 )}
                 <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-                  {uploadingLogo ? "Uploading..." : copy.uploadLogo}
+                  {uploadingLogo ? "Uploading..." : t('bands.uploadLogo')}
                   <input
                     type="file"
                     accept="image/*"
@@ -448,7 +400,7 @@ export default function BandsTab() {
                     }}
                     className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                   >
-                    {copy.removeLogo}
+                    {t('bands.removeLogo')}
                   </button>
                 )}
               </div>
@@ -465,14 +417,14 @@ export default function BandsTab() {
                 }}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                {copy.cancel}
+                {t('bands.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={uploadingLogo}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600 disabled:opacity-50"
               >
-                {copy.save}
+                {t('bands.save')}
               </button>
             </div>
           </form>
@@ -482,8 +434,8 @@ export default function BandsTab() {
      {bands.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center dark:border-slate-700 dark:bg-slate-900/50">
           <Icons.People className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-          <p className="text-slate-600 dark:text-slate-400">{copy.noBands}</p>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-500">{copy.addFirstBand}</p>
+          <p className="text-slate-600 dark:text-slate-400">{t('bands.noBandsYet')}</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-500">{t('bands.addFirstBand')}</p>
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -548,14 +500,14 @@ export default function BandsTab() {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {copy.logo}
+                          {t('bands.logo')}
                         </label>
                         <div className="mt-2 flex items-center gap-4">
                           {logoPreview && (
                             <img src={logoPreview} alt="Logo preview" className="h-16 w-16 rounded-lg object-cover" />
                           )}
                           <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-                            {uploadingLogo ? "Uploading..." : copy.uploadLogo}
+                            {uploadingLogo ? "Uploading..." : t('bands.uploadLogo')}
                             <input
                               type="file"
                               accept="image/*"
@@ -575,7 +527,7 @@ export default function BandsTab() {
                               }}
                               className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                             >
-                              {copy.removeLogo}
+                              {t('bands.removeLogo')}
                             </button>
                           )}
                         </div>
@@ -587,14 +539,14 @@ export default function BandsTab() {
                           onClick={handleCancelEdit}
                           className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                         >
-                          {copy.cancel}
+                          {t('bands.cancel')}
                         </button>
                         <button
                           type="submit"
                           disabled={uploadingLogo}
                           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600 disabled:opacity-50"
                         >
-                          {copy.save}
+                          {t('bands.save')}
                         </button>
                       </div>
                     </form>
@@ -632,7 +584,7 @@ export default function BandsTab() {
 
                       {bandMembers.length > 0 && (
                         <div className="mt-4">
-                          <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{copy.bandMembers}</p>
+                          <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{t('bands.bandMembers')}</p>
                           <div className="flex flex-wrap gap-2">
                             {bandMembers.map((member) => (
                               <span

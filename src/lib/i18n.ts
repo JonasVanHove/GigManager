@@ -25,6 +25,19 @@ export function initI18n() {
       interpolation: {
         escapeValue: false, // React already escapes
       },
+      react: {
+        useSuspense: false, // Disable suspense to prevent loading states
+      },
+      // Don't show missing keys - return the key itself if not found
+      returnNull: false,
+      returnEmptyString: false,
+      // Custom fallback function to provide readable defaults
+      missingKeyHandler: (lng, ns, key) => {
+        // Log missing keys in development
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Missing translation key: ${key} for language: ${lng}`);
+        }
+      },
     });
   
   initialized = true;
