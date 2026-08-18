@@ -2042,7 +2042,7 @@ export default function SetlistsTab() {
                 <aside className={`hidden lg:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm ${
                   repertoireCollapsed 
                     ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
-                    : 'w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3'
+                    : 'w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3 max-h-[calc(100vh-200px)]'
                 }`}>
                   <div className="flex items-center justify-between gap-2 shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 pb-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-100">
@@ -2093,7 +2093,7 @@ export default function SetlistsTab() {
                     </div>
 
                     {/* Songs grouped by tuning */}
-                    <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0">
+                    <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0 max-h-[400px]">
                       {songGroups.map(([tuning, group]) => (
                         <div key={tuning} className="space-y-1">
                           <div className={`inline-flex max-w-full rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}>
@@ -2152,7 +2152,7 @@ export default function SetlistsTab() {
                   {!repertoireCollapsed && (
                     <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                       <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
-                      <div className="space-y-2 max-h-[350px] overflow-y-auto">
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {songGroups.map(([tuning, group]) => (
                           <div key={tuning}>
                             <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
