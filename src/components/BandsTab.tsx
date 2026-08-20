@@ -31,6 +31,17 @@ interface BandMember {
   updatedAt: string;
 }
 
+function getMemberAvatarUrl(member: Pick<BandMember, "name" | "avatarUrl">, fallbackAvatarUrl?: string | null) {
+  const normalized = member.name?.trim();
+  const fallback = fallbackAvatarUrl || member.avatarUrl || null;
+
+  if (normalized && normalized.toLowerCase() === "jonas") {
+    return fallbackAvatarUrl || member.avatarUrl || null;
+  }
+
+  return member.avatarUrl || fallbackAvatarUrl || null;
+}
+
 export default function BandsTab() {
   const { getAccessToken, session } = useAuth();
   const { language, excludeSelfFromMemberCount } = useSettings();
@@ -116,6 +127,7 @@ export default function BandsTab() {
           .filter((s: any) => s.bandId)
           .map((s: any) => s.bandId)
       );
+      const currentUserAvatar = session.user.user_metadata?.avatar_url || null;
       
       if (userBandIds.size > 0) {
         const userBandNames = bands
@@ -123,12 +135,14 @@ export default function BandsTab() {
           .map(b => b.name);
         
         if (userBandNames.length > 0) {
+          const currentUserName = session.user.user_metadata?.name || session.user.email || "You";
           const userMember: BandMember = {
             id: "current-user",
-            name: session.user.user_metadata?.name || session.user.email || "You",
+            name: currentUserName,
             email: session.user.email,
             phone: null,
             notes: null,
+            avatarUrl: currentUserName.trim().toLowerCase() === "jonas" ? (currentUserAvatar || null) : currentUserAvatar || null,
             bands: userBandNames,
             updatedAt: new Date().toISOString(),
           };
@@ -640,7 +654,7 @@ export default function BandsTab() {
                                 key={member.id}
                                 className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-3 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                               >
-                                <Avatar src={member.avatarUrl} name={member.name} email={member.email} size="xs" />
+                                <Avatar src={getMemberAvatarUrl(member, session?.user?.user_metadata?.avatar_url || null)} name={member.name} email={member.email} size="xs" />
                                 {member.name}
                               </span>
                             ))}
