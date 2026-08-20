@@ -9,6 +9,7 @@ import FullscreenMediaViewer from "./FullscreenMediaViewer";
 import { Icons } from "./Icons";
 import { createPrintDocument } from "@/lib/print-document";
 import { useTranslation } from "react-i18next";
+import LoadingSpinner from "./LoadingSpinner";
 
 type SongAttachment = {
   id: string;
@@ -508,7 +509,9 @@ export default function SongsTab() {
         {/* Songs List */}
         <div className="mt-5 grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {loading ? (
-            <div className="py-12 text-center text-sm text-neutral-400 col-span-full">{t('songs.loadingRepertoire')}</div>
+            <div className="py-12 flex flex-col items-center justify-center col-span-full">
+              <LoadingSpinner size="lg" message={t('songs.loadingRepertoire')} />
+            </div>
           ) : filteredSongs.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400 col-span-full">
               {t('songs.emptyState')}

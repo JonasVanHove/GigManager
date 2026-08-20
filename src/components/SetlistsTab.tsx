@@ -8,6 +8,7 @@ import { useToast } from "./ToastContainer";
 import { createPrintDocument } from "@/lib/print-document";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useTranslation } from "react-i18next";
+import LoadingSpinner from "./LoadingSpinner";
 
 type SongRow = {
   id: string;
@@ -1795,14 +1796,8 @@ export default function SetlistsTab() {
                 className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${setlistListCollapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-full opacity-100 pointer-events-auto'}`}
               >
                 {loading ? (
-                  <div className="space-y-2 py-2">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40 animate-pulse">
-                        <div className="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-1.5"></div>
-                        <div className="h-2 w-1/2 rounded bg-slate-200 dark:bg-slate-700 mb-1.5"></div>
-                        <div className="h-2 w-1/4 rounded bg-slate-200 dark:bg-slate-700"></div>
-                      </div>
-                    ))}
+                  <div className="py-8 flex flex-col items-center justify-center">
+                    <LoadingSpinner size="lg" message={t('setlists.loadingSetlists')} />
                   </div>
                 ) : filteredSetlists.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">{t('setlists.noSetlists')}</div>

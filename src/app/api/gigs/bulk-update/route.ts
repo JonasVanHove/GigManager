@@ -62,12 +62,8 @@ export async function PATCH(request: NextRequest) {
     // Apply all updates in parallel
     const results = await Promise.all(
       updates.map((update) => {
-        // If paymentReceived is being set to true, also set bandPaid to true
+        // Apply updates as-is - client paid and band paid are now independent
         const updateData = { ...update.updates };
-        if (updateData.paymentReceived === true) {
-          updateData.bandPaid = true;
-          updateData.bandPaidDate = updateData.paymentReceivedDate || new Date();
-        }
         return prisma.gig.update({
           where: { id: update.id },
           data: updateData,

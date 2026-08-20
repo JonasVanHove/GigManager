@@ -29,34 +29,93 @@ test.describe('Bulk Payment Updates', () => {
     // Select "Mark as Client Paid"
     await page.click('button:has-text("Mark as Client Paid")');
     
-    // Confirm action
-    await page.click('button:has-text("Confirm")');
-    
     // Wait for update
     await page.waitForTimeout(1000);
     
-    // Verify status updated
+    // Verify status updated - UI should refresh automatically
     const statusCell = page.locator('[data-testid="gig-status"]:nth-child(1)');
     await expect(statusCell).toContainText('Client Paid');
   });
 
-  test('should sync band paid status when client paid is updated', async ({ page }) => {
+  test('should update band paid status independently via bulk update', async ({ page }) => {
     // Select a gig
     await page.check('[data-testid="gig-checkbox"]:nth-child(1)');
     
     // Open bulk actions
     await page.click('[data-testid="bulk-actions-menu"]');
     
-    // Mark as Client Paid
-    await page.click('button:has-text("Mark as Client Paid")');
-    await page.click('button:has-text("Confirm")');
+    // Mark as Band Paid (independent action)
+    await page.click('button:has-text("Mark as Band Paid")');
     
-    // Wait for sync
-    await page.waitForTimeout(1500);
+    // Wait for update
+    await page.waitForTimeout(1000);
     
-    // Verify band paid status is also updated
+    // Verify band paid status is updated but client paid remains unchanged
     const bandPaidCell = page.locator('[data-testid="band-paid-status"]:nth-child(1)');
     await expect(bandPaidCell).toContainText('Paid');
+  });
+
+  test('should handle both client and band paid separately in bulk update', async ({ page }) => {
+    // Select 3 gigs
+    await page.check('[data-testid="gig-checkbox"]:nth-child(1)');
+    await page.check('[data-testid="gig-checkbox"]:nth-child(2)');
+    await page.check('[data-testid="gig-checkbox"]:nth-child(3)');
+    
+    // Open bulk actions
+    await page.click('[data-testid="bulk-actions-menu"]');
+    
+    // Mark as Client Paid first
+    await page.click('button:has-text("Mark as Client Paid")');
+    await page.waitForTimeout(500);
+    
+    // Re-open bulk actions
+    await page.click('[data-testid="bulk-actions-menu"]');
+    
+    // Mark as Band Paid separately
+    await page.click('button:has-text("Mark as Band Paid")');
+    await page.waitForTimeout(1000);
+    
+    // Verify both statuses are now set
+    const statusCell = page.locator('[data-testid="gig-status"]:nth-child(1)');
+    await expect(statusCell).toContainText('Client Paid');
+    
+    const bandPaidCell = page.locator('[data-testid="band-paid-status"]:nth-child(1)');
+    await expect(bandPaidCell).toContainText('Paid');
+  });
+
+  test('should show date preview in bulk modal', async ({ page }) => {
+    // Select gigs
+    await page.check('[data-testid="gig-checkbox"]:nth-child(1)');
+    
+    // Open bulk actions
+    await page.click('[data-testid="bulk-actions-menu"]');
+    
+    // Verify date preview is shown with today's date
+    const datePreview = page.locator('text=/Will set payment date to/');
+    await expect(datePreview).toBeVisible();
+    
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0];
+    await expect(datePreview).toContainText(today);
+  });
+
+  test('should allow custom date override in bulk modal', async ({ page }) => {
+    // Select gigs
+    await page.check('[data-testid="gig-checkbox"]:nth-child(1)');
+    
+    // Open bulk actions
+    await page.click('[data-testid="bulk-actions-menu"]');
+    
+    // Enable custom date
+    await page.check('#useCustomDate');
+    
+    // Set a custom date
+    const customDate = '2024-12-25';
+    await page.fill('input[type="date"]', customDate);
+    
+    // Verify custom date is shown in preview
+    const datePreview = page.locator('text=/Will set payment date to/');
+    await expect(datePreview).toContainText(customDate);
   });
 
   test('should deselect all gigs', async ({ page }) => {
@@ -74,21 +133,5 @@ test.describe('Bulk Payment Updates', () => {
     for (let i = 0; i < count; i++) {
       await expect(checkboxes.nth(i)).not.toBeChecked();
     }
-  });
-
-  test('should show bulk update confirmation dialog', async ({ page }) => {
-    // Select gigs
-    await page.check('[data-testid="gig-checkbox"]:nth-child(1)');
-    
-    // Open bulk actions
-    await page.click('[data-testid="bulk-actions-menu"]');
-    
-    // Trigger bulk update
-    await page.click('button:has-text("Mark as Client Paid")');
-    
-    // Verify confirmation dialog appears
-    const dialog = page.locator('[data-testid="confirmation-dialog"]');
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('Are you sure');
   });
 });

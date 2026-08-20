@@ -1194,6 +1194,9 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                     checked={form.paymentReceived}
                     onChange={(e) => {
                       set("paymentReceived", e.target.checked);
+                      if (e.target.checked && !form.paymentReceivedDate) {
+                        set("paymentReceivedDate", new Date().toISOString().split("T")[0]);
+                      }
                       if (!e.target.checked) set("paymentReceivedDate", "");
                     }}
                   />
@@ -1237,6 +1240,9 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                     checked={form.bandPaid}
                     onChange={(e) => {
                       set("bandPaid", e.target.checked);
+                      if (e.target.checked && !form.bandPaidDate) {
+                        set("bandPaidDate", new Date().toISOString().split("T")[0]);
+                      }
                       if (!e.target.checked) set("bandPaidDate", "");
                     }}
                   />

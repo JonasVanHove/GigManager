@@ -21,8 +21,12 @@ export default function BulkEditor({
   const [action, setAction] = useState<"payment" | "band" | "none">("none");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [customDate, setCustomDate] = useState("");
+  const [useCustomDate, setUseCustomDate] = useState(false);
 
   const selectedGigs = gigs.filter((g) => selectedIds.has(g.id));
+  const today = new Date().toISOString().split("T")[0];
+  const displayDate = useCustomDate ? customDate : today;
 
   const handleBatchMarkPaid = async () => {
     if (selectedGigs.length === 0) return;
@@ -34,11 +38,13 @@ export default function BulkEditor({
       const token = await getAccessToken();
       if (!token) throw new Error("No auth token");
 
+      const dateToUse = useCustomDate && customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+
       const updates = selectedGigs.map((gig) => ({
         id: gig.id,
         updates: {
           paymentReceived: true,
-          paymentReceivedDate: new Date().toISOString(),
+          paymentReceivedDate: dateToUse,
         },
       }));
 
@@ -76,11 +82,13 @@ export default function BulkEditor({
       const token = await getAccessToken();
       if (!token) throw new Error("No auth token");
 
+      const dateToUse = useCustomDate && customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+
       const updates = selectedGigs.map((gig) => ({
         id: gig.id,
         updates: {
           bandPaid: true,
-          bandPaidDate: new Date().toISOString(),
+          bandPaidDate: dateToUse,
         },
       }));
 
@@ -127,13 +135,51 @@ export default function BulkEditor({
             </div>
           )}
 
+          {/* Date Override Section */}
+          <div className="mb-4 rounded-lg border border-slate-200/50 bg-slate-50/70 dark:border-slate-700/50 dark:bg-slate-800/50 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id="useCustomDate"
+                checked={useCustomDate}
+                onChange={(e) => setUseCustomDate(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400"
+              />
+              <label htmlFor="useCustomDate" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Use custom payment date
+              </label>
+            </div>
+            
+            {!useCustomDate ? (
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 px-3 py-2 rounded">
+                <span className="text-slate-400 dark:text-slate-500">→</span>
+                <span>Will set payment date to <strong>{today}</strong> (today)</span>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus:border-brand-500 dark:focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:focus:ring-brand-400/20"
+                />
+                {customDate && (
+                  <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
+                    <span className="text-slate-400 dark:text-slate-500">→</span>
+                    <span>Will set payment date to <strong>{customDate}</strong></span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-3">
             <button
               onClick={handleBatchMarkPaid}
               disabled={loading}
               className="w-full rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 px-4 py-3 text-sm font-medium text-white shadow-md transition-all duration-200"
             >
-              {loading ? "Updating..." : "✓ Mark as Payment Received"}
+              {loading ? "Updating..." : "✓ Mark as Client Paid"}
             </button>
 
             <button
@@ -141,7 +187,7 @@ export default function BulkEditor({
               disabled={loading}
               className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 px-4 py-3 text-sm font-medium text-white shadow-md transition-all duration-200"
             >
-              {loading ? "Updating..." : "✓ Mark Band as Paid"}
+              {loading ? "Updating..." : "✓ Mark as Band Paid"}
             </button>
 
             <button

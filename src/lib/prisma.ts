@@ -1,4 +1,5 @@
 ﻿import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -16,7 +17,12 @@ function createPrismaClient() {
   }
 
   try {
+    const adapter = new PrismaPg({
+      connectionString: dbUrl,
+    });
+    
     const client = new PrismaClient({
+      adapter,
       log: isDev ? ["query", "warn", "error"] : ["error"],
       errorFormat: "pretty",
     });
