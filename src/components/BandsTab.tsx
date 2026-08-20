@@ -7,6 +7,8 @@ import { useToast } from "./ToastContainer";
 import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useTranslation } from "react-i18next";
+import BandLogoFrame from "./BandLogoFrame";
+import Avatar from "./Avatar";
 
 interface Band {
   id: string;
@@ -23,6 +25,7 @@ interface BandMember {
   email: string | null;
   phone: string | null;
   notes: string | null;
+  avatarUrl?: string | null;
   bands: string[];
   updatedAt: string;
 }
@@ -377,7 +380,7 @@ export default function BandsTab() {
               </label>
               <div className="mt-2 flex items-center gap-4">
                 {logoPreview && (
-                  <img src={logoPreview} alt="Logo preview" className="h-16 w-16 rounded-lg object-cover" />
+                  <BandLogoFrame src={logoPreview} alt="Logo preview" size="lg" />
                 )}
                 <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                   {uploadingLogo ? "Uploading..." : t('bands.uploadLogo')}
@@ -504,7 +507,7 @@ export default function BandsTab() {
                         </label>
                         <div className="mt-2 flex items-center gap-4">
                           {logoPreview && (
-                            <img src={logoPreview} alt="Logo preview" className="h-16 w-16 rounded-lg object-cover" />
+                            <BandLogoFrame src={logoPreview} alt="Logo preview" size="lg" />
                           )}
                           <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                             {uploadingLogo ? "Uploading..." : t('bands.uploadLogo')}
@@ -557,7 +560,7 @@ export default function BandsTab() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           {band.logoUrl && (
-                            <img src={band.logoUrl} alt={band.name} className="h-12 w-12 rounded-lg object-cover" />
+                            <BandLogoFrame src={band.logoUrl} alt={band.name} size="md" />
                           )}
                           <div>
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{band.name}</h3>
@@ -589,8 +592,9 @@ export default function BandsTab() {
                             {bandMembers.map((member) => (
                               <span
                                 key={member.id}
-                                className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-3 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                               >
+                                <Avatar src={member.avatarUrl} name={member.name} email={member.email} size="xs" />
                                 {member.name}
                               </span>
                             ))}

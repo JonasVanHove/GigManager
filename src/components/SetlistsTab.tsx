@@ -9,6 +9,11 @@ import { createPrintDocument } from "@/lib/print-document";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useTranslation } from "react-i18next";
 import LoadingSpinner from "./LoadingSpinner";
+import {
+  getSpecialBlockTranslationKey,
+  isKnownSpecialBlock,
+  normalizeSpecialBlockKey,
+} from "@/lib/setlist-special-blocks";
 
 type SongRow = {
   id: string;
@@ -206,7 +211,14 @@ const createSpecialItem = (label: string): DraftItem => ({
 
 const cloneItem = (item: DraftItem): DraftItem => ({ ...item });
 
-const buildExportText = (setlist: StoredSetlist, songs: SongRow[]) => {
+type TranslateFn = (key: string) => string;
+
+const resolveSpecialBlockLabel = (label: string, t: TranslateFn): string => {
+  const translationKey = getSpecialBlockTranslationKey(label);
+  return translationKey ? t(translationKey) : label;
+};
+
+const buildExportText = (setlist: StoredSetlist, songs: SongRow[], t: TranslateFn) => {
   const lines: string[] = [];
   lines.push(setlist.naam);
   if (setlist.datum) lines.push(`Datum: ${setlist.datum}`);
@@ -214,16 +226,18 @@ const buildExportText = (setlist: StoredSetlist, songs: SongRow[]) => {
   lines.push(`Status: ${setlist.status}`);
   lines.push("");
 
-  setlist.items.forEach((item, index) => {
+  let songNumber = 0;
+  setlist.items.forEach((item) => {
     if (item.kind === "special") {
-      lines.push(`${index + 1}. ${item.specialLabel}`);
+      lines.push(resolveSpecialBlockLabel(item.specialLabel, t));
       return;
     }
 
+    songNumber++;
     const song = songs.find((entry) => entry.id === item.songId);
     const title = song?.title || item.label;
     const meta = [item.artist, item.tuning, item.key, item.tempo ? `${item.tempo} bpm` : ""].filter(Boolean).join(" · ");
-    lines.push(`${index + 1}. ${title}${meta ? ` — ${meta}` : ""}`);
+    lines.push(`${songNumber}. ${title}${meta ? ` — ${meta}` : ""}`);
     if (item.notitie.trim()) lines.push(`   ${item.notitie.trim()}`);
   });
 
@@ -485,7 +499,7 @@ export default function SetlistsTab() {
     return { withImages, withoutImages: songs.length - withImages };
   }, [songs]);
 
-  const exportText = useMemo(() => (draft ? buildExportText(draft, songs) : ""), [draft, songs]);
+  const exportText = useMemo(() => (draft ? buildExportText(draft, songs, t) : ""), [draft, songs, t]);
 
   const tuningExplanation = useMemo(() => {
     const lines: string[] = [];
@@ -494,9 +508,9 @@ export default function SetlistsTab() {
 
     for (const item of currentItems) {
       if (item.kind === "special") {
-        const label = item.specialLabel.toUpperCase();
-        if (label.includes("PAUZE")) lines.push(t('setlists.goodMomentForTuningChange'));
-        else if (label.includes("BIS")) lines.push(t('setlists.encoreNumber'));
+        const label = normalizeSpecialBlockKey(item.specialLabel);
+        if (label === "PAUZE") lines.push(t('setlists.goodMomentForTuningChange'));
+        else if (label === "BIS") lines.push(t('setlists.encoreNumber'));
         continue;
       }
 
@@ -1208,7 +1222,7 @@ export default function SetlistsTab() {
       }
     });
 
-    const preservedSpecials = specials.filter((item) => !["PAUZE", "BIS"].includes(item.specialLabel.toUpperCase()));
+    const preservedSpecials = specials.filter((item) => !isKnownSpecialBlock(item.specialLabel));
     updateDraft({ items: [...rebuilt, ...preservedSpecials] });
   }, [draft, updateDraft]);
 
@@ -1294,13 +1308,14 @@ export default function SetlistsTab() {
 
   const renderItem = (item: DraftItem, index: number, performance = false) => {
     const songNumber = getSongNumber(currentItems, index);
+    const specialBlockLabel = item.kind === "special" ? resolveSpecialBlockLabel(item.specialLabel, t) : "";
 
     if (item.kind === "special") {
       if (performance) {
         return (
           <div key={item.id} className="rounded-3xl border border-dashed border-slate-300 bg-slate-100/80 px-4 py-5 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200">
-            {item.specialLabel}
-            {item.specialLabel.toUpperCase().includes("PAUZE") && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">15 min</div>}
+            {specialBlockLabel}
+            {normalizeSpecialBlockKey(item.specialLabel) === "PAUZE" && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">15 min</div>}
           </div>
         );
       }
@@ -1318,7 +1333,7 @@ export default function SetlistsTab() {
           className="rounded-3xl border border-dashed border-slate-300 bg-slate-100/80 px-4 py-3 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
         >
           <div className="flex items-center justify-between gap-2">
-            <span>{item.specialLabel}</span>
+            <span>{specialBlockLabel}</span>
             <div className="flex gap-1">
               <button type="button" onClick={() => { setConvertingItemId(item.id); setShowSongPicker(true); }} className="rounded-lg border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title={t('setlists.convertToSong')} aria-label={t('setlists.convertToSong')}>
                 🎵
@@ -1837,6 +1852,11 @@ export default function SetlistsTab() {
         {/* Main content - full width & dynamic expansion */}
         <main className="flex-1 min-h-0 min-w-0 overflow-hidden bg-white/95 dark:bg-slate-950/85 transition-all duration-300 ease-in-out flex flex-col">
           {!activeDraft ? (
+            loading ? (
+              <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
+                <LoadingSpinner size="lg" message={t('setlists.loadingSetlists')} />
+              </div>
+            ) : (
             <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
               <div className="text-4xl sm:text-5xl">🎼</div>
               <div className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{setlists.length === 0 ? t('setlists.noSetlists') : t('setlists.noSelection')}</div>
@@ -1858,6 +1878,7 @@ export default function SetlistsTab() {
                 </button>
               )}
             </div>
+            )
           ) : (
             <div className="flex flex-col h-full min-h-0 overflow-y-auto p-3 sm:p-4 space-y-4">
               {/* Compact header for editing */}
@@ -1957,6 +1978,7 @@ export default function SetlistsTab() {
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                       <button type="button" onClick={() => addSpecial("PAUZE")} className="min-w-0 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900 hover:scale-105 active:scale-95 transition">{t('setlists.pause')}</button>
                       <button type="button" onClick={() => addSpecial("BIS")} className="min-w-0 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900 hover:scale-105 active:scale-95 transition">{t('setlists.bis')}</button>
+                      <button type="button" onClick={() => addSpecial("BINDTEKST")} className="min-w-0 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-white dark:bg-white dark:text-slate-900 hover:scale-105 active:scale-95 transition">{t('setlists.bindtekst')}</button>
                       <button type="button" onClick={() => addSpecial(window.prompt(t('setlists.customBlockLabel')) || "")} className="min-w-0 rounded-full border border-slate-300 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">{t('setlists.customBlock')}</button>
                       <label className="min-w-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 cursor-pointer flex items-center gap-1 hover:bg-amber-100 transition">
                         <input type="checkbox" checked={includeTuningNotes} onChange={(e) => handleTuningToggle(e.target.checked)} className="sr-only" />
@@ -2348,7 +2370,7 @@ export default function SetlistsTab() {
                 draft.items.forEach((item) => {
                   if (item.kind === 'special') {
                     // Render as divider without number
-                    htmlParts.push(`<div class="setlist-item" style="text-align:center;color:#64748b;font-size:11pt;font-weight:600;letter-spacing:0.1em;padding:4mm 0;border-top:1px dashed #e2e8f0;border-bottom:1px dashed #e2e8f0;text-transform:uppercase;">--- ${escapeHtml(item.specialLabel)} ---</div>`);
+                    htmlParts.push(`<div class="setlist-item" style="text-align:center;color:#64748b;font-size:11pt;font-weight:600;letter-spacing:0.1em;padding:4mm 0;border-top:1px dashed #e2e8f0;border-bottom:1px dashed #e2e8f0;text-transform:uppercase;">--- ${escapeHtml(resolveSpecialBlockLabel(item.specialLabel, t))} ---</div>`);
                     return;
                   }
                   

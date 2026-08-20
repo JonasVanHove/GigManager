@@ -10,6 +10,8 @@ import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
 import BandTag from "./BandTag";
 import { getBandColorStyles } from "@/lib/preferences";
+import Avatar from "./Avatar";
+import BandLogoFrame from "./BandLogoFrame";
 
 interface BandMemberGig {
   gigId: string;
@@ -34,6 +36,7 @@ interface BandMember {
   email: string | null;
   phone: string | null;
   notes: string | null;
+  avatarUrl?: string | null;
   bands: string[];
   updatedAt: string;
   totalEarned: number;
@@ -75,6 +78,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
   const [newBandName, setNewBandName] = useState("");
   const [newBandLogo, setNewBandLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [formAvatarUrl, setFormAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -102,6 +107,9 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
         edit: "Bewerken",
         delete: "Verwijderen",
         selectBands: "Selecteer bestaande bands of voeg nieuwe toe.",
+        memberPhoto: "Profielfoto",
+        uploadPhoto: "Foto uploaden",
+        removePhoto: "Foto verwijderen",
       }
     : {
         notes: "Notes",
@@ -122,6 +130,9 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
         edit: "Edit",
         delete: "Delete",
         selectBands: "Select existing bands or add new ones.",
+        memberPhoto: "Profile photo",
+        uploadPhoto: "Upload photo",
+        removePhoto: "Remove photo",
       };
 
   // Fetch band members
@@ -371,6 +382,37 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
     return calc.amountPerMusician;
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error(language === "nl" ? "Alleen afbeeldingen zijn toegestaan" : "Only image files are allowed");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(language === "nl" ? "Afbeelding mag maximaal 2 MB zijn" : "Image must be 2 MB or smaller");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop() || "jpg";
+      const fileName = `members/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from("avatars")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabaseClient.storage.from("avatars").getPublicUrl(fileName);
+      setFormAvatarUrl(publicUrl);
+    } catch (error) {
+      console.error("Member avatar upload failed:", error);
+      toast.error(language === "nl" ? "Uploaden van profielfoto mislukt" : "Failed to upload profile photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -396,6 +438,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
         body: JSON.stringify({
           ...formData,
           bands: formBands,
+          avatarUrl: formAvatarUrl,
         }),
       });
 
@@ -413,6 +456,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       setFormData({ name: "", email: "", phone: "", notes: "" });
       setFormBands([]);
       setNewBandName("");
+      setFormAvatarUrl(null);
       fetchMembers();
     } catch (error: any) {
       toast.error(error.message || "Failed to save band member");
@@ -427,6 +471,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       notes: member.notes || "",
     });
     setFormBands(member.bands || []);
+    setFormAvatarUrl(member.avatarUrl || null);
     setEditingId(member.id);
     setShowForm(true);
   };
@@ -457,6 +502,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
     setFormData({ name: "", email: "", phone: "", notes: "" });
     setFormBands([]);
     setNewBandName("");
+    setFormAvatarUrl(null);
   };
 
   const handleAddMemberClick = () => {
@@ -465,6 +511,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       setFormData({ name: "", email: "", phone: "", notes: "" });
       setFormBands([]);
       setNewBandName("");
+      setFormAvatarUrl(null);
     }
     setShowForm(!showForm);
   };
@@ -566,6 +613,42 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
             {editingId ? "Edit Band Member" : "New Band Member"}
           </h3>
+
+          <div className="mb-4 flex flex-wrap items-center gap-4">
+            <Avatar
+              src={formAvatarUrl}
+              name={formData.name}
+              email={formData.email}
+              size="lg"
+            />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{copy.memberPhoto}</p>
+              <div className="flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                  {uploadingAvatar ? "Uploading..." : copy.uploadPhoto}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleAvatarUpload(file);
+                    }}
+                    disabled={uploadingAvatar}
+                    className="hidden"
+                  />
+                </label>
+                {formAvatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormAvatarUrl(null)}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    {copy.removePhoto}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -663,7 +746,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
               </div>
               {newBandLogo && (
                 <div className="mt-2 flex items-center gap-2">
-                  <img src={newBandLogo} alt="Logo preview" className="h-8 w-8 rounded object-cover" />
+                  <BandLogoFrame src={newBandLogo} alt="Logo preview" size="sm" />
                   <button
                     type="button"
                     onClick={() => setNewBandLogo(null)}
@@ -804,7 +887,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                           style={{ borderColor: bandStyles.solid.backgroundColor }}
                         >
                           <div className="border-b px-4 py-3">
-                            <div className="flex items-start justify-between">
+                            <div className="flex items-start justify-between gap-3">
+                              <Avatar src={member.avatarUrl} name={member.name} email={member.email} size="md" />
                               <div className="min-w-0 flex-1">
                                 <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                                   {member.name}
@@ -919,7 +1003,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                     style={{ borderColor: bandStyles.solid.backgroundColor }}
                   >
                     <div className="border-b px-4 py-3">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-3">
+                        <Avatar src={member.avatarUrl} name={member.name} email={member.email} size="md" />
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-cyan-300">
                             {member.name}

@@ -254,6 +254,7 @@ model BandMember {
   email     String?
   phone     String?
   notes     String?
+  avatarUrl String?
   userId    String
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt

@@ -98,7 +98,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { name, email, phone, notes } = body;
+    const { name, email, phone, notes, avatarUrl } = body;
     const bands = Array.isArray(body.bands)
       ? body.bands
           .filter((band: unknown) => typeof band === "string")
@@ -113,6 +113,9 @@ export async function PATCH(
         ...(email !== undefined && { email: email?.trim() || null }),
         ...(phone !== undefined && { phone: phone?.trim() || null }),
         ...(notes !== undefined && { notes: notes?.trim() || null }),
+        ...(avatarUrl !== undefined && {
+          avatarUrl: typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : null,
+        }),
         ...(bands !== undefined && { bands }),
       },
     });

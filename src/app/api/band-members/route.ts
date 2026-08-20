@@ -168,6 +168,7 @@ export async function GET(req: NextRequest) {
         email: member.email,
         phone: member.phone,
         notes: member.notes,
+        avatarUrl: member.avatarUrl,
         bands: member.bands,
         updatedAt: member.updatedAt,
         totalEarned,
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
     const { user } = authResult as { user: { id: string } };
 
     const body = await req.json();
-    const { name, email, phone, notes } = body;
+    const { name, email, phone, notes, avatarUrl } = body;
     const bands = Array.isArray(body.bands)
       ? body.bands
           .filter((band: unknown) => typeof band === "string")
@@ -216,6 +217,7 @@ export async function POST(req: NextRequest) {
         email: email?.trim() || null,
         phone: phone?.trim() || null,
         notes: notes?.trim() || null,
+        avatarUrl: typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : null,
         bands,
         userId: user.id,
       },

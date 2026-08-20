@@ -62,6 +62,19 @@ describe('Setlist Song Numbering', () => {
     it('should not count special items in numbering', () => {
       const items: DraftItem[] = [
         { id: '1', kind: 'song', songId: 'song1', label: 'Song A', artist: '', tuning: 'Standard', key: '', tempo: '', notitie: '', specialLabel: '', expanded: false },
+        { id: '2', kind: 'special', songId: null, label: '', artist: '', tuning: '', key: '', tempo: '', notitie: '', specialLabel: 'BINDTEKST', expanded: false },
+        { id: '3', kind: 'special', songId: null, label: '', artist: '', tuning: '', key: '', tempo: '', notitie: '', specialLabel: 'PAUZE', expanded: false },
+        { id: '4', kind: 'song', songId: 'song2', label: 'Song B', artist: '', tuning: 'Standard', key: '', tempo: '', notitie: '', specialLabel: '', expanded: false }
+      ];
+      expect(getSongNumber(items, 0)).toBe(1);
+      expect(getSongNumber(items, 1)).toBe(1);
+      expect(getSongNumber(items, 2)).toBe(1);
+      expect(getSongNumber(items, 3)).toBe(2);
+    });
+
+    it('should not count special items in numbering (legacy case)', () => {
+      const items: DraftItem[] = [
+        { id: '1', kind: 'song', songId: 'song1', label: 'Song A', artist: '', tuning: 'Standard', key: '', tempo: '', notitie: '', specialLabel: '', expanded: false },
         { id: '2', kind: 'special', songId: null, label: '', artist: '', tuning: '', key: '', tempo: '', notitie: '', specialLabel: 'PAUZE', expanded: false },
         { id: '3', kind: 'song', songId: 'song2', label: 'Song B', artist: '', tuning: 'Standard', key: '', tempo: '', notitie: '', specialLabel: '', expanded: false }
       ];

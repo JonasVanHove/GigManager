@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
+import { getSpecialBlockDisplayLabel } from "@/lib/setlist-special-blocks";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,7 @@ export async function GET(
     const includeChords = request.nextUrl.searchParams.get("includeChords") === "1";
     const includeTuning = request.nextUrl.searchParams.get("includeTuning") === "1";
     const includeImages = request.nextUrl.searchParams.get("includeImages") !== "0";
+    const locale = request.nextUrl.searchParams.get("locale") || "nl";
 
     const setlist = await prisma.setlist.findFirst({
       where: { id: params.id, userId: user.id },
@@ -110,20 +112,19 @@ export async function GET(
       tuning: string | null;
     }>;
 
-    items.forEach((item, index: number) => {
-      const label = item.type === "note" ? "Note" : "Song";
-      const title = item.title?.trim() || (item.type === "note" ? "" : "Untitled");
-      const headerText = title ? `${index + 1}. ${title}` : `${index + 1}. ${label}`;
-
-      paragraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: headerText, bold: true }),
-          ],
-        })
-      );
-
+    let songNumber = 0;
+    items.forEach((item) => {
       if (item.type === "note") {
+        const title = item.title?.trim() || "";
+        if (title) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: getSpecialBlockDisplayLabel(title, locale), bold: true }),
+              ],
+            })
+          );
+        }
         const noteText = item.notes?.trim();
         if (noteText) {
           paragraphs.push(
@@ -135,6 +136,19 @@ export async function GET(
         paragraphs.push(new Paragraph({ text: "" }));
         return;
       }
+
+      songNumber++;
+      const label = "Song";
+      const title = item.title?.trim() || "Untitled";
+      const headerText = `${songNumber}. ${title}`;
+
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: headerText, bold: true }),
+          ],
+        })
+      );
 
       if (includeTuning && item.tuning?.trim()) {
         paragraphs.push(

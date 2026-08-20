@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense, lazy, useDeferredValue, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Avatar from "./Avatar";
 import { recordWebVital } from "@/lib/web-vitals-logger";
 import { recordMetric } from "@/lib/performance-metrics";
 import type { Gig, GigFormData, DashboardSummary } from "@/types";
@@ -1271,30 +1272,37 @@ export default function Dashboard() {
               <button
                 onClick={() => setShowProfileMenu((open) => !open)}
                 title="Profile & Settings"
-                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow-md hover:shadow-lg transition duration-200 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 flex-shrink-0"
+                className="flex-shrink-0 rounded-full shadow-md transition duration-200 hover:shadow-lg"
               >
-                {session.user?.user_metadata?.avatar_url ? (
-                  <Image
-                    src={session.user.user_metadata.avatar_url}
-                    alt="Profile avatar"
-                    width={32}
-                    height={32}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  (session.user?.user_metadata?.name || session.user?.email || "?").charAt(0).toUpperCase()
-                )}
+                <Avatar
+                  src={session.user?.user_metadata?.avatar_url}
+                  name={session.user?.user_metadata?.name}
+                  email={session.user?.email}
+                  size="md"
+                  priority
+                />
               </button>
               {showProfileMenu && (
                 <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 text-sm shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 dark:backdrop-blur menu-enter">
                   {/* Profile info header */}
-                  <div className="border-b border-slate-200 dark:border-slate-700 p-3">
-                    <p className="font-semibold text-slate-800 dark:text-slate-100">
-                      {session.user?.user_metadata?.name || t('settings.profileFallback')}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {session.user?.email}
-                    </p>
+                  <div className="border-b border-slate-200 p-3 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        src={session.user?.user_metadata?.avatar_url}
+                        name={session.user?.user_metadata?.name}
+                        email={session.user?.email}
+                        size="lg"
+                        priority
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-800 dark:text-slate-100">
+                          {session.user?.user_metadata?.name || t('settings.profileFallback')}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                          {session.user?.email}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   {/* Menu items */}
                   <div className="py-2">

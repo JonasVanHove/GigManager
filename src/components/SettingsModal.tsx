@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
+import Avatar from "./Avatar";
 import { useEffect, useState } from "react";
 import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
@@ -227,21 +228,12 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               {t('settings.profile')}
             </label>
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-200 text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-100">
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt="Profile avatar"
-                    width={48}
-                    height={48}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm font-semibold">
-                    {(displayName || session?.user?.email || "?").charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
+              <Avatar
+                src={avatarUrl}
+                name={displayName}
+                email={session?.user?.email}
+                size="lg"
+              />
               <div className="flex-1 space-y-2">
                 <input
                   type="text"
