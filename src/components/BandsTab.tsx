@@ -9,6 +9,7 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { useTranslation } from "react-i18next";
 import BandLogoFrame from "./BandLogoFrame";
 import Avatar from "./Avatar";
+import { normalizeArrayResponse } from "@/lib/api-response";
 
 interface Band {
   id: string;
@@ -65,19 +66,30 @@ export default function BandsTab() {
   const loadMembers = useCallback(async () => {
     try {
       const token = await getAccessToken();
-      if (!token) throw new Error("No auth token");
+      if (!token) {
+        setMembers([]);
+        setMemberError(null);
+        return;
+      }
 
       const response = await fetch("/api/band-members", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setMembers([]);
+          setMemberError(null);
+          return;
+        }
+
         const message = await response.text();
         throw new Error(message || t('bands.errorMembers'));
       }
 
-      const data = await response.json();
-      setMembers(Array.isArray(data) ? data : []);
+      const data = await response.json().catch(() => []);
+      const nextMembers = normalizeArrayResponse<BandMember>(data);
+      setMembers(nextMembers);
       setMemberError(null);
     } catch (error) {
       console.error("Failed to load members:", error);

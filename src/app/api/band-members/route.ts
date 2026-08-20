@@ -48,8 +48,15 @@ async function requireAuth(request: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const authResult = await requireAuth(req);
-    if (authResult instanceof NextResponse) return authResult;
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { user } = authResult as { user: { id: string } };
+    if (!user?.id) {
+      console.warn("[API /api/band-members Error]: Missing active user after auth check");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const cacheKey = getCacheKey(user.id, "band-members");
     const cached = getCacheEntry<unknown[]>(cacheKey);
@@ -91,16 +98,24 @@ export async function GET(req: NextRequest) {
         orderBy: { name: "asc" },
       });
     } catch (queryError) {
-      console.error("[GET /api/band-members] Prisma query failed", {
+      console.error("[API /api/band-members Error]: Prisma query failed", {
         userId: user.id,
         message: queryError instanceof Error ? queryError.message : String(queryError),
         code: (queryError as any)?.code,
+        stack: queryError instanceof Error ? queryError.stack : undefined,
       });
-      return NextResponse.json({ error: "Failed to load band members", details: queryError instanceof Error ? queryError.message : String(queryError) }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Failed to load band members",
+          details: queryError instanceof Error ? queryError.message : String(queryError),
+          type: "database_error",
+        },
+        { status: 500 }
+      );
     }
 
-    if (!Array.isArray(bandMembers)) {
-      console.warn("[GET /api/band-members] Empty or invalid member payload; returning empty list", { userId: user.id, result: bandMembers });
+    if (!Array.isArray(bandMembers) || bandMembers.length === 0) {
+      console.info("[API /api/band-members] No active band members; returning empty list", { userId: user.id });
       return NextResponse.json([], { headers: getApiCacheHeaders(30, "MISS") });
     }
 
@@ -132,7 +147,7 @@ export async function GET(req: NextRequest) {
         );
       }
     } catch (investmentError) {
-      console.warn("[band-members] Invested totals unavailable, continuing without them", investmentError);
+      console.warn("[API /api/band-members] Invested totals unavailable, continuing without them", investmentError);
     }
 
     const bandMembersWithTotals = bandMembers.map((member) => {
@@ -215,10 +230,7 @@ export async function GET(req: NextRequest) {
     setCacheEntry(cacheKey, bandMembersWithTotals, 30);
     return NextResponse.json(bandMembersWithTotals, { headers: getApiCacheHeaders(30, "MISS") });
   } catch (error) {
-    console.error("[GET /api/band-members] Uncaught error:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error("[API /api/band-members Error]:", error);
     const statusCode = getErrorStatusCode(error);
     const errorResponse = formatErrorResponse(error);
     return NextResponse.json(errorResponse, { status: statusCode });

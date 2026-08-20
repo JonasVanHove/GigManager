@@ -7,6 +7,7 @@ import LoadingSpinner from "./LoadingSpinner";
 import { calculateGigFinancials } from "@/lib/calculations";
 import { useSettings } from "./SettingsProvider";
 import { Icons } from "./Icons";
+import { normalizeArrayResponse } from "@/lib/api-response";
 
 interface BandMemberOption {
   id: string;
@@ -165,16 +166,19 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        setBandMembers([]);
+        return;
+      }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => []);
+      const members = normalizeArrayResponse<{ id: string; name: string }>(data);
       setBandMembers(
-        Array.isArray(data)
-          ? data.map((member: { id: string; name: string }) => ({ id: member.id, name: member.name }))
-          : []
+        members.map((member) => ({ id: member.id, name: member.name }))
       );
     } catch (error) {
       console.error("Fetch band members error:", error);
+      setBandMembers([]);
     }
   }, [session?.user, getAccessToken]);
 

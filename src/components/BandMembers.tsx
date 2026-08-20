@@ -12,6 +12,7 @@ import BandTag from "./BandTag";
 import { getBandColorStyles } from "@/lib/preferences";
 import Avatar from "./Avatar";
 import BandLogoFrame from "./BandLogoFrame";
+import { normalizeArrayResponse } from "@/lib/api-response";
 
 interface BandMemberGig {
   gigId: string;
@@ -139,14 +140,29 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
   const fetchMembers = useCallback(async () => {
     try {
       const token = await getAccessToken();
-      if (!token) throw new Error("No auth token");
+      if (!token) {
+        setMembers([]);
+        return;
+      }
+
       const response = await fetch("/api/band-members", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch");
-      const data = await response.json();
-      setMembers(data);
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        if (response.status === 401) {
+          setMembers([]);
+          return;
+        }
+        throw new Error(payload?.error || "Failed to fetch band members");
+      }
+
+      const data = await response.json().catch(() => []);
+      setMembers(normalizeArrayResponse<BandMember>(data));
     } catch (error) {
+      console.error("Failed to load band members:", error);
+      setMembers([]);
       toast.error("Failed to load band members");
     } finally {
       setLoading(false);
