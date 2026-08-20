@@ -602,7 +602,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Band Members
@@ -613,7 +613,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
         </div>
         <button
           onClick={handleAddMemberClick}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+          className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 sm:w-auto"
         >
           <Icons.Plus className="h-5 w-5" />
           Add Member
@@ -624,23 +624,23 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          className="overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6"
         >
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
             {editingId ? "Edit Band Member" : "New Band Member"}
           </h3>
 
-          <div className="mb-4 flex flex-wrap items-center gap-4">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
             <Avatar
               src={formAvatarUrl}
               name={formData.name}
               email={formData.email}
               size="lg"
             />
-            <div className="space-y-2">
+            <div className="w-full space-y-2">
               <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{copy.memberPhoto}</p>
               <div className="flex flex-wrap gap-2">
-                <label className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                <label className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                   {uploadingAvatar ? "Uploading..." : copy.uploadPhoto}
                   <input
                     type="file"
@@ -657,7 +657,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                   <button
                     type="button"
                     onClick={() => setFormAvatarUrl(null)}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     {copy.removePhoto}
                   </button>
@@ -675,7 +675,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 required
               />
             </div>
@@ -688,7 +688,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               />
             </div>
 
@@ -700,7 +700,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               />
             </div>
 
@@ -800,22 +800,22 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={2}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               />
             </div>
           </div>
 
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
             >
               {editingId ? copy.updateMember : copy.addMember}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               {copy.cancel}
             </button>
@@ -925,21 +925,21 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                             <div className="ml-2 flex gap-1">
                               <button
                                 onClick={() => openGigPicker(member)}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
+                                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-0 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
                                 title={copy.assignGigs}
                               >
                                 <Icons.Calendar className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleEdit(member)}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/20"
+                                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-0 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/20"
                                 title={copy.edit}
                               >
                                 <Icons.Edit className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(member.id, member.name)}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-0 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                                 title={copy.delete}
                               >
                                 <Icons.Trash className="h-4 w-4" />
@@ -1041,21 +1041,21 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                       <div className="ml-2 flex gap-1">
                         <button
                           onClick={() => openGigPicker(member)}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
+                          className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-0 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
                           title="Assign gigs"
                         >
                           <Icons.Calendar className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleEdit(member)}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/20"
+                          className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-0 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/20"
                           title="Edit"
                         >
                           <Icons.Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(member.id, member.name)}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                          className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-0 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                           title="Delete"
                         >
                           <Icons.Trash className="h-4 w-4" />

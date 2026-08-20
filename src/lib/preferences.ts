@@ -61,64 +61,138 @@ export function getBandHue(bandName: string) {
 }
 
 export function getBandColorStyles(bandName: string, bandColor?: string | null) {
-  // Use the custom band color if provided, otherwise fall back to hash-based color
-  if (bandColor) {
+  const resolvedBandColor = bandColor ? normalizeColorToHex(bandColor) : null;
+
+  if (resolvedBandColor) {
+    const solidTextColor = getContrastColor(resolvedBandColor);
+    const borderColor = adjustColor(resolvedBandColor, -20);
     return {
       solid: {
-        backgroundColor: bandColor,
-        borderColor: adjustColor(bandColor, -20),
-        color: getContrastColor(bandColor),
+        backgroundColor: resolvedBandColor,
+        borderColor,
+        color: solidTextColor,
       },
       soft: {
-        backgroundColor: hexToRgba(bandColor, 0.15), // 15% opacity
-        borderColor: adjustColor(bandColor, -15),
-        color: adjustColor(bandColor, -60), // Darker text for better contrast
+        backgroundColor: hexToRgba(resolvedBandColor, 0.18),
+        borderColor: adjustColor(resolvedBandColor, -15),
+        color: solidTextColor,
       },
       line: {
-        borderColor: bandColor,
-        color: adjustColor(bandColor, -35),
+        borderColor: resolvedBandColor,
+        color: solidTextColor,
       },
     } as const;
   }
 
   const hue = getBandHue(bandName);
   const solidColor = `hsl(${hue} 68% 42%)`;
-  const softColor = hslToRgba(hue, 68, 94, 0.15); // 15% opacity
+  const solidHex = hslToHex(hue, 68, 42);
+  const solidTextColor = getContrastColor(solidHex);
+  const softColor = hslToRgba(hue, 68, 94, 0.15);
   const borderColor = `hsl(${hue} 70% 78%)`;
-  const textColor = `hsl(${hue} 58% 25%)`; // Darker for better contrast
-  
+
   return {
     solid: {
       backgroundColor: solidColor,
       borderColor: `hsl(${hue} 68% 34%)`,
-      color: "#ffffff",
+      color: solidTextColor,
     },
     soft: {
       backgroundColor: softColor,
-      borderColor: borderColor,
-      color: textColor,
+      borderColor,
+      color: solidTextColor,
     },
     line: {
       borderColor: solidColor,
-      color: textColor,
+      color: solidTextColor,
     },
   } as const;
 }
 
 function hslToRgba(h: number, s: number, l: number, a: number): string {
-  s /= 100;
-  l /= 100;
-  const k = (n: number) => (n + h / 30) % 12;
-  const a2 = s * Math.min(l, 1 - l);
-  const f = (n: number) => l - a2 * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-  const r = Math.round(f(0) * 255);
-  const g = Math.round(f(8) * 255);
-  const b = Math.round(f(4) * 255);
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
+  const rgb = hslToRgb(h, s, l);
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const rgb = hslToRgb(h, s, l);
+  return rgbToHex(rgb.r, rgb.g, rgb.b);
+}
+
+function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = s / 100;
+  const light = l / 100;
+
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = light - c / 2;
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (hue < 60) {
+    r = c; g = x; b = 0;
+  } else if (hue < 120) {
+    r = x; g = c; b = 0;
+  } else if (hue < 180) {
+    r = 0; g = c; b = x;
+  } else if (hue < 240) {
+    r = 0; g = x; b = c;
+  } else if (hue < 300) {
+    r = x; g = 0; b = c;
+  } else {
+    r = c; g = 0; b = x;
+  }
+
+  return {
+    r: Math.round((r + m) * 255),
+    g: Math.round((g + m) * 255),
+    b: Math.round((b + m) * 255),
+  };
+}
+
+function normalizeColorToHex(color: string): string {
+  const trimmed = color.trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+    const hex = trimmed.replace('#', '');
+    if (hex.length === 3) {
+      return `#${hex.split('').map((char) => char + char).join('')}`.toLowerCase();
+    }
+    return `#${hex.toLowerCase()}`;
+  }
+
+  if (/^rgba?\(/i.test(trimmed)) {
+    const matches = trimmed.match(/rgba?\(([^)]+)\)/i)?.[1]?.split(',').map((part) => part.trim());
+    if (matches && matches.length >= 3) {
+      const r = Number(matches[0]);
+      const g = Number(matches[1]);
+      const b = Number(matches[2]);
+      return rgbToHex(r, g, b);
+    }
+  }
+
+  if (/^hsla?\(/i.test(trimmed)) {
+    const matches = trimmed.match(/hsla?\(([^)]+)\)/i)?.[1]?.split(',');
+    if (matches && matches.length >= 3) {
+      const h = Number(matches[0]);
+      const s = Number(matches[1].replace('%', ''));
+      const l = Number(matches[2].replace('%', ''));
+      return hslToHex(h, s, l);
+    }
+  }
+
+  return '#111827';
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (value: number) => Math.min(255, Math.max(0, value)).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 function hexToRgba(hex: string, alpha: number): string {
-  const color = hex.replace('#', '');
+  const color = normalizeColorToHex(hex).replace('#', '');
   const num = parseInt(color, 16);
   const r = (num >> 16) & 0xFF;
   const g = (num >> 8) & 0xFF;
@@ -126,25 +200,26 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function getContrastColor(hex: string): string {
-  const color = hex.replace('#', '');
-  const num = parseInt(color, 16);
-  const r = (num >> 16) & 0xFF;
-  const g = (num >> 8) & 0xFF;
-  const b = num & 0xFF;
-  
-  // Calculate luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
-  // Return white for dark colors, black for light colors
-  return luminance > 0.5 ? '#1f2937' : '#ffffff';
+function getContrastColor(backgroundColor: string): string {
+  const { r, g, b } = colorToRgb(backgroundColor);
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.55 ? '#111827' : '#ffffff';
+}
+
+function colorToRgb(color: string): { r: number; g: number; b: number } {
+  const hex = normalizeColorToHex(color).replace('#', '');
+  const value = parseInt(hex, 16);
+  return {
+    r: (value >> 16) & 0xFF,
+    g: (value >> 8) & 0xFF,
+    b: value & 0xFF,
+  };
 }
 
 function adjustColor(hex: string, amount: number): string {
-  const color = hex.replace('#', '');
-  const num = parseInt(color, 16);
-  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
-  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  const rgb = colorToRgb(hex);
+  const r = Math.min(255, Math.max(0, rgb.r + amount));
+  const g = Math.min(255, Math.max(0, rgb.g + amount));
+  const b = Math.min(255, Math.max(0, rgb.b + amount));
+  return rgbToHex(r, g, b);
 }
