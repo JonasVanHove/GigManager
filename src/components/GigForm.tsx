@@ -1,12 +1,13 @@
 ﻿"use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Icons } from "./Icons";
 import type { Gig, GigFormData } from "@/types";
 import { calculateGigFinancials, formatCurrency } from "@/lib/calculations";
 import { useAuth } from "./AuthProvider";
 import { PhotoAnnotationEditor } from "./PhotoAnnotationEditor";
 import { useSettings } from "./SettingsProvider";
+import { hasGigFormChanges } from "@/lib/gig-form-dirty-state";
 
 interface BandMemberOption {
   id: string;
@@ -113,6 +114,16 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   const [newBandName, setNewBandName] = useState("");
   const [showNotesEditor, setShowNotesEditor] = useState(false);
   const [concertMode, setConcertMode] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const initialFormRef = useRef<GigFormData>(gig ? gigToFormData(gig) : emptyForm);
+
+  const isDirty = useMemo(
+    () => hasGigFormChanges(initialFormRef.current, form, selectedMemberIds),
+    [form, selectedMemberIds]
+  );
 
   const setPerformanceMode = (nextConcertMode: boolean) => {
     setConcertMode(nextConcertMode);
@@ -127,6 +138,20 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
       if (v) setConcertMode(v === 'concert');
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateViewport = () => setIsMobileView(window.innerWidth < 768);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!gig) return;
+    initialFormRef.current = gigToFormData(gig);
+  }, [gig]);
 
   const parseNames = (value: string) =>
     value
@@ -239,19 +264,6 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
     }
   }, [form.isCharity, form.date]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      const confirmed = window.confirm("Discard this performance?");
-      if (confirmed) {
-        onCancel();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onCancel]);
   const fetchBandMembers = useCallback(async () => {
     try {
       setBandMembersLoading(true);
@@ -477,6 +489,13 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
     setSyncFromMembers(true);
   };
 
+  const handleCancelAction = useCallback(() => {
+    if (isDirty && !window.confirm("Discard unsaved changes?")) {
+      return;
+    }
+    onCancel();
+  }, [isDirty, onCancel]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -503,6 +522,55 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
     }
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      handleCancelAction();
+    };
+
+    const handlePopState = () => {
+      handleCancelAction();
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("keydown", handleEscapeKey);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKey);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [handleCancelAction]);
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch || touch.clientX > 32) {
+      touchStartRef.current = null;
+      return;
+    }
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current) return;
+    const touch = event.changedTouches[0];
+    if (!touch) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    if (deltaX < -80 && Math.abs(deltaY) < 100) {
+      handleCancelAction();
+    }
+    touchStartRef.current = null;
+  };
+
   // -- Shared styles ----------------------------------------------------------
   const inputCls =
     "block w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-brand-500 dark:focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:focus:ring-brand-400/20 disabled:opacity-50";
@@ -510,996 +578,472 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 sm:items-start sm:px-4 sm:py-10 backdrop-blur-sm modal-backdrop-enter">
-        <div className="modal-sheet-mobile w-full max-w-2xl max-h-[100dvh] overflow-y-auto rounded-t-2xl bg-white dark:bg-slate-900 shadow-2xl sm:max-h-none sm:rounded-2xl modal-content-enter">
-        {/* Header */}
-        <div className="border-b border-slate-200 dark:border-slate-700 px-4 py-4 sm:px-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {gig ? "Edit Performance" : "Add Performance"}
-          </h2>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            {gig
-              ? "Update the details of this gig."
-              : "Enter the details for the new gig."}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-6 py-5">
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 px-4 py-2.5 text-sm text-red-700 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          {/* -- Event details ------------------------------------------- */}
-          <fieldset className="mb-5">
-            <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-              Event Details
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className={labelCls}>
-                  Event Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className={`${inputCls} ${
-                    fieldErrors.eventName
-                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
-                      : ""
-                  }`}
-                  placeholder="e.g. Jazz at the Park"
-                  value={form.eventName}
-                  onChange={(e) => {
-                    set("eventName", e.target.value);
-                    if (fieldErrors.eventName) {
-                      setFieldErrors((prev) => ({ ...prev, eventName: "" }));
-                    }
-                  }}
-                  onBlur={(e) => handleBlur("eventName", e.target.value)}
-                  required
-                />
-                {fieldErrors.eventName && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                    {fieldErrors.eventName}
-                  </p>
-                )}
-              </div>
+      <div
+        className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 sm:items-start sm:px-4 sm:py-10 backdrop-blur-sm modal-backdrop-enter"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            handleCancelAction();
+          }
+        }}
+      >
+        <div
+          className="modal-sheet-mobile flex max-h-[100dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-slate-900 sm:max-h-none sm:rounded-2xl modal-content-enter"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 sm:px-6">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <label className={labelCls}>
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  className={`${inputCls} ${
-                    fieldErrors.date
-                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
-                      : ""
-                  }`}
-                  value={form.date}
-                  onChange={(e) => {
-                    set("date", e.target.value);
-                    if (fieldErrors.date) {
-                      setFieldErrors((prev) => ({ ...prev, date: "" }));
-                    }
-                  }}
-                  onBlur={(e) => handleBlur("date", e.target.value)}
-                  required
-                />
-                {form.date && (
-                  <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
-                    <span className="text-slate-400 dark:text-slate-500">→</span>
-                    <span className="font-medium">
-                      {new Date(form.date).toLocaleDateString("nl-BE", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </p>
-                )}
-                {fieldErrors.date && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                    {fieldErrors.date}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelCls}>Booking Date</label>
-                <label className="mb-2 flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400"
-                    checked={form.isTentative}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      set("isTentative", checked);
-                      if (checked) {
-                        set("bookingDate", "");
-                      } else if (!form.bookingDate) {
-                        set("bookingDate", new Date().toISOString().split("T")[0]);
-                      }
-                    }}
-                  />
-                  Tentative performance (not confirmed yet)
-                </label>
-                <input
-                  type="date"
-                  className={inputCls}
-                  value={form.bookingDate}
-                  onChange={(e) => set("bookingDate", e.target.value)}
-                  disabled={form.isTentative}
-                />
-                {form.bookingDate && !form.isTentative && (
-                  <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
-                    <span className="text-slate-400 dark:text-slate-500">→</span>
-                    <span className="font-medium">
-                      {new Date(form.bookingDate).toLocaleDateString("nl-BE", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </p>
-                )}
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {form.isTentative
-                    ? "Booking date is not finalized yet for this performance."
-                    : "When the booking was made (default: today)"}
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  {gig ? "Edit Performance" : "Add Performance"}
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                  {gig ? "Update the details of this gig." : "Enter the details for the new gig."}
                 </p>
               </div>
-              <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/30">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <label className={labelCls}>
-                      Band / Artist <span className="text-red-500">*</span>
-                    </label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Pick an existing band first, or add a new one and use it immediately.
-                    </p>
-                  </div>
-                  <div className="min-w-[180px] text-right text-xs text-slate-400 dark:text-slate-500">
-                    {bandOptions.length > 0
-                      ? `${bandOptions.length} saved band${bandOptions.length !== 1 ? "s" : ""} available`
-                      : "No saved bands yet"}
-                  </div>
-                </div>
+              {isDirty && (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-300">
+                  Unsaved
+                </span>
+              )}
+            </div>
+          </div>
 
-                <div className="mt-3">
-                  <label className={labelCls}>
-                    Select Band (optional)
-                  </label>
-                  <select
-                    className={inputCls}
-                    value={form.bandId || ""}
-                    onChange={(e) => set("bandId", e.target.value || null)}
-                  >
-                    <option value="">No band selected</option>
-                    {bandsList.map((band) => (
-                      <option key={band.id} value={band.id}>
-                        {band.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <form id="gig-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+            {error && (
+              <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 px-4 py-2.5 text-sm text-red-700 dark:text-red-400">
+                {error}
+              </div>
+            )}
 
-                <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                  <select
-                    className={inputCls}
-                    value={selectedBandName}
-                    onChange={(e) => handleSelectBand(e.target.value)}
-                  >
-                    <option value="">Choose an existing band name</option>
-                    {bandOptions.map((band) => (
-                      <option key={band} value={band}>
-                        {band}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="flex gap-2 lg:min-w-[320px]">
-                    <input
-                      type="text"
-                      value={newBandName}
-                      onChange={(e) => setNewBandName(e.target.value)}
-                      placeholder="Add new band"
-                      className={inputCls}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddBand}
-                      disabled={!newBandName.trim()}
-                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <label className={labelCls}>
-                    Band / Artist name <span className="text-red-500">*</span>
-                  </label>
+            <fieldset className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+              <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">General Details</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Event Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
-                    className={`${inputCls} ${
-                      fieldErrors.performers
-                        ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
-                        : ""
-                    }`}
-                    placeholder="e.g. The Blue Notes"
-                    value={form.performers}
-                    onChange={(e) => {
-                      set("performers", e.target.value);
-                      if (fieldErrors.performers) {
-                        setFieldErrors((prev) => ({ ...prev, performers: "" }));
-                      }
-                    }}
-                    onBlur={(e) => handleBlur("performers", e.target.value)}
+                    className={`${inputCls} ${fieldErrors.eventName ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`}
+                    placeholder="e.g. Jazz at the Park"
+                    value={form.eventName}
+                    onChange={(e) => { set("eventName", e.target.value); if (fieldErrors.eventName) setFieldErrors((prev) => ({ ...prev, eventName: "" })); }}
+                    onBlur={(e) => handleBlur("eventName", e.target.value)}
                     required
                   />
-                  {fieldErrors.performers && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                      {fieldErrors.performers}
-                    </p>
-                  )}
+                  {fieldErrors.eventName && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.eventName}</p>}
                 </div>
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelCls}>Performance line-up</label>
-                <input
-                  type="text"
-                  className={inputCls}
-                  placeholder="e.g. Alice, Bob, Chris"
-                  value={form.performanceLineup}
-                  onChange={(e) => set("performanceLineup", e.target.value)}
-                />
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Names who played in this performance. Use commas to separate.
-                </p>
-              </div>
-              <div>
-                <label className={labelCls}>
-                  Number of Musicians <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  className={`${inputCls} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                    fieldErrors.numberOfMusicians
-                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
-                      : ""
-                  }`}
-                  style={{ MozAppearance: 'textfield' }}
-                  value={form.numberOfMusicians || ""}
-                  onChange={(e) => {
-                    const val = e.target.value.trim();
-                    if (val === "") {
-                      set("numberOfMusicians", 0);
-                    } else {
-                      set("numberOfMusicians", Math.max(1, Number(val)));
-                    }
-                    if (fieldErrors.numberOfMusicians) {
-                      setFieldErrors((prev) => ({ ...prev, numberOfMusicians: "" }));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const val = Math.max(1, Number(e.target.value) || 1);
-                    set("numberOfMusicians", val);
-                    handleBlur("numberOfMusicians", val);
-                  }}
-                  required
-                />
-                {fieldErrors.numberOfMusicians && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                    {fieldErrors.numberOfMusicians}
-                  </p>
-                )}
-                <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={form.managerPerforms}
-                    onChange={(e) => set("managerPerforms", e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span>I play in this performance</span>
-                </div>
-                {syncFromMembers && (
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Count auto-syncs from selected members + line-up names + me.
-                  </p>
-                )}
-              </div>
-            </div>
 
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    Band members
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Select members to sync the line-up and musician count.
-                  </p>
+                  <label className={labelCls}>Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    className={`${inputCls} ${fieldErrors.date ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`}
+                    value={form.date}
+                    onChange={(e) => { set("date", e.target.value); if (fieldErrors.date) setFieldErrors((prev) => ({ ...prev, date: "" })); }}
+                    onBlur={(e) => handleBlur("date", e.target.value)}
+                    required
+                  />
+                  {fieldErrors.date && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.date}</p>}
                 </div>
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={syncFromMembers}
-                    onChange={(e) => setSyncFromMembers(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  Sync to fields
-                </label>
-              </div>
 
-              <div className="mt-3">
-                <input
-                  type="text"
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                  placeholder="Search by name or band"
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                />
-              </div>
-
-              <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
-                {bandMembersLoading ? (
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Loading band members...
-                  </div>
-                ) : filteredMembers.length === 0 ? (
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    No band members found.
-                  </div>
-                ) : (
-                  filteredMembers.map((member) => (
-                    <label
-                      key={member.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedMemberIds.includes(member.id)}
-                          onChange={() => toggleMember(member.id)}
-                          className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                        />
-                        <span className="font-medium">{member.name}</span>
-                      </div>
-                      {member.bands && member.bands.length > 0 && (
-                        <span className="text-xs text-slate-400">
-                          {member.bands.join(", ")}
-                        </span>
-                      )}
-                    </label>
-                  ))
-                )}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <input
-                  type="text"
-                  value={newMemberName}
-                  onChange={(e) => setNewMemberName(e.target.value)}
-                  placeholder="Add new member"
-                  className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddMember}
-                  disabled={savingMember || !newMemberName.trim()}
-                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
-                >
-                  {savingMember ? "Adding..." : "Add & select"}
-                </button>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* -- Financials ---------------------------------------------- */}
-          <fieldset className="mb-5">
-            <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-              Financials
-            </legend>
-
-            {/* Charity checkbox */}
-            <div className="mb-4 rounded-lg border border-purple-200 dark:border-purple-700/50 bg-purple-50 dark:bg-purple-950/30 p-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400"
-                  checked={form.isCharity}
-                  onChange={(e) => set("isCharity", e.target.checked)}
-                />
-                <span className="text-sm font-medium text-purple-900 dark:text-purple-300">
-                  Charity / Pro Bono Performance
-                </span>
-              </label>
-              <p className="mt-2 ml-6 text-xs text-purple-700 dark:text-purple-400">
-                Check this if this is a free performance for a good cause. Compensation will be $0 and payment dates will automatically be set to the performance date.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={labelCls}>
-                  Performance Fee ($) <span className="text-red-500">*</span>
-                </label>
-                <label className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500"
-                    checked={form.performanceFeeUnknown}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      set("performanceFeeUnknown", checked);
-                      if (checked) {
-                        set("performanceFee", 0);
-                      }
-                    }}
-                    disabled={form.isCharity}
-                  />
-                  I don't know yet (temporarily unknown)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className={`${inputCls} ${
-                    fieldErrors.performanceFee
-                      ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20"
-                      : ""
-                  }`}
-                  value={form.performanceFee}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || val === "-") {
-                      set("performanceFee", 0);
-                    } else {
-                      set("performanceFee", Math.max(0, Number(val)));
-                    }
-                    if (fieldErrors.performanceFee) {
-                      setFieldErrors((prev) => ({ ...prev, performanceFee: "" }));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const val = e.target.value === "" || e.target.value === "-" ? 0 : Number(e.target.value);
-                    set("performanceFee", Math.max(0, val));
-                    handleBlur("performanceFee", val);
-                  }}
-                  disabled={form.performanceFeeUnknown || form.isCharity}
-                  required
-                />
-                {form.performanceFeeUnknown && (
-                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                    Fee is temporarily set to $0 until you know the exact amount.
-                  </p>
-                )}
-                {fieldErrors.performanceFee && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                    {fieldErrors.performanceFee}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelCls}>Technical Fee ($)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className={inputCls}
-                  value={form.technicalFee === 0 ? "" : form.technicalFee}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || val === "-") {
-                      set("technicalFee", 0);
-                    } else {
-                      set("technicalFee", Math.max(0, Number(val)));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value === "" || e.target.value === "-") {
-                      set("technicalFee", 0);
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Manager Bonus Type</label>
-                <select
-                  className={inputCls}
-                  value={form.managerBonusType}
-                  onChange={(e) =>
-                    set(
-                      "managerBonusType",
-                      e.target.value as "fixed" | "percentage"
-                    )
-                  }
-                >
-                  <option value="fixed">Fixed Amount ($)</option>
-                  <option value="percentage">Percentage (%)</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>
-                  Bonus Amount{" "}
-                  {form.managerBonusType === "percentage" ? "(%)" : "($)"}
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className={inputCls}
-                  value={form.managerBonusAmount === 0 ? "" : form.managerBonusAmount}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || val === "-") {
-                      set("managerBonusAmount", 0);
-                    } else {
-                      set("managerBonusAmount", Math.max(0, Number(val)));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value === "" || e.target.value === "-") {
-                      set("managerBonusAmount", 0);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Fee claims for this gig */}
-            <div className="mt-4 space-y-3 rounded-lg border border-brand-200 dark:border-brand-700/50 bg-brand-50/40 dark:bg-brand-950/20 p-3">
-              <div>
-                <label className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400"
-                    checked={form.claimPerformanceFee}
-                    onChange={(e) => set("claimPerformanceFee", e.target.checked)}
-                  />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Claim performance fee
-                  </span>
-                </label>
-                <p className="mt-1 ml-6 text-xs text-slate-500 dark:text-slate-400">
-                  {form.claimPerformanceFee 
-                    ? `Split among ${form.numberOfMusicians} musicians (your share: ${formatCurrency(form.performanceFee / form.numberOfMusicians)})`
-                    : `Fee split among ${Math.max(1, form.numberOfMusicians - 1)} musicians only — you pay all of it to them`
-                  }
-                </p>
-              </div>
-              
-              <label className="flex items-center gap-2.5">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400"
-                  checked={form.claimTechnicalFee}
-                  onChange={(e) => {
-                    set("claimTechnicalFee", e.target.checked);
-                    if (e.target.checked && form.technicalFeeClaimAmount === null) {
-                      set("technicalFeeClaimAmount", form.technicalFee);
-                    }
-                  }}
-                />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Claim technical fee
-                </span>
-              </label>
-
-              {/* Technical fee claim amount — only if claiming */}
-              {form.claimTechnicalFee && form.technicalFee > 0 && (
-                <div className="ml-6 mt-2 rounded border border-brand-300/50 dark:border-brand-700/50 bg-white dark:bg-slate-800 p-2">
-                  <label className={labelCls}>
-                    Amount to claim (default: all)
+                <div>
+                  <label className={labelCls}>Booking Date</label>
+                  <label className="mb-2 flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400"
+                      checked={form.isTentative}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        set("isTentative", checked);
+                        if (checked) set("bookingDate", "");
+                        else if (!form.bookingDate) set("bookingDate", new Date().toISOString().split("T")[0]);
+                      }}
+                    />
+                    Tentative performance (not confirmed yet)
                   </label>
                   <input
-                    type="number"
-                    min={0}
-                    max={form.technicalFee}
-                    step="0.01"
+                    type="date"
                     className={inputCls}
-                    value={form.technicalFeeClaimAmount === null || form.technicalFeeClaimAmount === form.technicalFee ? "" : form.technicalFeeClaimAmount}
-                    placeholder={form.technicalFee.toString()}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "" || val === "-") {
-                        set("technicalFeeClaimAmount", form.technicalFee);
-                      } else {
-                        set("technicalFeeClaimAmount", Math.max(0, Math.min(form.technicalFee, Number(val))));
-                      }
-                    }}
-                    onBlur={(e) => {
-                      if (e.target.value === "" || e.target.value === "-") {
-                        set("technicalFeeClaimAmount", form.technicalFee);
-                      }
-                    }}
+                    value={form.bookingDate}
+                    onChange={(e) => set("bookingDate", e.target.value)}
+                    disabled={form.isTentative}
                   />
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Leave blank to claim the full {formatCurrency(form.technicalFee)}
+                    {form.isTentative ? "Booking date is not finalized yet for this performance." : "When the booking was made (default: today)"}
                   </p>
                 </div>
-              )}
-            </div>
 
-            {/* Live calculation preview */}
-            <div className="mt-4 rounded-lg bg-brand-50/60 dark:bg-brand-950/20 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                Calculated Preview
-              </p>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2 md:grid-cols-4">
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">Total</span>
-                  <p className="font-bold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(calc.totalReceived)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">Per Musician</span>
-                  <p className="font-semibold text-slate-700 dark:text-slate-300">
-                    {formatCurrency(calc.amountPerMusician)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-brand-600 dark:text-brand-400">My Earnings</span>
-                  <p className="font-bold text-brand-700 dark:text-brand-300">
-                    {formatCurrency(calc.myEarnings)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-amber-600 dark:text-amber-400">Owe Others</span>
-                  <p className="font-semibold text-amber-700 dark:text-amber-300">
-                    {formatCurrency(calc.amountOwedToOthers)}
-                  </p>
-                </div>
-              </div>
-              {/* Show advance breakdown if there's an advance */}
-              {form.advanceReceivedByManager > 0 && (
-                <div className="mt-3 pt-3 border-t border-brand-200 dark:border-brand-700/50">
-                  <p className="mb-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                    Advance Payment Breakdown
-                  </p>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400">Already Received</span>
-                      <p className="font-semibold text-emerald-700 dark:text-emerald-300">
-                        {formatCurrency(calc.myEarningsAlreadyReceived)}
-                      </p>
+                      <label className={labelCls}>Band / Artist <span className="text-red-500">*</span></label>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Pick an existing band first, or add a new one and use it immediately.</p>
                     </div>
-                    <div>
-                      <span className="text-slate-500 dark:text-slate-400">Still Owed to Me</span>
-                      <p className="font-semibold text-orange-700 dark:text-orange-300">
-                        {formatCurrency(calc.myEarningsStillOwed)}
-                      </p>
+                    <div className="min-w-[180px] text-right text-xs text-slate-400 dark:text-slate-500">
+                      {bandOptions.length > 0 ? `${bandOptions.length} saved band${bandOptions.length !== 1 ? "s" : ""} available` : "No saved bands yet"}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </fieldset>
 
-          {/* -- Payment status ------------------------------------------ */}
-          <fieldset className="mb-5">
-            <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-              Payment Status
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Client payment */}
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 dark:bg-slate-800/50">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400"
-                    checked={form.paymentReceived}
-                    onChange={(e) => {
-                      set("paymentReceived", e.target.checked);
-                      if (e.target.checked && !form.paymentReceivedDate) {
-                        set("paymentReceivedDate", new Date().toISOString().split("T")[0]);
-                      }
-                      if (!e.target.checked) set("paymentReceivedDate", "");
-                    }}
-                  />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Payment received from client
-                  </span>
-                </label>
-                {form.paymentReceived && (
-                  <div className="mt-2">
-                    <label className={labelCls}>Date received</label>
+                  <div className="mt-3">
+                    <label className={labelCls}>Select Band (optional)</label>
+                    <select className={inputCls} value={form.bandId || ""} onChange={(e) => set("bandId", e.target.value || null)}>
+                      <option value="">No band selected</option>
+                      {bandsList.map((band) => <option key={band.id} value={band.id}>{band.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                    <select className={inputCls} value={selectedBandName} onChange={(e) => handleSelectBand(e.target.value)}>
+                      <option value="">Choose an existing band name</option>
+                      {bandOptions.map((band) => <option key={band} value={band}>{band}</option>)}
+                    </select>
+                    <div className="flex gap-2 lg:min-w-[320px]">
+                      <input type="text" value={newBandName} onChange={(e) => setNewBandName(e.target.value)} placeholder="Add new band" className={inputCls} />
+                      <button type="button" onClick={handleAddBand} disabled={!newBandName.trim()} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600">Add</button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className={labelCls}>Band / Artist name <span className="text-red-500">*</span></label>
                     <input
-                      type="date"
-                      className={inputCls}
-                      value={form.paymentReceivedDate}
-                      onChange={(e) =>
-                        set("paymentReceivedDate", e.target.value)
-                      }
+                      type="text"
+                      className={`${inputCls} ${fieldErrors.performers ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`}
+                      placeholder="e.g. The Blue Notes"
+                      value={form.performers}
+                      onChange={(e) => { set("performers", e.target.value); if (fieldErrors.performers) setFieldErrors((prev) => ({ ...prev, performers: "" })); }}
+                      onBlur={(e) => handleBlur("performers", e.target.value)}
+                      required
                     />
-                    {form.paymentReceivedDate && (
-                      <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
-                        <span className="text-slate-400 dark:text-slate-500">→</span>
-                        <span className="font-medium">
-                          {new Date(form.paymentReceivedDate).toLocaleDateString("nl-BE", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </p>
-                    )}
+                    {fieldErrors.performers && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.performers}</p>}
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Performance line-up</label>
+                  <input type="text" className={inputCls} placeholder="e.g. Alice, Bob, Chris" value={form.performanceLineup} onChange={(e) => set("performanceLineup", e.target.value)} />
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Names who played in this performance. Use commas to separate.</p>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Number of Musicians <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    min={1}
+                    className={`${inputCls} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${fieldErrors.numberOfMusicians ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`}
+                    style={{ MozAppearance: "textfield" }}
+                    value={form.numberOfMusicians || ""}
+                    onChange={(e) => { const val = e.target.value.trim(); set("numberOfMusicians", val === "" ? 0 : Math.max(1, Number(val))); if (fieldErrors.numberOfMusicians) setFieldErrors((prev) => ({ ...prev, numberOfMusicians: "" })); }}
+                    onBlur={(e) => { const val = Math.max(1, Number(e.target.value) || 1); set("numberOfMusicians", val); handleBlur("numberOfMusicians", val); }}
+                    required
+                  />
+                  {fieldErrors.numberOfMusicians && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.numberOfMusicians}</p>}
+                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <input type="checkbox" checked={form.managerPerforms} onChange={(e) => set("managerPerforms", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                    <span>I play in this performance</span>
+                  </div>
+                  {syncFromMembers && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Count auto-syncs from selected members + line-up names + me.</p>}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Band members</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Select members to sync the line-up and musician count.</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                    <input type="checkbox" checked={syncFromMembers} onChange={(e) => setSyncFromMembers(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                    Sync to fields
+                  </label>
+                </div>
+
+                <div className="mt-3">
+                  <input type="text" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Search by name or band" className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                </div>
+
+                <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
+                  {bandMembersLoading ? <div className="text-xs text-slate-500 dark:text-slate-400">Loading band members...</div> : filteredMembers.length === 0 ? <div className="text-xs text-slate-500 dark:text-slate-400">No band members found.</div> : filteredMembers.map((member) => (
+                    <label key={member.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={selectedMemberIds.includes(member.id)} onChange={() => toggleMember(member.id)} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                        <span className="font-medium">{member.name}</span>
+                      </div>
+                      {member.bands && member.bands.length > 0 && <span className="text-xs text-slate-400">{member.bands.join(", ")}</span>}
+                    </label>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <input type="text" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="Add new member" className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  <button type="button" onClick={handleAddMember} disabled={savingMember || !newMemberName.trim()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600">{savingMember ? "Adding..." : "Add & select"}</button>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+              <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Date & Time</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Date <span className="text-red-500">*</span></label>
+                  <input type="date" className={`${inputCls} ${fieldErrors.date ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`} value={form.date} onChange={(e) => { set("date", e.target.value); if (fieldErrors.date) setFieldErrors((prev) => ({ ...prev, date: "" })); }} onBlur={(e) => handleBlur("date", e.target.value)} required />
+                  {fieldErrors.date && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.date}</p>}
+                </div>
+                <div>
+                  <label className={labelCls}>Booking Date</label>
+                  <input type="date" className={inputCls} value={form.bookingDate} onChange={(e) => set("bookingDate", e.target.value)} disabled={form.isTentative} />
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{form.isTentative ? "Booking date is not finalized yet for this performance." : "When the booking was made"}</p>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+              <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Venue & Performance</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Performance line-up</label>
+                  <input type="text" className={inputCls} placeholder="e.g. Alice, Bob, Chris" value={form.performanceLineup} onChange={(e) => set("performanceLineup", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>Number of Musicians <span className="text-red-500">*</span></label>
+                  <input type="number" min={1} className={`${inputCls} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${fieldErrors.numberOfMusicians ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`} style={{ MozAppearance: "textfield" }} value={form.numberOfMusicians || ""} onChange={(e) => { const val = e.target.value.trim(); set("numberOfMusicians", val === "" ? 0 : Math.max(1, Number(val))); if (fieldErrors.numberOfMusicians) setFieldErrors((prev) => ({ ...prev, numberOfMusicians: "" })); }} onBlur={(e) => { const val = Math.max(1, Number(e.target.value) || 1); set("numberOfMusicians", val); handleBlur("numberOfMusicians", val); }} required />
+                  {fieldErrors.numberOfMusicians && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.numberOfMusicians}</p>}
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Venue / Location</label>
+                  <input type="text" className={inputCls} placeholder="City, venue, or address" value={form.performers} onChange={(e) => set("performers", e.target.value)} />
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+              <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Financials & Payouts</legend>
+
+              <div className="mb-4 rounded-lg border border-purple-200 dark:border-purple-700/50 bg-purple-50 dark:bg-purple-950/30 p-3">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="h-4 w-4 rounded border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400" checked={form.isCharity} onChange={(e) => set("isCharity", e.target.checked)} />
+                  <span className="text-sm font-medium text-purple-900 dark:text-purple-300">Charity / Pro Bono Performance</span>
+                </label>
+                <p className="mt-2 ml-6 text-xs text-purple-700 dark:text-purple-400">Check this if this is a free performance for a good cause. Compensation will be $0 and payment dates will automatically be set to the performance date.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Performance Fee ($) <span className="text-red-500">*</span></label>
+                  <label className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500" checked={form.performanceFeeUnknown} onChange={(e) => { const checked = e.target.checked; set("performanceFeeUnknown", checked); if (checked) set("performanceFee", 0); }} disabled={form.isCharity} />
+                    I don't know yet (temporarily unknown)
+                  </label>
+                  <input type="number" min={0} step="0.01" className={`${inputCls} ${fieldErrors.performanceFee ? "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20 dark:focus:ring-red-400/20" : ""}`} value={form.performanceFee} onChange={(e) => { const val = e.target.value; set("performanceFee", val === "" || val === "-" ? 0 : Math.max(0, Number(val))); if (fieldErrors.performanceFee) setFieldErrors((prev) => ({ ...prev, performanceFee: "" })); }} onBlur={(e) => { const val = e.target.value === "" || e.target.value === "-" ? 0 : Number(e.target.value); set("performanceFee", Math.max(0, val)); handleBlur("performanceFee", val); }} disabled={form.performanceFeeUnknown || form.isCharity} required />
+                  {form.performanceFeeUnknown && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Fee is temporarily set to $0 until you know the exact amount.</p>}
+                  {fieldErrors.performanceFee && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.performanceFee}</p>}
+                </div>
+                <div>
+                  <label className={labelCls}>Technical Fee ($)</label>
+                  <input type="number" min={0} step="0.01" className={inputCls} value={form.technicalFee === 0 ? "" : form.technicalFee} onChange={(e) => { const val = e.target.value; set("technicalFee", val === "" || val === "-" ? 0 : Math.max(0, Number(val))); }} onBlur={(e) => { if (e.target.value === "" || e.target.value === "-") set("technicalFee", 0); }} />
+                </div>
+                <div>
+                  <label className={labelCls}>Manager Bonus Type</label>
+                  <select className={inputCls} value={form.managerBonusType} onChange={(e) => set("managerBonusType", e.target.value as "fixed" | "percentage")}>
+                    <option value="fixed">Fixed Amount ($)</option>
+                    <option value="percentage">Percentage (%)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Bonus Amount {form.managerBonusType === "percentage" ? "(%)" : "($)"}</label>
+                  <input type="number" min={0} step="0.01" className={inputCls} value={form.managerBonusAmount === 0 ? "" : form.managerBonusAmount} onChange={(e) => { const val = e.target.value; set("managerBonusAmount", val === "" || val === "-" ? 0 : Math.max(0, Number(val))); }} onBlur={(e) => { if (e.target.value === "" || e.target.value === "-") set("managerBonusAmount", 0); }} />
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3 rounded-lg border border-brand-200 dark:border-brand-700/50 bg-brand-50/40 dark:bg-brand-950/20 p-3">
+                <div>
+                  <label className="flex items-center gap-2.5">
+                    <input type="checkbox" className="h-4 w-4 rounded border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400" checked={form.claimPerformanceFee} onChange={(e) => set("claimPerformanceFee", e.target.checked)} />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Claim performance fee</span>
+                  </label>
+                  <p className="mt-1 ml-6 text-xs text-slate-500 dark:text-slate-400">{form.claimPerformanceFee ? `Split among ${form.numberOfMusicians} musicians (your share: ${formatCurrency(form.performanceFee / form.numberOfMusicians)})` : `Fee split among ${Math.max(1, form.numberOfMusicians - 1)} musicians only — you pay all of it to them`}</p>
+                </div>
+
+                <label className="flex items-center gap-2.5">
+                  <input type="checkbox" className="h-4 w-4 rounded border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400" checked={form.claimTechnicalFee} onChange={(e) => { set("claimTechnicalFee", e.target.checked); if (e.target.checked && form.technicalFeeClaimAmount === null) set("technicalFeeClaimAmount", form.technicalFee); }} />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Claim technical fee</span>
+                </label>
+
+                {form.claimTechnicalFee && form.technicalFee > 0 && (
+                  <div className="ml-6 mt-2 rounded border border-brand-300/50 dark:border-brand-700/50 bg-white dark:bg-slate-800 p-2">
+                    <label className={labelCls}>Amount to claim (default: all)</label>
+                    <input type="number" min={0} max={form.technicalFee} step="0.01" className={inputCls} value={form.technicalFeeClaimAmount === null || form.technicalFeeClaimAmount === form.technicalFee ? "" : form.technicalFeeClaimAmount} placeholder={form.technicalFee.toString()} onChange={(e) => { const val = e.target.value; set("technicalFeeClaimAmount", val === "" || val === "-" ? form.technicalFee : Math.max(0, Math.min(form.technicalFee, Number(val)))); }} onBlur={(e) => { if (e.target.value === "" || e.target.value === "-") set("technicalFeeClaimAmount", form.technicalFee); }} />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Leave blank to claim the full {formatCurrency(form.technicalFee)}</p>
                   </div>
                 )}
               </div>
 
-              {/* Band payment */}
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 dark:bg-slate-800/50">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400"
-                    checked={form.bandPaid}
-                    onChange={(e) => {
-                      set("bandPaid", e.target.checked);
-                      if (e.target.checked && !form.bandPaidDate) {
-                        set("bandPaidDate", new Date().toISOString().split("T")[0]);
-                      }
-                      if (!e.target.checked) set("bandPaidDate", "");
-                    }}
-                  />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Band members paid
-                  </span>
-                </label>
-                {form.bandPaid && (
-                  <div className="mt-2">
-                    <label className={labelCls}>Date paid</label>
-                    <input
-                      type="date"
-                      className={inputCls}
-                      value={form.bandPaidDate}
-                      onChange={(e) => set("bandPaidDate", e.target.value)}
-                    />
-                    {form.bandPaidDate && (
-                      <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded">
-                        <span className="text-slate-400 dark:text-slate-500">→</span>
-                        <span className="font-medium">
-                          {new Date(form.bandPaidDate).toLocaleDateString("nl-BE", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </p>
-                    )}
+              <div className="mt-4 rounded-lg bg-brand-50/60 dark:bg-brand-950/20 p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">Calculated Preview</p>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2 md:grid-cols-4">
+                  <div><span className="text-slate-500 dark:text-slate-400">Total</span><p className="font-bold text-slate-900 dark:text-slate-100">{formatCurrency(calc.totalReceived)}</p></div>
+                  <div><span className="text-slate-500 dark:text-slate-400">Per Musician</span><p className="font-semibold text-slate-700 dark:text-slate-300">{formatCurrency(calc.amountPerMusician)}</p></div>
+                  <div><span className="text-brand-600 dark:text-brand-400">My Earnings</span><p className="font-bold text-brand-700 dark:text-brand-300">{formatCurrency(calc.myEarnings)}</p></div>
+                  <div><span className="text-amber-600 dark:text-amber-400">Owe Others</span><p className="font-semibold text-amber-700 dark:text-amber-300">{formatCurrency(calc.amountOwedToOthers)}</p></div>
+                </div>
+                {form.advanceReceivedByManager > 0 && (
+                  <div className="mt-3 pt-3 border-t border-brand-200 dark:border-brand-700/50">
+                    <p className="mb-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">Advance Payment Breakdown</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                      <div><span className="text-slate-500 dark:text-slate-400">Already Received</span><p className="font-semibold text-emerald-700 dark:text-emerald-300">{formatCurrency(calc.myEarningsAlreadyReceived)}</p></div>
+                      <div><span className="text-slate-500 dark:text-slate-400">Still Owed to Me</span><p className="font-semibold text-orange-700 dark:text-orange-300">{formatCurrency(calc.myEarningsStillOwed)}</p></div>
+                    </div>
                   </div>
                 )}
               </div>
+            </fieldset>
 
-              {/* Instant payment */}
-              <div className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 p-3">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400"
-                    checked={form.managerInstantPayment}
-                    onChange={(e) => set("managerInstantPayment", e.target.checked)}
-                  />
-                  <span className="text-sm font-medium text-amber-900 dark:text-amber-300">
-                    I will pay the band myself — I must arrange payment
-                  </span>
-                </label>
-                <p className="mt-1.5 text-xs text-amber-900 dark:text-amber-200">
-                  ✓ Checked: You agree to pay band members directly. After you make the payment, mark "Band members paid" and record the date so the record reflects that the band has been paid.
-                </p>
-                <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
-                  ✗ Unchecked: Payment is expected from the client or handled later.
-                </p>
-              </div>
-
-              {/* Manager handles distribution */}
-              <div className="rounded-lg border border-cyan-200 dark:border-cyan-700/50 bg-cyan-50 dark:bg-cyan-950/30 p-3 sm:col-span-2">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-cyan-300 dark:border-cyan-700 text-cyan-600 dark:text-cyan-400 focus:ring-cyan-500 dark:focus:ring-cyan-400"
-                    checked={form.managerHandlesDistribution}
-                    onChange={(e) => set("managerHandlesDistribution", e.target.checked)}
-                  />
-                  <span className="text-sm font-medium text-cyan-900 dark:text-cyan-300">
-                    I'm responsible for splitting fees to band members
-                  </span>
-                </label>
-                <p className="mt-1.5 text-xs text-cyan-800 dark:text-cyan-400">
-                  ✓ Checked: You handle payment distribution and owe band members their share<br />
-                  ✗ Unchecked: Band members get paid directly (e.g., by the client)
-                </p>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* -- Advance Payments ---------------------------------------- */}
-          <fieldset className="mb-5">
-            <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-              Advance Payments (Optional)
-            </legend>
-            <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-              Track advance payments. If left empty, amounts will be distributed evenly among musicians.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-green-200 dark:border-green-700/50 bg-green-50 dark:bg-green-950/30 p-3">
-                <label className={labelCls}>
-                  Advance Received from Client ($)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className={inputCls}
-                  placeholder="0.00"
-                  value={form.advanceReceivedByManager === 0 ? "" : form.advanceReceivedByManager}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || val === "-") {
-                      set("advanceReceivedByManager", 0);
-                    } else {
-                      set("advanceReceivedByManager", Math.max(0, Number(val)));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value === "" || e.target.value === "-") {
-                      set("advanceReceivedByManager", 0);
-                    }
-                  }}
-                />
-                <p className="mt-2 text-xs text-green-700 dark:text-green-400">
-                  Amount you already received as advance
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-orange-200 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-950/30 p-3">
-                <label className={labelCls}>
-                  Advance Paid to Musicians ($)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className={inputCls}
-                  placeholder="0.00"
-                  value={form.advanceToMusicians === 0 ? "" : form.advanceToMusicians}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || val === "-") {
-                      set("advanceToMusicians", 0);
-                    } else {
-                      set("advanceToMusicians", Math.max(0, Number(val)));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value === "" || e.target.value === "-") {
-                      set("advanceToMusicians", 0);
-                    }
-                  }}
-                />
-                <p className="mt-2 text-xs text-orange-700 dark:text-orange-400">
-                  Amount you already paid to band members
-                </p>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* -- Notes --------------------------------------------------- */}
-          <fieldset className="mb-6">
-            <label className={labelCls}>Notes</label>
-            <textarea
-              rows={2}
-              className={inputCls}
-              placeholder="Any additional notes..."
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-            />
-          </fieldset>
-
-          {/* -- Actions ------------------------------------------------- */}
-          <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-between">
-            {/* Delete button (only when editing) */}
-            {gig && onDelete && (
-              <button
-                type="button"
-                onClick={() => onDelete(gig)}
-                className="rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                Delete Performance
+            <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-800/30">
+              <button type="button" className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-800 dark:text-slate-200" onClick={() => setShowAdvancedSettings((prev) => !prev)}>
+                <span>Advanced Settings</span>
+                <span className="text-lg text-slate-500">{showAdvancedSettings ? "−" : "+"}</span>
               </button>
-            )}
-            {gig && (
-              <button
-                type="button"
-                onClick={() => setShowNotesEditor(true)}
-                className="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/30 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-brand-600 dark:text-brand-400 transition hover:bg-brand-100 dark:hover:bg-brand-900/50"
-              >
-                📝 {isDutch ? "Open notities (optreden)" : "Open notes (performance)"}
-              </button>
-            )}
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-3 sm:ml-auto">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={loading}
-                className="rounded-lg border border-slate-300 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm sm:px-5 sm:py-2 font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50"
-              >
-              {loading && (
-                <Icons.Spinner className="h-4 w-4" />
+              {(showAdvancedSettings || !isMobileView) && (
+                <div className="px-4 pb-4">
+                  <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className={labelCls}>Manager Bonus Type</label>
+                        <select className={inputCls} value={form.managerBonusType} onChange={(e) => set("managerBonusType", e.target.value as "fixed" | "percentage")}>
+                          <option value="fixed">Fixed Amount ($)</option>
+                          <option value="percentage">Percentage (%)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Bonus Amount {form.managerBonusType === "percentage" ? "(%)" : "($)"}</label>
+                        <input type="number" min={0} step="0.01" className={inputCls} value={form.managerBonusAmount === 0 ? "" : form.managerBonusAmount} onChange={(e) => { const val = e.target.value; set("managerBonusAmount", val === "" || val === "-" ? 0 : Math.max(0, Number(val))); }} onBlur={(e) => { if (e.target.value === "" || e.target.value === "-") set("managerBonusAmount", 0); }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
-              {gig ? "Save Changes" : "Add Performance"}
-              </button>
             </div>
-          </div>
-        </form>
-      </div>
-    </div>
 
-    {showNotesEditor && gig && (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 py-6 backdrop-blur-sm sm:py-10">
-        <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
-          <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white px-5 py-4 dark:border-slate-700 dark:from-slate-950 dark:to-slate-900 sm:px-6">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                {isDutch ? `Notities voor "${gig.eventName}"` : `Notes for "${gig.eventName}"`}
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-                {concertMode
-                  ? (isDutch
-                    ? "Concertmodus is alleen-lezen: tik op de afbeelding om deze fullscreen te openen."
-                    : "Concert mode is view-only: tap the image to open it fullscreen.")
-                  : (isDutch
-                    ? "Repetitiemodus is om foto’s, notities en tekeningen toe te voegen of aan te passen."
-                    : "Rehearsal mode lets you add or edit photos, notes, and drawings.")}
-              </p>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800/80">
-                <button
-                  type="button"
-                  onClick={() => setPerformanceMode(false)}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${!concertMode ? "bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:text-slate-300"}`}
-                >
-                  {isDutch ? "Repetitie" : "Rehearsal"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPerformanceMode(true)}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${concertMode ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-300"}`}
-                >
-                  {isDutch ? "Concert" : "Concert"}
-                </button>
+            <fieldset className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+              <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Payment Status</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 dark:bg-slate-800/50">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400" checked={form.paymentReceived} onChange={(e) => { set("paymentReceived", e.target.checked); if (e.target.checked && !form.paymentReceivedDate) set("paymentReceivedDate", new Date().toISOString().split("T")[0]); if (!e.target.checked) set("paymentReceivedDate", ""); }} />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Payment received from client</span>
+                  </label>
+                  {form.paymentReceived && (
+                    <div className="mt-2">
+                      <label className={labelCls}>Date received</label>
+                      <input type="date" className={inputCls} value={form.paymentReceivedDate} onChange={(e) => set("paymentReceivedDate", e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 dark:bg-slate-800/50">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 dark:text-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400" checked={form.bandPaid} onChange={(e) => { set("bandPaid", e.target.checked); if (e.target.checked && !form.bandPaidDate) set("bandPaidDate", new Date().toISOString().split("T")[0]); if (!e.target.checked) set("bandPaidDate", ""); }} />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Band members paid</span>
+                  </label>
+                  {form.bandPaid && (
+                    <div className="mt-2">
+                      <label className={labelCls}>Date paid</label>
+                      <input type="date" className={inputCls} value={form.bandPaidDate} onChange={(e) => set("bandPaidDate", e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 p-3">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="h-4 w-4 rounded border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400" checked={form.managerInstantPayment} onChange={(e) => set("managerInstantPayment", e.target.checked)} />
+                    <span className="text-sm font-medium text-amber-900 dark:text-amber-300">I will pay the band myself — I must arrange payment</span>
+                  </label>
+                  <p className="mt-1.5 text-xs text-amber-900 dark:text-amber-200">✓ Checked: You agree to pay band members directly. After you make the payment, mark "Band members paid" and record the date so the record reflects that the band has been paid.</p>
+                  <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">✗ Unchecked: Payment is expected from the client or handled later.</p>
+                </div>
+
+                <div className="rounded-lg border border-cyan-200 dark:border-cyan-700/50 bg-cyan-50 dark:bg-cyan-950/30 p-3 sm:col-span-2">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="h-4 w-4 rounded border-cyan-300 dark:border-cyan-700 text-cyan-600 dark:text-cyan-400 focus:ring-cyan-500 dark:focus:ring-cyan-400" checked={form.managerHandlesDistribution} onChange={(e) => set("managerHandlesDistribution", e.target.checked)} />
+                    <span className="text-sm font-medium text-cyan-900 dark:text-cyan-300">I'm responsible for splitting fees to band members</span>
+                  </label>
+                  <p className="mt-1.5 text-xs text-cyan-800 dark:text-cyan-400">✓ Checked: You handle payment distribution and owe band members their share<br />✗ Unchecked: Band members get paid directly (e.g., by the client)</p>
+                </div>
               </div>
-              <button
-                onClick={() => setShowNotesEditor(false)}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                <Icons.Close className="h-5 w-5" />
-                {isDutch ? "Sluiten" : "Close"}
+            </fieldset>
+
+            <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-800/30">
+              <button type="button" className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-800 dark:text-slate-200" onClick={() => setShowAdditionalInfo((prev) => !prev)}>
+                <span>Additional Notes & Info</span>
+                <span className="text-lg text-slate-500">{showAdditionalInfo ? "−" : "+"}</span>
               </button>
+              {(showAdditionalInfo || !isMobileView) && (
+                <div className="space-y-4 px-4 pb-4">
+                  <fieldset className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                    <legend className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Advance Payments (Optional)</legend>
+                    <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">Track advance payments. If left empty, amounts will be distributed evenly among musicians.</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-lg border border-green-200 dark:border-green-700/50 bg-green-50 dark:bg-green-950/30 p-3">
+                        <label className={labelCls}>Advance Received from Client ($)</label>
+                        <input type="number" min={0} step="0.01" className={inputCls} placeholder="0.00" value={form.advanceReceivedByManager === 0 ? "" : form.advanceReceivedByManager} onChange={(e) => { const val = e.target.value; set("advanceReceivedByManager", val === "" || val === "-" ? 0 : Math.max(0, Number(val))); }} onBlur={(e) => { if (e.target.value === "" || e.target.value === "-") set("advanceReceivedByManager", 0); }} />
+                        <p className="mt-2 text-xs text-green-700 dark:text-green-400">Amount you already received as advance</p>
+                      </div>
+
+                      <div className="rounded-lg border border-orange-200 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-950/30 p-3">
+                        <label className={labelCls}>Advance Paid to Musicians ($)</label>
+                        <input type="number" min={0} step="0.01" className={inputCls} placeholder="0.00" value={form.advanceToMusicians === 0 ? "" : form.advanceToMusicians} onChange={(e) => { const val = e.target.value; set("advanceToMusicians", val === "" || val === "-" ? 0 : Math.max(0, Number(val))); }} onBlur={(e) => { if (e.target.value === "" || e.target.value === "-") set("advanceToMusicians", 0); }} />
+                        <p className="mt-2 text-xs text-orange-700 dark:text-orange-400">Amount you already paid to band members</p>
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="mb-0 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+                    <label className={labelCls}>Notes</label>
+                    <textarea rows={2} className={inputCls} placeholder="Any additional notes..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+                  </fieldset>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="max-h-[78vh] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-            <PhotoAnnotationEditor
-              onExport={() => {}}
-              persistId={gig.id}
-              concertMode={concertMode}
-            />
+          </form>
+
+          <div className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                {gig && onDelete && <button type="button" onClick={() => onDelete(gig)} className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:bg-slate-800 dark:text-red-400 dark:hover:bg-red-950/30">Delete</button>}
+                {gig && <button type="button" onClick={() => setShowNotesEditor(true)} className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-950/30 dark:text-brand-400 dark:hover:bg-brand-900/40">📝 Notes</button>}
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button type="button" onClick={handleCancelAction} disabled={loading} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Cancel</button>
+                <button type="submit" form="gig-form" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50">{loading && <Icons.Spinner className="h-4 w-4" />}{gig ? "Save Changes" : "Save"}</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    )}
+
+      {showNotesEditor && gig && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 py-6 backdrop-blur-sm sm:py-10">
+          <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
+            <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white px-5 py-4 dark:border-slate-700 dark:from-slate-950 dark:to-slate-900 sm:px-6">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{isDutch ? `Notities voor "${gig.eventName}"` : `Notes for "${gig.eventName}"`}</h2>
+                <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">{concertMode ? (isDutch ? "Concertmodus is alleen-lezen: tik op de afbeelding om deze fullscreen te openen." : "Concert mode is view-only: tap the image to open it fullscreen.") : (isDutch ? "Repetitiemodus is om foto’s, notities en tekeningen toe te voegen of aan te passen." : "Rehearsal mode lets you add or edit photos, notes, and drawings.")}</p>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800/80">
+                  <button type="button" onClick={() => setPerformanceMode(false)} className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${!concertMode ? "bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:text-slate-300"}`}>{isDutch ? "Repetitie" : "Rehearsal"}</button>
+                  <button type="button" onClick={() => setPerformanceMode(true)} className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${concertMode ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-300"}`}>{isDutch ? "Concert" : "Concert"}</button>
+                </div>
+                <button onClick={() => setShowNotesEditor(false)} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"><Icons.Close className="h-5 w-5" />{isDutch ? "Sluiten" : "Close"}</button>
+              </div>
+            </div>
+            <div className="max-h-[78vh] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+              <PhotoAnnotationEditor onExport={() => {}} persistId={gig.id} concertMode={concertMode} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

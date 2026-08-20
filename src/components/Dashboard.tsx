@@ -99,7 +99,8 @@ const getTabLabels = (t: (key: string) => string): Record<DashboardTab, string> 
   superadmin: t('dashboard.superadmin'),
 });
 
-const PRIMARY_NAV_TABS: DashboardTab[] = ["gigs", "calendar", "setlists", "songs", "bands"];
+const PRIMARY_NAV_TABS: DashboardTab[] = ["gigs", "calendar", "setlists", "songs"];
+const WORKSPACE_NAV_TABS: DashboardTab[] = ["bands", "band-members", "shared-links", "analytics", "investments", "superadmin"];
 const SECONDARY_NAV_TABS: DashboardTab[] = ["all-gigs", "band-members", "shared-links", "analytics", "investments", "superadmin"];
 
 const renderTabIcon = (tab: DashboardTab, className = "h-4 w-4") => {
@@ -211,7 +212,9 @@ export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
   const queryTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<DashboardTab>(isDashboardTab(queryTab) ? queryTab : "gigs");
   const [canAccessSuperAdmin, setCanAccessSuperAdmin] = useState(false);
@@ -220,8 +223,8 @@ export default function Dashboard() {
   const [, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
   const selectedTab = activeTab === "superadmin" && !canAccessSuperAdmin ? "gigs" : activeTab;
-  const secondaryProfileTabs = useMemo(
-    () => SECONDARY_NAV_TABS.filter((tab) => tab !== "superadmin" || canAccessSuperAdmin),
+  const workspaceTabs = useMemo(
+    () => WORKSPACE_NAV_TABS.filter((tab) => tab !== "superadmin" || canAccessSuperAdmin),
     [canAccessSuperAdmin]
   );
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -811,6 +814,9 @@ export default function Dashboard() {
       if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
         setShowProfileMenu(false);
       }
+      if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(target)) {
+        setShowWorkspaceMenu(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -1143,6 +1149,47 @@ export default function Dashboard() {
                   <span>{tabLabels[tab]}</span>
                 </button>
               ))}
+
+              <div className="relative" ref={workspaceMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowWorkspaceMenu((open) => !open)}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
+                    workspaceTabs.includes(selectedTab)
+                      ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white"
+                  }`}
+                >
+                  <Icons.People className="h-4 w-4" />
+                  <span>Workspace</span>
+                  <Icons.ChevronDown className={`h-4 w-4 transition-transform ${showWorkspaceMenu ? "rotate-180" : ""}`} />
+                </button>
+
+                {showWorkspaceMenu && (
+                  <div className="absolute left-0 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200/60 bg-white/95 p-2 text-sm shadow-2xl backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+                    <div className="space-y-1">
+                      {workspaceTabs.map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => {
+                            setShowWorkspaceMenu(false);
+                            handleTabChange(tab);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left transition ${
+                            selectedTab === tab
+                              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                              : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {renderTabIcon(tab)}
+                          <span className="font-medium">{tabLabels[tab]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </nav>
             <div className="min-w-0 flex-1 max-w-md">
               <div className="relative">
@@ -1254,35 +1301,39 @@ export default function Dashboard() {
                   {/* Menu items */}
                   <div className="py-2">
                     <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                      Workspace
+                      Profile
                     </div>
                     <div className="grid gap-1 px-2">
-                      {secondaryProfileTabs.map((tab) => (
-                        <button
-                          key={tab}
-                          type="button"
-                          onClick={() => handleTabChange(tab)}
-                          className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition ${
-                            selectedTab === tab
-                              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                              : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          {renderTabIcon(tab)}
-                          <span className="font-medium">{tabLabels[tab]}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">
-                      <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                        Preferences
-                      </div>
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Icons.Settings className="h-4 w-4" />
+                          Profile
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Icons.Settings className="h-4 w-4" />
+                          Language settings
+                        </span>
+                      </button>
                       <button
                         onClick={() => {
                           handleToggleWideView();
                           setShowProfileMenu(false);
                         }}
-                        className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         <span className="inline-flex items-center gap-2">
                           <Icons.Expand className="h-4 w-4" />
@@ -1291,22 +1342,10 @@ export default function Dashboard() {
                       </button>
                       <button
                         onClick={() => {
-                          setShowSettings(true);
-                          setShowProfileMenu(false);
-                        }}
-                        className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          <Icons.Settings className="h-4 w-4" />
-                          Settings
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => {
                           setShowKeyboardShortcuts(true);
                           setShowProfileMenu(false);
                         }}
-                        className="w-full px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         <span className="inline-flex items-center gap-2">
                           <Icons.Keyboard className="h-4 w-4" />
@@ -1466,8 +1505,22 @@ export default function Dashboard() {
                   <span>Calendar</span>
                 </button>
                 <div className="px-3 py-2 pt-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Band & Setlists
+                  Workspace
                 </div>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleTabChange("bands");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    selectedTab === "bands"
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.People className="h-5 w-5 shrink-0" />
+                  <span>Bands</span>
+                </button>
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
@@ -1485,11 +1538,53 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
+                    handleTabChange("shared-links");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    selectedTab === "shared-links" 
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.Link className="h-5 w-5 shrink-0" />
+                  <span>Share</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleTabChange("analytics");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    selectedTab === "analytics" 
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.Analytics className="h-5 w-5 shrink-0" />
+                  <span>Insights</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleTabChange("investments");
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    selectedTab === "investments" 
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Icons.Wallet className="h-5 w-5 shrink-0" />
+                  <span>Investments</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
                     handleTabChange("setlists");
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "setlists" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
+                    selectedTab === "setlists"
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -1509,71 +1604,6 @@ export default function Dashboard() {
                 >
                   <Icons.Music2 className="h-5 w-5 shrink-0" />
                   <span>Songs</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("bands");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "bands"
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.People className="h-5 w-5 shrink-0" />
-                  <span>Bands</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("shared-links");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "shared-links" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Link className="h-5 w-5 shrink-0" />
-                  <span>Share</span>
-                </button>
-
-                <div className="px-3 py-2 pt-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Analytics
-                </div>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("analytics");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "analytics" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Analytics className="h-5 w-5 shrink-0" />
-                  <span>Insights</span>
-                </button>
-
-                <div className="px-3 py-2 pt-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Finance
-                </div>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("investments");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "investments" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Wallet className="h-5 w-5 shrink-0" />
-                  <span>Investments</span>
                 </button>
                 {canAccessSuperAdmin && (
                   <button

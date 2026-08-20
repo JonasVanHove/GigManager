@@ -10,28 +10,37 @@ import { isDbConnectionError, getErrorStatusCode, formatErrorResponse } from "@/
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
+    console.warn("[auth] Missing bearer token for /api/band-members");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const token = authHeader.slice(7);
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-
-  if (error || !data.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   try {
-    const user = await getOrCreateUser(
-      data.user.id,
-      data.user.email || "",
-      data.user.user_metadata?.name
-    );
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
 
-    return { user };
-  } catch (dbErr) {
-    const statusCode = getErrorStatusCode(dbErr);
-    const errorResponse = formatErrorResponse(dbErr);
-    return NextResponse.json(errorResponse, { status: statusCode });
+    if (error || !data.user) {
+      console.warn("[auth] Invalid or expired token for /api/band-members", { message: error?.message ?? "missing user" });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      const user = await getOrCreateUser(
+        data.user.id,
+        data.user.email || "",
+        data.user.user_metadata?.name
+      );
+
+      return { user };
+    } catch (dbErr) {
+      console.error("[auth] Failed to load or create user for /api/band-members", dbErr);
+      const statusCode = getErrorStatusCode(dbErr);
+      const errorResponse = formatErrorResponse(dbErr);
+      return NextResponse.json(errorResponse, { status: statusCode });
+    }
+  } catch (error) {
+    console.error("[auth] Unexpected auth error for /api/band-members", error);
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
   }
 }
 
@@ -48,38 +57,52 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached, { headers: getApiCacheHeaders(30, "HIT") });
     }
 
-    // Get all band members for this user with their gig participation
-    const bandMembers = await prisma.bandMember.findMany({
-      where: { userId: user.id },
-      include: {
-        gigs: {
-          include: {
-            gig: {
-              select: {
-                id: true,
-                eventName: true,
-                date: true,
-                isCharity: true,
-                performanceFee: true,
-                technicalFee: true,
-                managerBonusType: true,
-                managerBonusAmount: true,
-                numberOfMusicians: true,
-                claimPerformanceFee: true,
-                claimTechnicalFee: true,
-                technicalFeeClaimAmount: true,
-                advanceReceivedByManager: true,
-                advanceToMusicians: true,
-                paymentReceived: true,
-                bandPaid: true,
-                managerHandlesDistribution: true,
+    let bandMembers: Array<any> = [];
+    try {
+      bandMembers = await prisma.bandMember.findMany({
+        where: { userId: user.id },
+        include: {
+          gigs: {
+            include: {
+              gig: {
+                select: {
+                  id: true,
+                  eventName: true,
+                  date: true,
+                  isCharity: true,
+                  performanceFee: true,
+                  technicalFee: true,
+                  managerBonusType: true,
+                  managerBonusAmount: true,
+                  numberOfMusicians: true,
+                  claimPerformanceFee: true,
+                  claimTechnicalFee: true,
+                  technicalFeeClaimAmount: true,
+                  advanceReceivedByManager: true,
+                  advanceToMusicians: true,
+                  paymentReceived: true,
+                  bandPaid: true,
+                  managerHandlesDistribution: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: { name: "asc" },
-    });
+        orderBy: { name: "asc" },
+      });
+    } catch (queryError) {
+      console.error("[GET /api/band-members] Prisma query failed", {
+        userId: user.id,
+        message: queryError instanceof Error ? queryError.message : String(queryError),
+        code: (queryError as any)?.code,
+      });
+      return NextResponse.json({ error: "Failed to load band members", details: queryError instanceof Error ? queryError.message : String(queryError) }, { status: 500 });
+    }
+
+    if (!Array.isArray(bandMembers)) {
+      console.warn("[GET /api/band-members] Empty or invalid member payload; returning empty list", { userId: user.id, result: bandMembers });
+      return NextResponse.json([], { headers: getApiCacheHeaders(30, "MISS") });
+    }
 
     const investedByMemberId = new Map<string, number>();
     try {
@@ -112,26 +135,35 @@ export async function GET(req: NextRequest) {
       console.warn("[band-members] Invested totals unavailable, continuing without them", investmentError);
     }
 
-    // Calculate totals for each band member
     const bandMembersWithTotals = bandMembers.map((member) => {
       let totalEarned = 0;
       let totalReceived = 0;
       let totalPending = 0;
 
-      const gigs = member.gigs.map((g) => {
-        const gig = g.gig;
+      const gigs = (member.gigs || []).map((g: any) => {
+        const gig = g?.gig;
+        if (!gig) {
+          return {
+            gigId: g?.gigId ?? null,
+            gigName: "Unknown gig",
+            gigDate: null,
+            earned: 0,
+            paid: 0,
+          };
+        }
+
         const calc = calculateGigFinancials(
-          gig.performanceFee,
-          gig.technicalFee,
-          gig.managerBonusType as "fixed" | "percentage",
-          gig.managerBonusAmount,
-          gig.numberOfMusicians,
-          gig.claimPerformanceFee,
-          gig.claimTechnicalFee,
-          gig.technicalFeeClaimAmount,
-          gig.advanceReceivedByManager,
-          gig.advanceToMusicians,
-          gig.isCharity
+          Number(gig.performanceFee ?? 0),
+          Number(gig.technicalFee ?? 0),
+          (gig.managerBonusType as "fixed" | "percentage") || "fixed",
+          Number(gig.managerBonusAmount ?? 0),
+          Number(gig.numberOfMusicians ?? 0),
+          Boolean(gig.claimPerformanceFee ?? true),
+          Boolean(gig.claimTechnicalFee ?? true),
+          gig.technicalFeeClaimAmount ?? null,
+          Number(gig.advanceReceivedByManager ?? 0),
+          Number(gig.advanceToMusicians ?? 0),
+          Boolean(gig.isCharity ?? false)
         );
 
         const earned = gig.isCharity ? 0 : calc.amountPerMusician;
@@ -169,13 +201,13 @@ export async function GET(req: NextRequest) {
         phone: member.phone,
         notes: member.notes,
         avatarUrl: member.avatarUrl,
-        bands: member.bands,
+        bands: Array.isArray(member.bands) ? member.bands : [],
         updatedAt: member.updatedAt,
         totalEarned,
         totalInvested: investedByMemberId.get(member.id) || 0,
         totalPaid: totalReceived,
         totalOwed: totalPending,
-        gigsCount: member.gigs.length,
+        gigsCount: Array.isArray(member.gigs) ? member.gigs.length : 0,
         gigs,
       };
     });
@@ -183,7 +215,10 @@ export async function GET(req: NextRequest) {
     setCacheEntry(cacheKey, bandMembersWithTotals, 30);
     return NextResponse.json(bandMembersWithTotals, { headers: getApiCacheHeaders(30, "MISS") });
   } catch (error) {
-    console.error("GET /api/band-members error:", error);
+    console.error("[GET /api/band-members] Uncaught error:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     const statusCode = getErrorStatusCode(error);
     const errorResponse = formatErrorResponse(error);
     return NextResponse.json(errorResponse, { status: statusCode });

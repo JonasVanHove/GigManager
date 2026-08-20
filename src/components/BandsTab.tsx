@@ -38,6 +38,7 @@ export default function BandsTab() {
 
   const [bands, setBands] = useState<Band[]>([]);
   const [members, setMembers] = useState<BandMember[]>([]);
+  const [memberError, setMemberError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingBand, setEditingBand] = useState<Band | null>(null);
@@ -65,14 +66,23 @@ export default function BandsTab() {
     try {
       const token = await getAccessToken();
       if (!token) throw new Error("No auth token");
+
       const response = await fetch("/api/band-members", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error(t('bands.errorMembers'));
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || t('bands.errorMembers'));
+      }
+
       const data = await response.json();
-      setMembers(data);
+      setMembers(Array.isArray(data) ? data : []);
+      setMemberError(null);
     } catch (error) {
       console.error("Failed to load members:", error);
+      setMemberError(t('bands.errorMembers'));
+      setMembers([]);
     }
   }, [getAccessToken, t('bands.errorMembers')]);
 
@@ -287,6 +297,30 @@ export default function BandsTab() {
       </div>
     );
   }
+
+  const renderMemberEmptyState = () => (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/50">
+      <Icons.People className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+      <p className="text-base font-medium text-slate-700 dark:text-slate-200">
+        {memberError ? "Couldn’t load band members" : t('bands.noMembersYet') || "No band members yet"}
+      </p>
+      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+        {memberError ? "Please retry to refresh the list." : "Add a member to this band to start tracking payments."}
+      </p>
+      {memberError && (
+        <button
+          type="button"
+          onClick={() => {
+            setMemberError(null);
+            loadMembers();
+          }}
+          className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          Retry
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -585,7 +619,7 @@ export default function BandsTab() {
                         </div>
                       </div>
 
-                      {bandMembers.length > 0 && (
+                      {bandMembers.length > 0 ? (
                         <div className="mt-4">
                           <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{t('bands.bandMembers')}</p>
                           <div className="flex flex-wrap gap-2">
@@ -599,6 +633,10 @@ export default function BandsTab() {
                               </span>
                             ))}
                           </div>
+                        </div>
+                      ) : (
+                        <div className="mt-4">
+                          {renderMemberEmptyState()}
                         </div>
                       )}
                     </div>
