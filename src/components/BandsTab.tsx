@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import BandLogoFrame from "./BandLogoFrame";
 import Avatar from "./Avatar";
 import { normalizeArrayResponse } from "@/lib/api-response";
+import { getBandMemberAvatarUrl, getBandMemberInitial } from "@/lib/member-avatar";
 
 interface Band {
   id: string;
@@ -31,15 +32,26 @@ interface BandMember {
   updatedAt: string;
 }
 
-function getMemberAvatarUrl(member: Pick<BandMember, "name" | "avatarUrl">, fallbackAvatarUrl?: string | null) {
-  const normalized = member.name?.trim();
-  const fallback = fallbackAvatarUrl || member.avatarUrl || null;
+function BandMemberAvatar({
+  name,
+  email,
+  avatarUrl,
+  fallbackAvatarUrl,
+}: Pick<BandMember, "name" | "email" | "avatarUrl"> & { fallbackAvatarUrl?: string | null }) {
+  const resolvedAvatarUrl = getBandMemberAvatarUrl(name, avatarUrl, fallbackAvatarUrl);
 
-  if (normalized && normalized.toLowerCase() === "jonas") {
-    return fallbackAvatarUrl || member.avatarUrl || null;
+  if (resolvedAvatarUrl) {
+    return <Avatar src={resolvedAvatarUrl} name={name} email={email} size="xs" />;
   }
 
-  return member.avatarUrl || fallbackAvatarUrl || null;
+  return (
+    <span
+      aria-label={`${name} avatar`}
+      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[10px] font-semibold uppercase leading-none text-slate-700 shadow-sm ring-1 ring-inset ring-white/70 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-900/50"
+    >
+      {getBandMemberInitial(name)}
+    </span>
+  );
 }
 
 export default function BandsTab() {
@@ -142,7 +154,7 @@ export default function BandsTab() {
             email: session.user.email,
             phone: null,
             notes: null,
-            avatarUrl: currentUserName.trim().toLowerCase() === "jonas" ? (currentUserAvatar || null) : currentUserAvatar || null,
+            avatarUrl: getBandMemberAvatarUrl(currentUserName, currentUserAvatar, currentUserAvatar),
             bands: userBandNames,
             updatedAt: new Date().toISOString(),
           };
@@ -654,7 +666,12 @@ export default function BandsTab() {
                                 key={member.id}
                                 className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-3 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                               >
-                                <Avatar src={getMemberAvatarUrl(member, session?.user?.user_metadata?.avatar_url || null)} name={member.name} email={member.email} size="xs" />
+                                <BandMemberAvatar
+                                  name={member.name}
+                                  email={member.email}
+                                  avatarUrl={member.avatarUrl}
+                                  fallbackAvatarUrl={session?.user?.user_metadata?.avatar_url || null}
+                                />
                                 {member.name}
                               </span>
                             ))}
