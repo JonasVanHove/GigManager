@@ -106,14 +106,12 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
       }
       acc[key].earnings += calc.myEarnings;
       acc[key].gigs += 1;
-      // Account for advances received
       const advanceAmount = gig.advanceReceivedByManager || 0;
-      if (gig.paymentReceived) {
+      if (gig.bandPaid) {
         acc[key].received += calc.myEarnings;
       } else {
-        // Payment not yet received - calculate what's received vs pending
         acc[key].received += advanceAmount;
-        acc[key].pending += calc.myEarnings - advanceAmount;
+        acc[key].pending += Math.max(0, calc.myEarnings - advanceAmount);
       }
       // Only count as owed if manager handles distribution
       if (gig.managerHandlesDistribution && !gig.bandPaid) {
@@ -280,7 +278,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                   {fmtCurrency(summary.totalEarningsReceived)}
                 </p>
                 <p className="mt-1 text-xs text-brand-600 dark:text-brand-400 hidden sm:block">
-                  {tr("Received + pending + investments", "Ontvangen + openstaand + investeringen")} →
+                  {tr("Finalized (Band Paid) + in transit", "Vastgezet (Band betaald) + onderweg")} →
                 </p>
               </div>
               <div className="flex-shrink-0">
@@ -312,7 +310,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                 </div>
                 <div className="rounded-lg border-2 border-lime-500 bg-lime-500/10 p-2 sm:p-2.5 dark:border-lime-400 dark:bg-lime-500/20">
                   <p className="text-xs font-medium text-lime-700 dark:text-lime-300">
-                    ✓ Received
+                    ✓ Received (Band Paid)
                   </p>
                   <p className="mt-0.5 font-bold text-lime-800 dark:text-lime-200 text-sm sm:text-base">
                     {fmtCurrency(summary.totalEarningsReceived)}
@@ -320,7 +318,7 @@ export function DashboardSummary({ summary, gigs, fmtCurrency, investmentOvervie
                 </div>
                 <div className="rounded-lg border-2 border-orange-500 bg-orange-500/10 p-2 sm:p-2.5 dark:border-orange-400 dark:bg-orange-500/20">
                   <p className="text-xs font-medium text-orange-700 dark:text-orange-300">
-                    ⏳ Pending
+                    ⏳ Pending Payout (Client Paid)
                   </p>
                   <p className="mt-0.5 font-bold text-orange-800 dark:text-orange-200 text-sm sm:text-base">
                     {fmtCurrency(summary.totalEarningsPending)}

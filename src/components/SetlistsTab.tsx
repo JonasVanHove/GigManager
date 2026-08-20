@@ -1901,7 +1901,11 @@ export default function SetlistsTab() {
                     const band = bandsList.find(b => b.id === activeDraft.bandId);
                     return band ? (
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border shrink-0 max-w-[150px]" style={{ borderColor: band.color || '#e2e8f0', backgroundColor: band.color ? `${band.color}20` : undefined }}>
-                        {band.logoUrl && <img src={band.logoUrl} alt={band.name} className="h-4 w-auto max-w-6 rounded object-contain shrink-0" />}
+                        {band.logoUrl && (
+                          <div className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700/80 dark:bg-slate-900/80">
+                            <img src={band.logoUrl} alt={band.name} className="max-h-full max-w-full object-contain" />
+                          </div>
+                        )}
                         <span className="text-xs font-medium truncate" style={{ color: band.color || '#6366f1' }}>{band.name}</span>
                       </div>
                     ) : null;

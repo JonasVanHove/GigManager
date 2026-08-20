@@ -8,6 +8,7 @@ import { recordWebVital } from "@/lib/web-vitals-logger";
 import { recordMetric } from "@/lib/performance-metrics";
 import type { Gig, GigFormData, DashboardSummary } from "@/types";
 import { calculateGigFinancials } from "@/lib/calculations";
+import { summarizeDashboardFinancials } from "@/lib/dashboard-financials";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
@@ -1042,69 +1043,15 @@ export default function Dashboard() {
 
   const summary: DashboardSummary = useMemo(
     () => {
-      const result = gigs.reduce(
-        (acc, g) => {
-          const c = calculateGigFinancials(
-            g.performanceFee,
-            g.technicalFee,
-            g.managerBonusType,
-            g.managerBonusAmount,
-            g.numberOfMusicians,
-            g.claimPerformanceFee,
-            g.claimTechnicalFee,
-            g.technicalFeeClaimAmount,
-            g.advanceReceivedByManager,
-            g.advanceToMusicians,
-            g.isCharity
-          );
-          acc.totalGigs += 1;
-          acc.totalEarnings += c.myEarnings;
-          if (g.paymentReceived) {
-            // Full payment received
-            acc.totalEarningsReceived += c.myEarnings;
-          } else {
-            // Only advance received so far, rest is still pending
-            acc.totalEarningsReceived += c.myEarningsAlreadyReceived;
-            acc.totalEarningsPending += c.myEarningsStillOwed;
+      const result = summarizeDashboardFinancials(gigs);
 
-            // Track pending amount by band/performer
-            const bandName = g.performers || "Unknown";
-            const totalGigValue = c.totalReceived;
-            const pendingAmount = Math.max(0, totalGigValue - g.advanceReceivedByManager);
-            const existing = acc.pendingByBand.find((b) => b.band === bandName);
-            if (existing) {
-              existing.amount += pendingAmount;
-              existing.count += 1;
-            } else {
-              acc.pendingByBand.push({
-                band: bandName,
-                amount: pendingAmount,
-                count: 1,
-              });
-            }
-          }
-          if (!g.paymentReceived) acc.pendingClientPayments += 1;
-          if (!g.bandPaid && g.managerHandlesDistribution) acc.outstandingToBand += c.amountOwedToOthers;
-          return acc;
-        },
-        {
-          totalGigs: 0,
-          totalEarnings: 0,
-          totalEarningsReceived: 0,
-          totalEarningsPending: 0,
-          pendingClientPayments: 0,
-          outstandingToBand: 0,
-          pendingByBand: [],
-        } as DashboardSummary
-      );
-      
       console.log("[Dashboard] Summary calculation complete:", {
         totalEarnings: result.totalEarnings,
         totalEarningsReceived: result.totalEarningsReceived,
         totalEarningsPending: result.totalEarningsPending,
-        gigsCount: result.totalGigs
+        gigsCount: result.totalGigs,
       });
-      
+
       return result;
     },
     [gigs]
