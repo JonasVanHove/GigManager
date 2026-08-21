@@ -18,5 +18,5 @@ export function getBandMemberAvatarUrl(
     return fallbackAvatarUrl || avatarUrl || null;
   }
 
-  return null;
+  return avatarUrl || null;
 }

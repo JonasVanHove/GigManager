@@ -7,8 +7,8 @@ describe("band member avatar rules", () => {
     expect(getBandMemberAvatarUrl("jonas", "https://example.com/other.png", "https://example.com/jonas.png")).toBe("https://example.com/jonas.png");
   });
 
-  it("does not return an image for non-Jonas members", () => {
-    expect(getBandMemberAvatarUrl("Alex", "https://example.com/alex.png", "https://example.com/jonas.png")).toBeNull();
+  it("uses a custom avatar for non-Jonas members when one is set", () => {
+    expect(getBandMemberAvatarUrl("Alex", "https://example.com/alex.png", "https://example.com/jonas.png")).toBe("https://example.com/alex.png");
   });
 
   it("uses the first letter of the name for the fallback badge", () => {
