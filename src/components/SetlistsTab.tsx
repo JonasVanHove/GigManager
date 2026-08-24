@@ -1763,11 +1763,8 @@ export default function SetlistsTab() {
       {/* Main content area - flexible layout */}
       <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden relative">
         {/* Sidebar - collapsible desktop/mobile drawer */}
-        <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ease-in-out ${
-          sidebarCollapsed 
-            ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
-            : 'hidden md:flex md:w-72 lg:w-80 opacity-100 pointer-events-auto overflow-y-auto'
-        }`}>
+        {!sidebarCollapsed && (
+          <aside className="hidden md:flex flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 md:w-72 lg:w-80 opacity-100 pointer-events-auto overflow-y-auto">
           <div className="flex flex-col h-full p-2 sm:p-3 space-y-2">
             {/* Status filters - compact */}
             <div className="grid grid-cols-4 gap-1.5">
@@ -1847,6 +1844,7 @@ export default function SetlistsTab() {
             </div>
           </div>
         </aside>
+        )}
 
         {/* Main content - full width & dynamic expansion */}
         <main className="flex-1 min-h-0 min-w-0 overflow-hidden bg-white/95 dark:bg-slate-950/85 transition-all duration-300 ease-in-out flex flex-col">
@@ -2059,11 +2057,8 @@ export default function SetlistsTab() {
                 </section>
 
                 {/* Right Repertoire Drawer (Desktop & Medium screens) */}
-                <aside className={`hidden md:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm ${
-                  repertoireCollapsed 
-                    ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
-                    : 'w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3 max-h-[calc(100vh-200px)]'
-                }`}>
+                {!repertoireCollapsed && (
+                  <aside className="hidden md:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3 max-h-[calc(100vh-200px)] shadow-sm">
                   <div className="flex items-center justify-between gap-2 shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 pb-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-100">
                       <span>🎵 {t('setlists.songPicker')}</span>
@@ -2151,9 +2146,10 @@ export default function SetlistsTab() {
                     </div>
                   </div>
                 </aside>
+                )}
 
-                {/* Mobile Repertoire Drawer (<LG) */}
-                <div className="lg:hidden shrink-0">
+                {/* Mobile Repertoire Drawer (<MD) */}
+                <div className="md:hidden shrink-0">
                   <button
                     type="button"
                     onClick={() => setRepertoireCollapsed(!repertoireCollapsed)}
