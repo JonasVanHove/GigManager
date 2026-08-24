@@ -117,9 +117,9 @@ export default function SuperAdminTab() {
     setPage(1);
   }, [query]);
 
-  const currencyFormatter = new Intl.NumberFormat("en-US", {
+  const currencyFormatter = new Intl.NumberFormat("nl-BE", {
     style: "currency",
-    currency: "USD",
+    currency: "EUR",
     maximumFractionDigits: 2,
   });
 

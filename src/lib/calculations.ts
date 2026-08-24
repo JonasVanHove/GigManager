@@ -147,6 +147,7 @@ export function formatCurrency(
   return new Intl.NumberFormat(loc, {
     style: "currency",
     currency,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 

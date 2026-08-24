@@ -634,7 +634,7 @@ export default function SetlistsTab() {
                   artist: "",
                   tuning: item.tuning || "Onbekend",
                   key: item.chords || "",
-                  tempo: item.notes || "",
+                  tempo: "",
                   notitie: item.notes || "",
                   specialLabel: item.type === "note" ? item.title || "" : "",
                   expanded: false,
@@ -1430,7 +1430,6 @@ export default function SetlistsTab() {
               {hasImages && <span className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300 shrink-0" title={t('setlists.imageIncluded')} aria-label={t('setlists.imageIncluded')}>🖼️</span>}
               {tuningChanged && <span className="text-sm text-amber-600 shrink-0">⚠</span>}
             </div>
-            {item.notitie && <div className="mt-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.notitie}</div>}
             {item.songId && songNoteMap.get(item.songId)?.length ? (
               <div className="mt-1.5 flex flex-wrap gap-2">
                 <button type="button" onClick={(event) => { event.stopPropagation(); toggleDrawerSong(item.songId || ""); }} className="rounded-full border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title={t('setlists.linkedNotes')} aria-label={t('setlists.linkedNotes')}>
@@ -1975,7 +1974,7 @@ export default function SetlistsTab() {
               </div>
 
               {/* Main workspace layout: Songs column (flex-1) + Repertoire Drawer (collapsible) */}
-              <div className="flex flex-col lg:flex-row gap-4 min-h-0 min-w-0 flex-1">
+              <div className="flex flex-col md:flex-row gap-4 min-h-0 min-w-0 flex-1">
                 {/* Song list column - expands dynamically */}
                 <section className="flex-1 min-w-0 flex flex-col space-y-3">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 dark:border-slate-800 dark:bg-slate-900/60 shrink-0">
@@ -2010,7 +2009,7 @@ export default function SetlistsTab() {
                   </div>
 
                   {/* Bottom Accordion Panels (General Notes & Tuning Analysis) */}
-                  <div className="grid gap-3 grid-cols-1 md:grid-cols-2 shrink-0 pt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 shrink-0 pt-2 border-t border-slate-200/80 dark:border-slate-800/80">
                     {/* General Notes Accordion */}
                     <div className="rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 overflow-hidden shadow-sm">
                       <button 
@@ -2059,8 +2058,8 @@ export default function SetlistsTab() {
                   </div>
                 </section>
 
-                {/* Right Repertoire Drawer (Desktop & Large screens) */}
-                <aside className={`hidden lg:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm ${
+                {/* Right Repertoire Drawer (Desktop & Medium screens) */}
+                <aside className={`hidden md:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm ${
                   repertoireCollapsed 
                     ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
                     : 'w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3 max-h-[calc(100vh-200px)]'

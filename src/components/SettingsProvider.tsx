@@ -182,7 +182,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const fmtCurrency = useCallback(
     (amount: number) => {
       const cur = settings.currency || "EUR";
-      return new Intl.NumberFormat(locale, { style: "currency", currency: cur }).format(amount);
+      return new Intl.NumberFormat(locale, { style: "currency", currency: cur, maximumFractionDigits: 2 }).format(amount);
     },
     [settings.currency, locale]
   );

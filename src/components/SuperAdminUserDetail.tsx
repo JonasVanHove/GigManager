@@ -157,7 +157,7 @@ export default function SuperAdminUserDetail({
 
   const formatCurrency = (amount: number) => {
     const currency = data.settings?.currency || "EUR";
-    return new Intl.NumberFormat("nl-NL", { style: "currency", currency }).format(Number.isFinite(amount) ? amount : 0);
+    return new Intl.NumberFormat("nl-BE", { style: "currency", currency }).format(Number.isFinite(amount) ? amount : 0);
   };
 
   const safeNumber = (value: number | null | undefined) => (Number.isFinite(value ?? NaN) ? (value as number) : 0);
