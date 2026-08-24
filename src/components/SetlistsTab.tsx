@@ -1766,7 +1766,7 @@ export default function SetlistsTab() {
         <aside className={`flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ease-in-out ${
           sidebarCollapsed 
             ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
-            : 'w-full md:w-72 lg:w-80 opacity-100 pointer-events-auto overflow-y-auto'
+            : 'hidden md:flex md:w-72 lg:w-80 opacity-100 pointer-events-auto overflow-y-auto'
         }`}>
           <div className="flex flex-col h-full p-2 sm:p-3 space-y-2">
             {/* Status filters - compact */}
