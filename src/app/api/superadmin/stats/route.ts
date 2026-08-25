@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
         gig.managerPerformanceAmount ?? null
       );
 
-      const earned = gig.paymentReceived ? calc.myEarnings : calc.myEarningsAlreadyReceived;
+      const earned = gig.bandPaid ? calc.myEarnings : calc.myEarningsAlreadyReceived;
       return sum + earned;
     }, 0);
 
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
         gig.managerPerformanceAmount ?? null
       );
 
-      return sum + calc.myEarningsStillOwed;
+      return sum + (gig.bandPaid ? 0 : calc.myEarningsStillOwed);
     }, 0);
 
     return NextResponse.json({

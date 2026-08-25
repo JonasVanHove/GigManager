@@ -380,7 +380,7 @@ export default function InvestmentsTab({ fmtCurrency }: InvestmentsTabProps) {
           );
 
           acc.totalEarned += c.myEarnings;
-          if (gig.paymentReceived) {
+          if (gig.bandPaid) {
             acc.totalEarnedReceived += c.myEarnings;
           } else {
             acc.totalEarnedReceived += c.myEarningsAlreadyReceived;

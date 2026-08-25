@@ -64,8 +64,8 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
         ? calc.totalReceived
         : Math.min(calc.totalReceived, g.advanceReceivedByManager || 0);
       const clientPendingForGig = Math.max(0, calc.totalReceived - clientReceivedForGig);
-      const myReceivedForGig = g.paymentReceived ? calc.myEarnings : calc.myEarningsAlreadyReceived;
-      const myPendingForGig = g.paymentReceived ? 0 : calc.myEarningsStillOwed;
+      const myReceivedForGig = g.bandPaid ? calc.myEarnings : calc.myEarningsAlreadyReceived;
+      const myPendingForGig = g.bandPaid ? 0 : calc.myEarningsStillOwed;
 
       clientReceived += clientReceivedForGig;
       clientPending += clientPendingForGig;

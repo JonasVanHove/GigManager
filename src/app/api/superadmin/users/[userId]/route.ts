@@ -114,8 +114,8 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
         (gig.performanceDistribution as "equal" | "managerFixed" | "custom") || "equal",
         toFiniteNumber(gig.managerPerformanceAmount)
       );
-      const receivedForGig = gig.paymentReceived ? calculations.myEarnings : calculations.myEarningsAlreadyReceived;
-      const pendingForGig = gig.paymentReceived ? 0 : calculations.myEarningsStillOwed;
+      const receivedForGig = gig.bandPaid ? calculations.myEarnings : calculations.myEarningsAlreadyReceived;
+      const pendingForGig = gig.bandPaid ? 0 : calculations.myEarningsStillOwed;
 
       return {
         id: gig.id,
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
     const averageMyEarningsPerGig = user.gigs.length > 0 ? totalMyEarnings / user.gigs.length : 0;
 
     const pendingGigs = earningsByGig
-      .filter((gig) => !gig.paymentReceived)
+      .filter((gig) => !gig.bandPaid)
       .map((gig) => ({ id: gig.id, eventName: gig.eventName, date: gig.date, pendingAmount: toFiniteNumber((gig as any).pendingForGig) }));
     const biggestGig = earningsByGig.reduce<null | (typeof earningsByGig)[number]>((best, gig) => {
       if (!best || gig.myEarnings > best.myEarnings) return gig;
