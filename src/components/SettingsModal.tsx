@@ -61,6 +61,10 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [pdfShowPageNumbers, setPdfShowPageNumbers] = useState(settings.pdfShowPageNumbers ?? true);
   const [pdfMarginSize, setPdfMarginSize] = useState(settings.pdfMarginSize ?? "medium");
   const [excludeSelfFromMemberCount, setExcludeSelfFromMemberCount] = useState(settings.excludeSelfFromMemberCount ?? false);
+  
+  // Custom Navigation Tabs
+  const [customTab1, setCustomTab1] = useState(settings.customTab1 ?? "setlists");
+  const [customTab2, setCustomTab2] = useState(settings.customTab2 ?? "songs");
 
   const hasSettingsChanges =
     currency !== settings.currency ||
@@ -68,6 +72,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     claimTech !== settings.claimTechnicalFee ||
     theme !== settings.theme ||
     appLanguage !== language ||
+    customTab1 !== (settings.customTab1 ?? "setlists") ||
+    customTab2 !== (settings.customTab2 ?? "songs") ||
     pdfIncludeLogo !== (settings.pdfIncludeLogo ?? true) ||
     pdfFont !== (settings.pdfFont ?? "inter") ||
     pdfPageSize !== (settings.pdfPageSize ?? "a4") ||
@@ -172,6 +178,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           claimPerformanceFee: claimPerf,
           claimTechnicalFee: claimTech,
           theme,
+          customTab1,
+          customTab2,
           pdfIncludeLogo,
           pdfFont,
           pdfPageSize,
@@ -328,6 +336,55 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                 ? t('settings.languageHintDutch')
                 : t('settings.languageHintEnglish')}
             </p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              {t('settings.customTabs')}
+            </label>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
+                  {t('settings.customTab1')}
+                </label>
+                <select
+                  value={customTab1}
+                  onChange={(e) => setCustomTab1(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                >
+                  <option value="setlists">{t('dashboard.setlists')}</option>
+                  <option value="songs">{t('dashboard.songs')}</option>
+                  <option value="calendar">{t('dashboard.calendar')}</option>
+                  <option value="bands">{t('dashboard.bands')}</option>
+                  <option value="band-members">{t('dashboard.bandMembers')}</option>
+                  <option value="analytics">{t('dashboard.insights')}</option>
+                  <option value="investments">{t('dashboard.investments')}</option>
+                  <option value="shared-links">{t('dashboard.share')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
+                  {t('settings.customTab2')}
+                </label>
+                <select
+                  value={customTab2}
+                  onChange={(e) => setCustomTab2(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                >
+                  <option value="setlists">{t('dashboard.setlists')}</option>
+                  <option value="songs">{t('dashboard.songs')}</option>
+                  <option value="calendar">{t('dashboard.calendar')}</option>
+                  <option value="bands">{t('dashboard.bands')}</option>
+                  <option value="band-members">{t('dashboard.bandMembers')}</option>
+                  <option value="analytics">{t('dashboard.insights')}</option>
+                  <option value="investments">{t('dashboard.investments')}</option>
+                  <option value="shared-links">{t('dashboard.share')}</option>
+                </select>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t('settings.customTabsHint')}
+              </p>
+            </div>
           </div>
 
           <div>

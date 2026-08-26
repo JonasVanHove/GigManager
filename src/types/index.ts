@@ -167,6 +167,9 @@ export interface UserSettingsData {
   claimPerformanceFee: boolean;
   claimTechnicalFee: boolean;
   theme: "light" | "dark" | "system";
+  // Custom Navigation Tabs
+  customTab1?: string;
+  customTab2?: string;
   // PDF Export Settings
   pdfIncludeLogo?: boolean;
   pdfFont?: string;
@@ -189,6 +192,8 @@ export const DEFAULT_SETTINGS: UserSettingsData = {
   claimPerformanceFee: true,
   claimTechnicalFee: true,
   theme: "system",
+  customTab1: "setlists",
+  customTab2: "songs",
   pdfIncludeLogo: true,
   pdfFont: "inter",
   pdfPageSize: "a4",

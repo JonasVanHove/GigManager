@@ -5,6 +5,7 @@ import type { Gig } from "@/types";
 import { formatCurrency, formatDate, calculateGigFinancials } from "@/lib/calculations";
 import { resolveLocale } from "@/lib/preferences";
 import { useSettings } from "./SettingsProvider";
+import { Icons } from "./Icons";
 
 interface AnalyticsPageProps {
   gigs: Gig[];
@@ -15,6 +16,26 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
   const { language } = useSettings();
   const [viewMode, setViewMode] = useState<"personal" | "management">("personal");
   const tr = useCallback((en: string, nl: string) => (language === "nl" ? nl : en), [language]);
+  
+  // Handle empty state
+  if (!gigs || gigs.length === 0) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-8 shadow-sm backdrop-blur">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+            <Icons.Analytics className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {tr("No data yet", "Nog geen gegevens")}
+          </h3>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            {tr("Add some gigs to see insights and analytics here.", "Voeg optredens toe om inzichten en analyses hier te zien.")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   // -- Computed stats ----------------------------------------------------------
 
   const stats = useMemo(() => {
