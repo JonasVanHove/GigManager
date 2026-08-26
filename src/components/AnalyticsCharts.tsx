@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { Gig } from "@/types";
 import { calculateGigFinancials } from "@/lib/calculations";
 import { resolveLocale } from "@/lib/preferences";
@@ -37,7 +37,7 @@ interface AnalyticsSummary {
 
 export default function AnalyticsCharts({ gigs, fmtCurrency }: AnalyticsChartsProps) {
   const { language } = useSettings();
-  const tr = (en: string, nl: string) => (language === "nl" ? nl : en);
+  const tr = useCallback((en: string, nl: string) => (language === "nl" ? nl : en), [language]);
   const gigCountLabel = (count: number) => (count === 1 ? tr("gig", "optreden") : tr("gigs", "optredens"));
 
   const analytics = useMemo<AnalyticsSummary>(() => {

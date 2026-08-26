@@ -6,7 +6,7 @@ import Image from "next/image";
 import Avatar from "./Avatar";
 import { recordWebVital } from "@/lib/web-vitals-logger";
 import { recordMetric } from "@/lib/performance-metrics";
-import type { Gig, GigFormData, DashboardSummary } from "@/types";
+import type { Gig, GigFormData, DashboardSummary, UserSettingsData } from "@/types";
 import { calculateGigFinancials } from "@/lib/calculations";
 import { summarizeDashboardFinancials } from "@/lib/dashboard-financials";
 import { useAuth } from "./AuthProvider";

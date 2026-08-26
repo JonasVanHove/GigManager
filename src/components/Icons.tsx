@@ -35,6 +35,12 @@ export const Icons = {
     </svg>
   ),
 
+  X: (props: IconProps) => (
+    <svg {...iconDefaults} {...props}>
+      <path d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+
   ChevronDown: (props: IconProps) => (
     <svg {...iconDefaults} {...props}>
       <path d="M19 9l-7 7-7-7" />

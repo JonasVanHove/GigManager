@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useMemo, useState } from "react";
 import type { Gig } from "@/types";
@@ -17,35 +17,17 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
   const [viewMode, setViewMode] = useState<"personal" | "management">("personal");
   const tr = useCallback((en: string, nl: string) => (language === "nl" ? nl : en), [language]);
   
-  // Handle empty state
-  if (!gigs || gigs.length === 0) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-8 shadow-sm backdrop-blur">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-            <Icons.Analytics className="h-8 w-8 text-slate-400 dark:text-slate-500" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {tr("No data yet", "Nog geen gegevens")}
-          </h3>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            {tr("Add some gigs to see insights and analytics here.", "Voeg optredens toe om inzichten en analyses hier te zien.")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-  
   // -- Computed stats ----------------------------------------------------------
 
   const stats = useMemo(() => {
-    const paid = gigs.filter((g) => g.paymentReceived);
-    const unpaid = gigs.filter((g) => !g.paymentReceived);
-    const bandPaid = gigs.filter((g) => g.bandPaid);
-    const bandUnpaid = gigs.filter((g) => !g.bandPaid);
-    const charityGigs = gigs.filter((g) => g.isCharity);
-    const regularGigs = gigs.filter((g) => !g.isCharity);
-    const gigsWithAdvance = gigs.filter((g) => g.advanceReceivedByManager > 0 || g.advanceToMusicians > 0);
+    const list = gigs || [];
+    const paid = list.filter((g) => g.paymentReceived);
+    const unpaid = list.filter((g) => !g.paymentReceived);
+    const bandPaid = list.filter((g) => g.bandPaid);
+    const bandUnpaid = list.filter((g) => !g.bandPaid);
+    const charityGigs = list.filter((g) => g.isCharity);
+    const regularGigs = list.filter((g) => !g.isCharity);
+    const gigsWithAdvance = list.filter((g) => g.advanceReceivedByManager > 0 || g.advanceToMusicians > 0);
 
     let clientReceived = 0;
     let clientPending = 0;
@@ -66,7 +48,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
     const monthlyPersonalData: Record<string, { count: number; total: number; received: number; pending: number; charity: number; paidGigs: number }> = {};
     const timeline: Array<{ date: Date; amount: number; eventName: string; received: boolean; kind: "client" | "personal" }> = [];
 
-    gigs.forEach((g) => {
+    list.forEach((g) => {
       const calc = calculateGigFinancials(
         g.performanceFee,
         g.technicalFee,
@@ -177,8 +159,8 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
     timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     const totalContracted = clientReceived + clientPending;
-    const avgGigSize = gigs.length > 0 ? totalContracted / gigs.length : 0;
-    const avgEarningsPerGig = gigs.length > 0 ? totalEarned / gigs.length : 0;
+    const avgGigSize = list.length > 0 ? totalContracted / list.length : 0;
+    const avgEarningsPerGig = list.length > 0 ? totalEarned / list.length : 0;
 
     const monthsManagement = Object.entries(monthlyManagementData)
       .sort(([a], [b]) => b.localeCompare(a))
@@ -213,7 +195,7 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
     const currentMonthPattern = monthPatterns.find((m) => m.monthNum === currentMonth);
 
     return {
-      totalGigs: gigs.length,
+      totalGigs: list.length,
       paidGigs: paid.length,
       unpaidGigs: unpaid.length,
       grossReceived: clientReceived,
@@ -246,6 +228,26 @@ export default function AnalyticsPage({ gigs, fmtCurrency }: AnalyticsPageProps)
       quietestMonth: monthPatterns[monthPatterns.length - 1],
     };
   }, [gigs, tr]);
+
+  // Handle empty state
+  if (!gigs || gigs.length === 0) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-8 shadow-sm backdrop-blur">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+            <Icons.Analytics className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {tr("No data yet", "Nog geen gegevens")}
+          </h3>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            {tr("Add some gigs to see insights and analytics here.", "Voeg optredens toe om inzichten en analyses hier te zien.")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
 
   const filteredTimeline = stats.timeline
     .filter((t) => (viewMode === "personal" ? t.kind === "personal" : t.kind === "client"))

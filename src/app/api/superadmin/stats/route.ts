@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
           advanceToMusicians: true,
           isCharity: true,
           paymentReceived: true,
+          bandPaid: true,
           performanceDistribution: true,
           managerPerformanceAmount: true,
         },
