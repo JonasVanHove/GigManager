@@ -8,10 +8,19 @@ import { measureAsync, recordMetric } from "@/lib/performance-metrics";
 // GET /api/reports/financial - Generate comprehensive financial report
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getUserIdFromHeader(req);
+    const supabaseUserId = await getUserIdFromHeader(req);
 
-    if (!userId) {
+    if (!supabaseUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { supabaseId: supabaseUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -24,7 +33,7 @@ export async function GET(req: NextRequest) {
       endDate: endDate || "",
       period: period || "all",
     };
-    const cacheKey = getCacheKey(userId, "financial-report", cacheParams);
+    const cacheKey = getCacheKey(user.id, "financial-report", cacheParams);
     const cached = getCacheEntry<unknown>(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { headers: getApiCacheHeaders(60, "HIT") });
@@ -68,7 +77,7 @@ export async function GET(req: NextRequest) {
       "GET /api/reports/financial [DB FETCH]",
       () => prisma.gig.findMany({
         where: {
-          userId,
+          userId: user.id,
           ...dateFilter,
         },
         select: {
@@ -95,7 +104,7 @@ export async function GET(req: NextRequest) {
       }),
       {
         endpoint: "/api/reports/financial",
-        userId,
+        userId: user.id,
         metadata: { period, dateRange: { startDate, endDate } },
       }
     );
@@ -192,7 +201,7 @@ export async function GET(req: NextRequest) {
     setCacheEntry(cacheKey, payload, 60);
     recordMetric("GET /api/reports/financial [SUCCESS]", 0, {
       endpoint: "/api/reports/financial",
-      userId,
+      userId: user.id,
       status: 200,
       metadata: { gigCount: gigsWithFinancials.length },
     });
