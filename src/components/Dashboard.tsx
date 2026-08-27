@@ -28,6 +28,7 @@ import LoadingSpinner, { CardSkeleton } from "./LoadingSpinner";
 
 // Lazy load heavy components for better initial load time
 const AnalyticsPage = lazy(() => import("./AnalyticsPage"));
+const AIPredictionsTab = lazy(() => import("./AIPredictionsTab"));
 const InvestmentsTab = lazy(() => import("./InvestmentsTab"));
 const AllGigsTab = lazy(() => import("./AllGigsTab"));
 const BandMembers = lazy(() => import("./BandMembers"));
@@ -37,8 +38,8 @@ const CalendarView = lazy(() => import("./CalendarView"));
 const SetlistsTab = lazy(() => import("./SetlistsTab"));
 const SongsTab = lazy(() => import("./SongsTab"));
 const SharedLinksTab = lazy(() => import("./SharedLinksTab"));
-
 const SuperAdminTab = lazy(() => import("./SuperAdminTab"));
+import RouteProgressBar from "./RouteProgressBar";
 
 type DashboardTab =
   | "gigs"
@@ -73,7 +74,7 @@ const isDashboardTab = (value: string | null): value is DashboardTab => {
 
 const TAB_PRELOADERS: Partial<Record<DashboardTab, () => Promise<unknown>>> = {
   "all-gigs": () => import("./AllGigsTab"),
-  analytics: () => import("./AnalyticsPage"),
+  analytics: () => Promise.all([import("./AnalyticsPage"), import("./AIPredictionsTab"), import("./FinancialReports")]),
   investments: () => import("./InvestmentsTab"),
 
   songs: () => import("./SongsTab"),
@@ -224,8 +225,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<DashboardTab>(isDashboardTab(queryTab) ? queryTab : "gigs");
   const [canAccessSuperAdmin, setCanAccessSuperAdmin] = useState(false);
   const [superAdminAccessChecked, setSuperAdminAccessChecked] = useState(false);
-  const [insightsView, setInsightsView] = useState<"analytics" | "reports">("analytics");
-  const [, startTransition] = useTransition();
+  const [insightsView, setInsightsView] = useState<"analytics" | "reports" | "ai-predictions">("analytics");
+  const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
   const selectedTab = activeTab === "superadmin" && !canAccessSuperAdmin ? "gigs" : activeTab;
   const workspaceTabs = useMemo(
@@ -1100,8 +1101,8 @@ export default function Dashboard() {
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div style={{ backgroundColor: "#0f172a" }} className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" message="Loading dashboard..." />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors">
+        <LoadingSpinner size="lg" message={t('dashboard.loadingDashboard', 'Loading dashboard...')} />
       </div>
     );
   }
@@ -1113,6 +1114,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
+      <RouteProgressBar isLoading={loading || isPending} />
       {/* -- Navbar -------------------------------------------------------- */}
       <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
         <div className={`mx-auto flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:flex-nowrap sm:px-4 sm:py-3 lg:px-6 ${effectiveWideView ? "max-w-none 2xl:px-8" : "max-w-[1800px]"}`}>
@@ -1165,8 +1167,17 @@ export default function Dashboard() {
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white"
                   }`}
                 >
-                  <Icons.People className="h-4 w-4" />
-                  <span>Workspace</span>
+                  {workspaceTabs.includes(selectedTab) ? (
+                    <>
+                      {renderTabIcon(selectedTab)}
+                      <span>{tabLabels[selectedTab]}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icons.People className="h-4 w-4" />
+                      <span>{t('settings.workspace', 'Workspace')}</span>
+                    </>
+                  )}
                   <Icons.ChevronDown className={`h-4 w-4 transition-transform ${showWorkspaceMenu ? "rotate-180" : ""}`} />
                 </button>
 
@@ -1258,13 +1269,6 @@ export default function Dashboard() {
                 Add
               </span>
             </button>
-
-            {!getPrimaryNavTabs(settings).includes(selectedTab) && (
-              <div className="hidden lg:flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-2 text-sm text-slate-600 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-800/40 dark:text-slate-200">
-                {renderTabIcon(selectedTab)}
-                <span className="font-medium">{tabLabels[selectedTab]}</span>
-              </div>
-            )}
 
             {/* Profile menu (merged with settings & sign out) */}
             <div className="relative" ref={profileMenuRef}>
@@ -1926,34 +1930,49 @@ export default function Dashboard() {
             />
           </Suspense>
         ) : selectedTab === "analytics" ? (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 p-2">
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-2 shadow-sm backdrop-blur">
               <button
                 onClick={() => setInsightsView("analytics")}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition ${
                   insightsView === "analytics"
-                    ? "bg-brand-600 text-white"
-                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 }`}
               >
-                Analytics
+                <Icons.Analytics className="h-4 w-4" />
+                <span>{t('dashboard.analyticsSubTab', 'Analytics')}</span>
               </button>
               <button
                 onClick={() => setInsightsView("reports")}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition ${
                   insightsView === "reports"
-                    ? "bg-brand-600 text-white"
-                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 }`}
               >
-                Reports
+                <Icons.Document className="h-4 w-4" />
+                <span>{t('dashboard.reportsSubTab', 'Reports')}</span>
+              </button>
+              <button
+                onClick={() => setInsightsView("ai-predictions")}
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition ${
+                  insightsView === "ai-predictions"
+                    ? "bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                }`}
+              >
+                <Icons.Sparkles className="h-4 w-4 text-amber-300 dark:text-amber-300" />
+                <span>{t('dashboard.aiPredictionsSubTab', 'AI Predictions & Smart Insights')}</span>
               </button>
             </div>
             <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
               {insightsView === "analytics" ? (
                 <AnalyticsPage gigs={gigs} fmtCurrency={fmtCurrency} />
-              ) : (
+              ) : insightsView === "reports" ? (
                 <FinancialReports fmtCurrency={fmtCurrency} />
+              ) : (
+                <AIPredictionsTab gigs={gigs} fmtCurrency={fmtCurrency} />
               )}
             </Suspense>
           </div>

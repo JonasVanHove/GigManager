@@ -435,6 +435,10 @@
     "setlists": "Setlists",
     "share": "Share",
     "superadmin": "Superadmin",
-    "loadingSection": "Loading section..."
+    "loadingSection": "Loading section...",
+    "loadingDashboard": "Loading dashboard...",
+    "analyticsSubTab": "Analytics",
+    "reportsSubTab": "Reports",
+    "aiPredictionsSubTab": "AI Predictions & Smart Insights"
   }
 }

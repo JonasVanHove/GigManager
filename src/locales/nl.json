@@ -433,6 +433,10 @@
     "setlists": "Setlists",
     "share": "Delen",
     "superadmin": "Superadmin",
-    "loadingSection": "Sectie laden..."
+    "loadingSection": "Sectie laden...",
+    "loadingDashboard": "Dashboard laden...",
+    "analyticsSubTab": "Analyses",
+    "reportsSubTab": "Rapporten",
+    "aiPredictionsSubTab": "AI Voorspellingen & Inzichten"
   }
 }
