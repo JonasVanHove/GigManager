@@ -101,7 +101,7 @@ export default function SongsTab() {
   const [showOnlyWithNotes, setShowOnlyWithNotes] = useState(false);
   const [attachmentFilter, setAttachmentFilter] = useState<"all" | "with" | "without">("all");
   const [tuningFilter, setTuningFilter] = useState<string>("");
-  const [tagFilter, setTagFilter] = useState<string>("");
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [keyFilter, setKeyFilter] = useState<string>("");
   const [sortBy, setSortBy] = useState<"title" | "date" | "attachments">("title");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -119,6 +119,11 @@ export default function SongsTab() {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [viewerTitle, setViewerTitle] = useState<string | undefined>(undefined);
   const [viewerTuning, setViewerTuning] = useState<string | undefined>(undefined);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [selectedSongForAI, setSelectedSongForAI] = useState<SongRecord | null>(null);
+  const [aiSimilarSongs, setAiSimilarSongs] = useState<SongRecord[]>([]);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [autoDetectedKey, setAutoDetectedKey] = useState<string>("");
 
   const fetchSongs = useCallback(async () => {
     setLoading(true);
@@ -162,6 +167,147 @@ export default function SongsTab() {
     fetchSongs();
   }, [fetchSongs]);
 
+  // Close tag dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const dropdown = document.getElementById('tag-filter-dropdown');
+      const button = document.querySelector('[data-tag-filter-button]');
+      if (dropdown && !dropdown.contains(target) && button && !button.contains(target)) {
+        setShowTagDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // AI Similar Songs Analysis
+  const analyzeSimilarSongs = useCallback((song: SongRecord) => {
+    setSelectedSongForAI(song);
+    setAiAnalyzing(true);
+    setAiSimilarSongs([]);
+
+    setTimeout(() => {
+      const currentMeta = parseSongNotes(song.notes).meta;
+      const similarities = songs
+        .filter(s => s.id !== song.id)
+        .map(otherSong => {
+          const otherMeta = parseSongNotes(otherSong.notes).meta;
+          let score = 0;
+          const reasons: string[] = [];
+
+          // Genre match
+          if (currentMeta.genre && otherMeta.genre && 
+              currentMeta.genre.toLowerCase() === otherMeta.genre.toLowerCase()) {
+            score += 30;
+            reasons.push('Same genre');
+          }
+
+          // Key signature match
+          if (currentMeta.keySignature && otherMeta.keySignature && 
+              currentMeta.keySignature.toLowerCase() === otherMeta.keySignature.toLowerCase()) {
+            score += 25;
+            reasons.push('Same key');
+          }
+
+          // BPM proximity
+          if (currentMeta.bpm && otherMeta.bpm) {
+            const bpmDiff = Math.abs(parseInt(currentMeta.bpm) - parseInt(otherMeta.bpm));
+            if (bpmDiff <= 5) {
+              score += 20;
+              reasons.push('Similar tempo');
+            } else if (bpmDiff <= 15) {
+              score += 10;
+              reasons.push('Related tempo');
+            }
+          }
+
+          // Band/project match
+          if (currentMeta.bandProject && otherMeta.bandProject && 
+              currentMeta.bandProject.toLowerCase() === otherMeta.bandProject.toLowerCase()) {
+            score += 15;
+            reasons.push('Same project');
+          }
+
+          return { song: otherSong, score, reasons };
+        })
+        .filter(result => result.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(result => result.song);
+
+      setAiSimilarSongs(similarities);
+      setAiAnalyzing(false);
+    }, 1000); // Simulate AI processing
+  }, [songs]);
+
+  // Key/Tuning Detection Helper
+  const detectKeyFromTitle = useCallback((title: string): string => {
+    const commonKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 
+                       'Am', 'Dm', 'Em', 'Fm', 'Gm', 'Bm',
+                       'Cm', 'C#', 'Db', 'D#', 'Eb', 'F#', 'Gb', 'G#', 'Ab', 'A#', 'Bb'];
+    
+    const lowerTitle = title.toLowerCase();
+    
+    for (const key of commonKeys) {
+      if (lowerTitle.includes(key.toLowerCase()) || 
+          lowerTitle.includes(key.replace('#', ' ').toLowerCase()) ||
+          lowerTitle.includes(key.replace('b', ' ').toLowerCase())) {
+        return key;
+      }
+    }
+    
+    return '';
+  }, []);
+
+  const detectKeyFromNotes = useCallback((notes: string): string => {
+    if (!notes) return '';
+    
+    const chordPatterns = [
+      /\b[A-G][#b]m?(?:maj|min)?\b/g,  // Basic chords like Am, C#m, Gmaj
+      /\b[A-G](?=\s|\)|,|\.|$)/g      // Single letters followed by space or punctuation
+    ];
+    
+    const keyCounts: Record<string, number> = {};
+    
+    for (const pattern of chordPatterns) {
+      const matches = notes.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          const cleanMatch = match.replace(/maj|min/g, '').toUpperCase();
+          keyCounts[cleanMatch] = (keyCounts[cleanMatch] || 0) + 1;
+        });
+      }
+    }
+    
+    // Find the most common key
+    let maxCount = 0;
+    let detectedKey = '';
+    
+    for (const [key, count] of Object.entries(keyCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        detectedKey = key;
+      }
+    }
+    
+    return maxCount >= 2 ? detectedKey : '';
+  }, []);
+
+  const autoDetectKey = useCallback((song: SongRecord) => {
+    const titleKey = detectKeyFromTitle(song.title);
+    const notesKey = detectKeyFromNotes(parseSongNotes(song.notes).body);
+    
+    const detected = titleKey || notesKey;
+    if (detected) {
+      setAutoDetectedKey(detected);
+      toast.success(`Auto-detected key: ${detected}`);
+    } else {
+      toast.info('No clear key signature detected from title or notes');
+    }
+  }, [detectKeyFromTitle, detectKeyFromNotes, toast]);
+
   const filteredSongs = useMemo(() => {
     const query = songSearch.trim().toLowerCase();
     let result = songs.filter((song) => {
@@ -175,8 +321,8 @@ export default function SongsTab() {
       // Tuning filter
       if (tuningFilter && parsed.meta.keySignature.toLowerCase() !== tuningFilter.toLowerCase()) return false;
       
-      // Tag filter
-      if (tagFilter && (!song.tags || !song.tags.some(t => t.name.toLowerCase() === tagFilter.toLowerCase()))) return false;
+      // Tag filter (multi-select)
+      if (tagFilter.length > 0 && (!song.tags || !tagFilter.some(tf => song.tags?.some(t => t.name.toLowerCase() === tf.toLowerCase())))) return false;
       
       // Key signature filter
       if (keyFilter && parsed.meta.keySignature.toLowerCase() !== keyFilter.toLowerCase()) return false;
@@ -447,17 +593,70 @@ export default function SongsTab() {
               ))}
             </select>
             
-            {/* Tag Filter */}
-            <select
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-              className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-            >
-              <option value="">{t('songs.filterTag')}</option>
-              {Array.from(new Set(songs.flatMap(s => s.tags?.map(t => t.name) || []))).sort().map(tag => (
-                <option key={tag} value={tag}>{tag}</option>
-              ))}
-            </select>
+            {/* Multi-Select Tag Filter */}
+            <div className="relative">
+              <button
+                type="button"
+                data-tag-filter-button
+                onClick={() => setShowTagDropdown(!showTagDropdown)}
+                className="rounded-lg border border-neutral-800 bg-black px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition flex items-center gap-2"
+              >
+                {tagFilter.length > 0 ? (
+                  <span className="text-cyan-400">{tagFilter.length} tags</span>
+                ) : (
+                  <span className="text-neutral-400">{t('songs.filterTag')}</span>
+                )}
+                <span className="text-neutral-400">▼</span>
+              </button>
+              
+              {/* Dropdown */}
+              {showTagDropdown && (
+                <div 
+                  id="tag-filter-dropdown"
+                  className="absolute left-0 mt-1 w-56 max-h-64 overflow-y-auto rounded-lg border border-neutral-800 bg-neutral-950 shadow-xl z-10 p-2"
+                >
+                  {Array.from(new Set(songs.flatMap(s => s.tags?.map(t => t.name) || []))).sort().map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        if (tagFilter.includes(tag)) {
+                          setTagFilter(prev => prev.filter(t => t !== tag));
+                        } else {
+                          setTagFilter(prev => [...prev, tag]);
+                        }
+                      }}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs text-slate-100 hover:bg-neutral-800 rounded transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={tagFilter.includes(tag)}
+                        readOnly
+                        className="h-3 w-3 rounded border-neutral-700 bg-neutral-900 text-cyan-500 focus:ring-cyan-500"
+                      />
+                      <span className={tagFilter.includes(tag) ? "text-cyan-400 font-medium" : "text-neutral-300"}>{tag}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Active Tag Filters */}
+            {tagFilter.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                {tagFilter.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setTagFilter(prev => prev.filter(t => t !== tag))}
+                    className="rounded-full bg-cyan-950/60 border border-cyan-800/50 px-2 py-0.5 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-900/80 transition flex items-center gap-1"
+                  >
+                    {tag}
+                    <span className="text-cyan-400">×</span>
+                  </button>
+                ))}
+              </div>
+            )}
             
             {/* Key Filter */}
             <select
@@ -491,12 +690,12 @@ export default function SongsTab() {
           </div>
           
           {/* Reset Filters Button */}
-          {(attachmentFilter !== "all" || tuningFilter || tagFilter || keyFilter) && (
+          {(attachmentFilter !== "all" || tuningFilter || tagFilter.length > 0 || keyFilter) && (
             <button
               onClick={() => {
                 setAttachmentFilter("all");
                 setTuningFilter("");
-                setTagFilter("");
+                setTagFilter([]);
                 setKeyFilter("");
               }}
               className="self-start rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-neutral-800 transition"
@@ -550,6 +749,14 @@ export default function SongsTab() {
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       <button
                         type="button"
+                        onClick={() => analyzeSimilarSongs(song)}
+                        className="rounded-xl border border-purple-900/50 bg-purple-950/30 px-3 py-1.5 text-xs font-semibold text-purple-400 hover:bg-purple-950/50 transition flex-1 min-w-[80px]"
+                        title="Find similar songs using AI"
+                      >
+                        ⚡ Similar
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleExportSong(song)}
                         className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 transition flex-1 min-w-[80px]"
                         title="Export song details and images to PDF/Print"
@@ -569,7 +776,7 @@ export default function SongsTab() {
                         className="rounded-xl border border-rose-900/50 bg-rose-950/30 px-3 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/50 transition"
                         title={t('songs.deleteSong')}
                       >
-                        ×
+                        &times;
                       </button>
                     </div>
                   </div>
@@ -633,8 +840,82 @@ export default function SongsTab() {
                 </div>
               );
             })
-          )}
+          ))}
         </div>
+
+        {/* AI Similar Songs Panel */}
+        {selectedSongForAI && (
+          <div className="mt-6 rounded-2xl border border-purple-200/50 bg-purple-50/90 dark:border-purple-800/50 dark:bg-purple-950/50 p-4 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚡</span>
+                <h3 className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                  AI Similar Songs
+                </h3>
+                <span className="text-sm text-purple-600 dark:text-purple-300">
+                  for "{selectedSongForAI.title}"
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSongForAI(null);
+                  setAiSimilarSongs([]);
+                }}
+                className="rounded-lg border border-purple-300 bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
+              >
+                Close
+              </button>
+            </div>
+
+            {aiAnalyzing ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                  <span className="animate-spin text-xl">⚡</span>
+                  <span className="text-sm font-medium">Analyzing song patterns...</span>
+                </div>
+              </div>
+            ) : aiSimilarSongs.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {aiSimilarSongs.map((similarSong) => {
+                  const parsed = parseSongNotes(similarSong.notes);
+                  return (
+                    <div
+                      key={similarSong.id}
+                      className="rounded-xl border border-purple-200 bg-white p-3 dark:border-purple-800 dark:bg-purple-950/50 hover:shadow-md transition cursor-pointer"
+                      onClick={() => openEditor(similarSong)}
+                    >
+                      <div className="font-semibold text-purple-900 dark:text-purple-100 truncate">
+                        {similarSong.title}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {parsed.meta.genre && (
+                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">
+                            {parsed.meta.genre}
+                          </span>
+                        )}
+                        {parsed.meta.keySignature && (
+                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">
+                            {parsed.meta.keySignature}
+                          </span>
+                        )}
+                        {parsed.meta.bpm && (
+                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">
+                            {parsed.meta.bpm} BPM
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-purple-600 dark:text-purple-400">
+                <p className="text-sm">No similar songs found based on genre, key, and tempo analysis.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Editor Modal */}
@@ -689,12 +970,24 @@ export default function SongsTab() {
                   placeholder={t('songs.genre')}
                   className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
-                <input
-                  value={songMeta.keySignature}
-                  onChange={(e) => setSongMeta((prev) => ({ ...prev, keySignature: e.target.value }))}
-                  placeholder={t('songs.keySignature')}
-                  className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
-                />
+                <div className="relative">
+                  <input
+                    value={songMeta.keySignature}
+                    onChange={(e) => setSongMeta((prev) => ({ ...prev, keySignature: e.target.value }))}
+                    placeholder={t('songs.keySignature')}
+                    className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none pr-20"
+                  />
+                  {editingSong && (
+                    <button
+                      type="button"
+                      onClick={() => autoDetectKey(editingSong)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-purple-700 bg-purple-900/50 px-2 py-1 text-[10px] font-semibold text-purple-300 hover:bg-purple-900 transition"
+                      title="Auto-detect key from title and notes"
+                    >
+                      ⚡ Detect
+                    </button>
+                  )}
+                </div>
                 <input
                   value={songMeta.bpm}
                   onChange={(e) => setSongMeta((prev) => ({ ...prev, bpm: e.target.value }))}
@@ -702,6 +995,33 @@ export default function SongsTab() {
                   className="rounded-xl border border-neutral-800 bg-black px-3.5 py-2 text-sm text-white placeholder-neutral-500 focus:border-cyan-500 outline-none"
                 />
               </div>
+
+              {/* Auto-detected key suggestion */}
+              {autoDetectedKey && (
+                <div className="rounded-lg bg-purple-900/30 border border-purple-700/50 px-3 py-2 text-xs text-purple-200">
+                  <div className="flex items-center gap-2">
+                    <span className="animate-pulse">⚡</span>
+                    <span>AI detected key: <strong>{autoDetectedKey}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSongMeta(prev => ({ ...prev, keySignature: autoDetectedKey }));
+                        setAutoDetectedKey("");
+                      }}
+                      className="ml-auto rounded bg-purple-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-purple-600 transition"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAutoDetectedKey("")}
+                      className="rounded bg-transparent px-2 py-0.5 text-[10px] text-purple-300 hover:text-white transition"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <textarea
                 value={notes}

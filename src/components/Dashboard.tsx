@@ -1996,7 +1996,6 @@ export default function Dashboard() {
           <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <BandsTab />
           </Suspense>
-
         ) : selectedTab === "shared-links" ? (
           <Suspense fallback={<TabLoader message={t('dashboard.loadingSection')} />}>
             <SharedLinksTab />
