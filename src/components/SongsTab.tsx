@@ -187,6 +187,19 @@ export default function SongsTab() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Keyboard shortcut: ESC to close Similar Songs modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedSongForAI) {
+        setSelectedSongForAI(null);
+        setAiSimilarSongs([]);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSongForAI]);
+
   // AI Similar Songs Analysis
   const analyzeSimilarSongs = useCallback((song: SongRecord) => {
     setSelectedSongForAI(song);
@@ -857,101 +870,125 @@ export default function SongsTab() {
           )}
         </div>
 
-        {/* AI Similar Songs Panel */}
+        {/* AI Similar Songs Modal */}
         {selectedSongForAI && (
-          <div className="mt-6 rounded-2xl border border-purple-200/50 bg-purple-50/90 dark:border-purple-800/50 dark:bg-purple-950/50 p-4 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">⚡</span>
-                <h3 className="text-lg font-bold text-purple-900 dark:text-purple-100">
-                  AI Similar Songs
-                </h3>
-                <span className="text-sm text-purple-600 dark:text-purple-300">
-                  for "{selectedSongForAI.title}"
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const selectedMeta = parseSongNotes(selectedSongForAI.notes).meta;
-                    setAiExplanationTitle("Why These Songs?");
-                    setAiExplanationText(
-                      `These songs are recommended based on similarity analysis. Songs with matching genre, key signature, and similar tempo are grouped together to maintain energy flow and harmonic transitions in your setlist.`
-                    );
-                    setAiExplanationDetails([
-                      { label: "Genre", value: selectedMeta.genre || "Not specified" },
-                      { label: "Key Signature", value: selectedMeta.keySignature || "Not specified" },
-                      { label: "BPM", value: selectedMeta.bpm || "Not specified" },
-                      { label: "Band/Project", value: selectedMeta.bandProject || "Not specified" },
-                    ]);
-                    setShowAIExplanation(true);
-                  }}
-                  className="rounded-lg border border-purple-300 bg-purple-100 px-2 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
-                  title="View explanation"
-                >
-                  ℹ️
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedSongForAI(null);
-                    setAiSimilarSongs([]);
-                  }}
-                  className="rounded-lg border border-purple-300 bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {aiAnalyzing ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                  <span className="animate-spin text-xl">⚡</span>
-                  <span className="text-sm font-medium">Analyzing song patterns...</span>
-                </div>
-              </div>
-            ) : aiSimilarSongs.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                {aiSimilarSongs.map((similarSong) => {
-                  const parsed = parseSongNotes(similarSong.notes);
-                  return (
-                    <div
-                      key={similarSong.id}
-                      className="rounded-xl border border-purple-200 bg-white p-3 dark:border-purple-800 dark:bg-purple-950/50 hover:shadow-md transition cursor-pointer"
-                      onClick={() => openEditor(similarSong)}
+          <>
+            {/* Modal Backdrop */}
+            <div 
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => {
+                setSelectedSongForAI(null);
+                setAiSimilarSongs([]);
+              }}
+            />
+            
+            {/* Modal Dialog */}
+            <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
+              <div className="w-full max-w-2xl rounded-3xl border border-purple-200/60 bg-white/95 backdrop-blur shadow-2xl dark:border-purple-700/60 dark:bg-slate-900/95">
+                {/* Modal Header */}
+                <div className="border-b border-purple-200 px-6 py-4 dark:border-purple-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">⚡</span>
+                    <div>
+                      <h2 className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                        AI Similar Songs
+                      </h2>
+                      <p className="text-sm text-purple-600 dark:text-purple-300 mt-0.5">
+                        for "{selectedSongForAI.title}"
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selectedMeta = parseSongNotes(selectedSongForAI.notes).meta;
+                        setAiExplanationTitle("Why These Songs?");
+                        setAiExplanationText(
+                          `These songs are recommended based on similarity analysis. Songs with matching genre, key signature, and similar tempo are grouped together to maintain energy flow and harmonic transitions in your setlist.`
+                        );
+                        setAiExplanationDetails([
+                          { label: "Genre", value: selectedMeta.genre || "Not specified" },
+                          { label: "Key Signature", value: selectedMeta.keySignature || "Not specified" },
+                          { label: "BPM", value: selectedMeta.bpm || "Not specified" },
+                          { label: "Band/Project", value: selectedMeta.bandProject || "Not specified" },
+                        ]);
+                        setShowAIExplanation(true);
+                      }}
+                      className="rounded-lg border border-purple-300 bg-purple-100 px-2 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
+                      title="View explanation"
                     >
-                      <div className="font-semibold text-purple-900 dark:text-purple-100 truncate">
-                        {similarSong.title}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {parsed.meta.genre && (
-                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">
-                            {parsed.meta.genre}
-                          </span>
-                        )}
-                        {parsed.meta.keySignature && (
-                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">
-                            {parsed.meta.keySignature}
-                          </span>
-                        )}
-                        {parsed.meta.bpm && (
-                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">
-                            {parsed.meta.bpm} BPM
-                          </span>
-                        )}
+                      ℹ️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSongForAI(null);
+                        setAiSimilarSongs([]);
+                      }}
+                      className="rounded-lg border border-purple-300 bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 max-h-96 overflow-y-auto">
+                  {aiAnalyzing ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                        <span className="animate-spin text-2xl">⚡</span>
+                        <span className="text-sm font-medium">Analyzing song patterns...</span>
                       </div>
                     </div>
-                  );
-                })}
+                  ) : aiSimilarSongs.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {aiSimilarSongs.map((similarSong) => {
+                        const parsed = parseSongNotes(similarSong.notes);
+                        return (
+                          <div
+                            key={similarSong.id}
+                            className="rounded-xl border border-purple-200 bg-purple-50/50 p-4 dark:border-purple-800 dark:bg-purple-950/30 hover:shadow-lg transition cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/50"
+                            onClick={() => {
+                              openEditor(similarSong);
+                              setSelectedSongForAI(null);
+                              setAiSimilarSongs([]);
+                            }}
+                          >
+                            <div className="font-semibold text-purple-900 dark:text-purple-100 truncate mb-2">
+                              {similarSong.title}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {parsed.meta.genre && (
+                                <span className="text-[11px] bg-purple-200 text-purple-800 px-2 py-1 rounded-full font-medium dark:bg-purple-800/50 dark:text-purple-200">
+                                  {parsed.meta.genre}
+                                </span>
+                              )}
+                              {parsed.meta.keySignature && (
+                                <span className="text-[11px] bg-purple-200 text-purple-800 px-2 py-1 rounded-full font-medium dark:bg-purple-800/50 dark:text-purple-200">
+                                  {parsed.meta.keySignature}
+                                </span>
+                              )}
+                              {parsed.meta.bpm && (
+                                <span className="text-[11px] bg-purple-200 text-purple-800 px-2 py-1 rounded-full font-medium dark:bg-purple-800/50 dark:text-purple-200">
+                                  {parsed.meta.bpm} BPM
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-purple-600 dark:text-purple-400">
+                      <p className="text-sm">No similar songs found based on genre, key, and tempo analysis.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-purple-600 dark:text-purple-400">
-                <p className="text-sm">No similar songs found based on genre, key, and tempo analysis.</p>
-              </div>
-            )}
-          </div>
+            </div>
+          </>
         )}
       </div>
 

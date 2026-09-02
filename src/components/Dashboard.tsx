@@ -1167,7 +1167,7 @@ export default function Dashboard() {
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white"
                   }`}
                 >
-                  {workspaceTabs.includes(selectedTab) ? (
+                  {workspaceTabs.includes(selectedTab) && !getPrimaryNavTabs(settings).includes(selectedTab) ? (
                     <>
                       {renderTabIcon(selectedTab)}
                       <span>{tabLabels[selectedTab]}</span>
