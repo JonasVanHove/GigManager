@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Icons } from "./Icons";
 
 interface XAIExplanationModalProps {
@@ -52,7 +53,7 @@ export default function XAIExplanationModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md modal-backdrop-enter">
       <div
         className="w-full max-w-md rounded-2xl border border-purple-200/50 bg-white/95 dark:border-purple-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl modal-content-enter"
@@ -141,6 +142,7 @@ export default function XAIExplanationModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

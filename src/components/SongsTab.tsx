@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
 import { useToast } from "./ToastContainer";
@@ -870,8 +871,8 @@ export default function SongsTab() {
           )}
         </div>
 
-        {/* AI Similar Songs Modal */}
-        {selectedSongForAI && (
+        {/* AI Similar Songs Modal - Rendered via Portal to escape parent constraints */}
+        {selectedSongForAI && typeof document !== 'undefined' && createPortal(
           <>
             {/* Modal Backdrop */}
             <div 
@@ -988,7 +989,8 @@ export default function SongsTab() {
                 </div>
               </div>
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
 
