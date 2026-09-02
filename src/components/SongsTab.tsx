@@ -497,7 +497,7 @@ export default function SongsTab() {
   };
 
   return (
-    <div className="space-y-6 bg-black text-slate-100 p-4 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)]">
+    <div data-testid="songs-container" className="space-y-6 bg-black text-slate-100 p-4 sm:p-6 rounded-3xl border border-neutral-800/80 shadow-2xl min-h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3 border-b border-neutral-800/80 pb-4">
         <div>
@@ -840,7 +840,7 @@ export default function SongsTab() {
                 </div>
               );
             })
-          ))}
+          )}
         </div>
 
         {/* AI Similar Songs Panel */}

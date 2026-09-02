@@ -1140,7 +1140,7 @@ export default function Dashboard() {
 
           {/* Center: Primary navigation + search */}
           <div className="hidden lg:flex min-w-0 items-center gap-3 flex-1 px-2">
-            <nav className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-800/40">
+            <nav data-testid="desktop-navigation" className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-800/40">
               {getPrimaryNavTabs(settings).map((tab) => (
                 <button
                   key={tab}
@@ -1383,6 +1383,7 @@ export default function Dashboard() {
         {/* Mobile/tablet: current section indicator */}
         <div className="lg:hidden border-t border-slate-200/40 dark:border-slate-700/40">
           <button
+            data-testid="mobile-menu-button"
             type="button"
             onClick={() => setShowMobileMenu(true)}
             className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -1401,13 +1402,14 @@ export default function Dashboard() {
       {/* Mobile menu overlay - OUTSIDE header for full viewport coverage */}
       {showMobileMenu && (
         <>
-          <div className="lg:hidden fixed inset-0 z-[100] bg-black/50 mobile-menu-backdrop" onClick={() => setShowMobileMenu(false)} />
+          <div data-testid="mobile-menu-overlay" className="lg:hidden fixed inset-0 z-[100] bg-black/50 mobile-menu-backdrop" onClick={() => setShowMobileMenu(false)} />
           {/* Responsive menu width: phone (84vw) → tablet (60vw) → large tablet (50vw) */}
           <div className="lg:hidden fixed left-0 top-0 bottom-0 z-[101] w-[84vw] max-w-[19rem] tablet:w-[60vw] tablet:max-w-[30rem] tablet-lg:w-[50vw] tablet-lg:max-w-[40rem] bg-white dark:bg-slate-900 shadow-xl overflow-y-auto mobile-menu-enter">
             <div className="p-4 tablet:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Menu</h2>
                 <button
+                  data-testid="close-mobile-menu"
                   onClick={() => setShowMobileMenu(false)}
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >

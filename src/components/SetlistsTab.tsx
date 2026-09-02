@@ -20,6 +20,7 @@ type SongRow = {
   title: string;
   notes: string | null;
   date: string;
+  tags?: Array<{ name: string }>;
   attachments?: Array<{ id: string; publicUrl: string; contentType?: string; caption?: string | null }>;
 };
 
@@ -493,7 +494,7 @@ export default function SetlistsTab() {
       
       // Tag filter (multi-select)
       if (tagFilter.length > 0) {
-        const songTags = [parsed.meta.bandProject, parsed.meta.genre].filter(Boolean);
+        const songTags = (song.tags || []).map((tag) => tag.name).filter(Boolean);
         if (!tagFilter.some(tf => songTags.some(st => st.toLowerCase() === tf.toLowerCase()))) continue;
       }
       
@@ -622,7 +623,7 @@ export default function SetlistsTab() {
       if (!songsResponse.ok) throw new Error(t('setlists.failedToLoadSongs'));
       if (!setlistsResponse.ok) throw new Error(t('setlists.failedToLoadSetlists'));
 
-      const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; attachments?: any[] }>;
+      const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; tags?: Array<{ name: string }>; attachments?: any[] }>;
       const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; gigs?: Array<{ id: string; eventName?: string; date?: string | null }>; createdAt: string; updatedAt: string }>;
       const bandsPayload = (await bandsResponse.json()) as Array<{ id: string; name: string; logoUrl?: string; color?: string | null }>;
       
@@ -673,7 +674,7 @@ export default function SetlistsTab() {
           })
         : [];
 
-      setSongs(Array.isArray(songPayload) ? songPayload.map((song) => ({ id: song.id, title: song.title, notes: song.notes || null, date: song.date, attachments: song.attachments || [] })) : []);
+      setSongs(Array.isArray(songPayload) ? songPayload.map((song) => ({ id: song.id, title: song.title, notes: song.notes || null, date: song.date, tags: song.tags || [], attachments: song.attachments || [] })) : []);
       setSetlists(hydratedSetlists);
 
       if (!selectedId && hydratedSetlists[0]) {
@@ -1467,7 +1468,7 @@ export default function SetlistsTab() {
 
     if (performance) {
       return (
-        <section key={item.id} className={`rounded-3xl border px-5 py-5 ${activeItemId === item.id ? "border-brand-400 bg-brand-500/10" : "border-white/10 bg-white/5"}`}>
+        <section key={item.id} data-testid="performance-song-item" className={`rounded-3xl border px-5 py-5 ${activeItemId === item.id ? "border-brand-400 bg-brand-500/10" : "border-white/10 bg-white/5"}`}>
           <button type="button" onClick={() => setActiveItemId(item.id)} className="flex w-full items-start justify-between gap-4 text-left">
             <div className="min-w-0">
               <div className="text-4xl font-black text-white/90">{songNumber}</div>
@@ -1518,7 +1519,8 @@ export default function SetlistsTab() {
           const from = Number(event.dataTransfer.getData("text/plain"));
           if (!Number.isNaN(from)) moveItem(from, index);
         }}
-        className={`rounded-2xl border p-2 sm:p-3 transition-all duration-200 ease-in-out ${activeItemId === item.id ? "border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10 transform scale-[1.02]" : "border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
+        data-testid="setlist-song-item"
+        className={`rounded-2xl border p-2 sm:p-3 transition-all duration-200 ease-in-out ${activeItemId === item.id ? "border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
       >
         <div className="flex items-start gap-2 min-w-0 max-w-full">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -1582,7 +1584,7 @@ export default function SetlistsTab() {
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   {t('setlists.attachments')}
                 </span>
-                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <label data-testid="attach-file-button" className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <input
                     type="file"
                     className="hidden"
@@ -1608,7 +1610,7 @@ export default function SetlistsTab() {
                   const attachments = itemAttachments.get(item.id);
                   console.log('[DEBUG SetlistsTab] Rendering attachments for item:', item.id, attachments?.length, attachments);
                   return attachments?.map((att) => (
-                    <div key={att.id} className="relative group">
+                    <div key={att.id} data-testid="attachment-item" className="relative group">
                       {att.type === 'image' ? (
                         <img src={att.url} alt={att.title || ''} className="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
                       ) : (
@@ -1692,7 +1694,7 @@ export default function SetlistsTab() {
 
           {/* Attachment drawer - slide in from right on mobile, split view on desktop */}
           {performanceAttachmentsOpen && currentSong && (
-            <aside className="fixed inset-y-0 right-0 z-20 w-full sm:w-1/2 lg:w-2/5 bg-slate-900 border-l border-white/10 flex flex-col sm:static sm:flex">
+            <aside data-testid="attachment-drawer" className="fixed inset-y-0 right-0 z-20 w-full sm:w-1/2 lg:w-2/5 bg-slate-900 border-l border-white/10 flex flex-col sm:static sm:flex">
               <div className="flex items-center justify-between gap-2 p-3 border-b border-white/10 shrink-0">
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-slate-300">{currentSong.label}</div>
@@ -1817,7 +1819,7 @@ export default function SetlistsTab() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-black text-slate-100 rounded-3xl border border-neutral-800/80 shadow-2xl overflow-hidden">
+    <div data-testid="setlists-container" className="flex flex-col h-full min-h-0 bg-black text-slate-100 rounded-3xl border border-neutral-800/80 shadow-2xl overflow-hidden">
       {/* Header - always visible, compact */}
       <div className="flex items-center justify-between gap-2 border-b border-neutral-800/80 px-3 py-2 sm:px-4 sm:py-3 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -1924,7 +1926,7 @@ export default function SetlistsTab() {
                 ) : (
                   <div className="space-y-2 py-2 animate-in fade-in duration-300">
                     {filteredSetlists.map((setlist) => (
-                      <div key={setlist.id} className={`rounded-xl border p-2 transition-all duration-200 ${selectedId === setlist.id ? "border-brand-500 bg-brand-50 dark:border-brand-500/50 dark:bg-brand-500/10 transform scale-[1.02]" : "border-slate-200 bg-white hover:bg-slate-50 hover:shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}>
+                      <div key={setlist.id} data-testid="setlist-item" className={`rounded-xl border p-2 transition-all duration-200 ${selectedId === setlist.id ? "border-brand-500 bg-brand-50 dark:border-brand-500/50 dark:bg-brand-500/10" : "border-slate-200 bg-white hover:bg-slate-50 hover:shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}>
                         <button type="button" onClick={() => selectSetlist(setlist)} className="w-full text-left">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
@@ -1955,7 +1957,7 @@ export default function SetlistsTab() {
         </aside>
 
         {/* Main content - full width & dynamic expansion */}
-        <main className="flex-1 min-h-0 min-w-0 overflow-hidden bg-white/95 dark:bg-slate-950/85 transition-all duration-300 ease-in-out flex flex-col">
+        <main data-testid="setlist-details" className="flex-1 min-h-0 min-w-0 overflow-hidden bg-white/95 dark:bg-slate-950/85 transition-all duration-300 ease-in-out flex flex-col">
           {!activeDraft ? (
             loading ? (
               <div className="flex min-h-full flex-col items-center justify-center p-6 sm:p-8 text-center">
@@ -2029,7 +2031,7 @@ export default function SetlistsTab() {
                   <div className="flex-1 min-w-0" />
                   
                   {/* Performance Mode */}
-                  <button type="button" onClick={() => setShowPerformanceMode((current: boolean) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
+                  <button data-testid="performance-mode-button" type="button" onClick={() => setShowPerformanceMode((current: boolean) => !current)} className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/20">
                     {t('setlists.performanceMode')}
                   </button>
 
@@ -2372,9 +2374,9 @@ export default function SetlistsTab() {
                   </button>
                   
                   {!repertoireCollapsed && (
-                    <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
+                    <div className="mt-2 flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                       <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
-                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      <div className="flex-1 min-h-0 max-h-[80vh] space-y-2 overflow-y-auto">
                         {songGroups.map(([tuning, group]) => (
                           <div key={tuning}>
                             <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
