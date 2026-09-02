@@ -882,23 +882,23 @@ export default function SongsTab() {
               }}
             />
             
-            {/* Modal Dialog */}
-            <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
-              <div className="w-full max-w-2xl rounded-3xl border border-purple-200/60 bg-white/95 backdrop-blur shadow-2xl dark:border-purple-700/60 dark:bg-slate-900/95">
+            {/* Modal Dialog - Centered in viewport */}
+            <div className="fixed inset-0 z-50 p-4 sm:p-6 flex items-center justify-center pointer-events-none">
+              <div className="w-full max-w-2xl rounded-3xl border border-purple-200/60 bg-white/95 backdrop-blur shadow-2xl dark:border-purple-700/60 dark:bg-slate-900/95 pointer-events-auto flex flex-col max-h-[90vh]">
                 {/* Modal Header */}
-                <div className="border-b border-purple-200 px-6 py-4 dark:border-purple-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">⚡</span>
-                    <div>
-                      <h2 className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                <div className="border-b border-purple-200 px-6 py-4 dark:border-purple-800 flex items-center justify-between flex-shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-2xl flex-shrink-0">⚡</span>
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-bold text-purple-900 dark:text-purple-100 truncate">
                         AI Similar Songs
                       </h2>
-                      <p className="text-sm text-purple-600 dark:text-purple-300 mt-0.5">
+                      <p className="text-sm text-purple-600 dark:text-purple-300 mt-0.5 truncate">
                         for "{selectedSongForAI.title}"
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -934,7 +934,7 @@ export default function SongsTab() {
                 </div>
 
                 {/* Modal Content */}
-                <div className="p-6 max-h-96 overflow-y-auto">
+                <div className="p-6 flex-1 overflow-y-auto">
                   {aiAnalyzing ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
