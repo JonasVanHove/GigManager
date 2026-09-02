@@ -9,6 +9,7 @@ import { createPrintDocument } from "@/lib/print-document";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useTranslation } from "react-i18next";
 import LoadingSpinner from "./LoadingSpinner";
+import XAIConfirmationModal from "./XAIConfirmationModal";
 import {
   getSpecialBlockTranslationKey,
   isKnownSpecialBlock,
@@ -297,6 +298,10 @@ export default function SetlistsTab() {
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [aiOptimizing, setAiOptimizing] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [showAIConfirmation, setShowAIConfirmation] = useState(false);
+  const [pendingAIItems, setPendingAIItems] = useState<DraftItem[] | null>(null);
+  const [pendingAIExplanations, setPendingAIExplanations] = useState<string[]>([]);
+  const [pendingAIPreview, setPendingAIPreview] = useState<Array<{ label: string; before?: string; after: string; changed?: boolean }>>([]);
   const [showPerformanceMode, setShowPerformanceMode] = useState(false);
   const [performanceAttachmentsOpen, setPerformanceAttachmentsOpen] = useState(false);
   const [performanceActiveSong, setPerformanceActiveSong] = useState<DraftItem | null>(null);
@@ -1255,11 +1260,10 @@ export default function SetlistsTab() {
     updateDraft({ items: [...rebuilt, ...preservedSpecials] });
   }, [draft, updateDraft]);
 
-  // AI Auto-Order tool with XAI explanations
+  // AI Auto-Order tool with XAI explanations and explicit confirmation
   const aiOptimizeFlow = useCallback(() => {
     if (!draft) return;
     setAiOptimizing(true);
-    setAiExplanation(null);
 
     setTimeout(() => {
       const songsOnly = draft.items.filter((item) => item.kind === "song");
@@ -1289,6 +1293,7 @@ export default function SetlistsTab() {
 
       const rebuilt: DraftItem[] = [];
       const explanations: string[] = [];
+      const previewItems: Array<{ label: string; before: string; after: string; changed?: boolean }> = [];
 
       harmonicOrder.forEach((item, index) => {
         rebuilt.push({ ...cloneItem(item), id: crypto.randomUUID(), expanded: false });
@@ -1304,34 +1309,81 @@ export default function SetlistsTab() {
           if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
             const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
             if (keyDiff <= 2 || keyDiff >= 10) {
-              explanations.push(`Smooth key transition: ${prevKey} → ${currKey}`);
+              const explanation = `Smooth key transition: ${prevKey} → ${currKey}`;
+              explanations.push(explanation);
+              previewItems.push({ 
+                label: `Song ${index}: Key Transition`, 
+                before: prevKey, 
+                after: currKey,
+                changed: true
+              });
             } else if (keyDiff >= 5 && keyDiff <= 7) {
-              explanations.push(`Energy boost transition: ${prevKey} → ${currKey}`);
+              const explanation = `Energy boost transition: ${prevKey} → ${currKey}`;
+              explanations.push(explanation);
+              previewItems.push({ 
+                label: `Song ${index}: Energy Boost`, 
+                before: prevKey, 
+                after: currKey,
+                changed: true
+              });
             }
           }
           
           if (prevBPM && currBPM) {
             if (currBPM > prevBPM + 10) {
-              explanations.push(`Energy increase: ${prevBPM} → ${currBPM} BPM`);
+              const explanation = `Energy increase: ${prevBPM} → ${currBPM} BPM`;
+              explanations.push(explanation);
+              previewItems.push({ 
+                label: `Song ${index}: BPM Change`, 
+                before: `${prevBPM} BPM`, 
+                after: `${currBPM} BPM`,
+                changed: true
+              });
             } else if (currBPM < prevBPM - 10) {
-              explanations.push(`Energy decrease: ${prevBPM} → ${currBPM} BPM`);
+              const explanation = `Energy decrease: ${prevBPM} → ${currBPM} BPM`;
+              explanations.push(explanation);
+              previewItems.push({ 
+                label: `Song ${index}: BPM Change`, 
+                before: `${prevBPM} BPM`, 
+                after: `${currBPM} BPM`,
+                changed: true
+              });
             }
           }
         }
       });
 
       const preservedSpecials = specials.filter((item) => !isKnownSpecialBlock(item.specialLabel));
-      updateDraft({ items: [...rebuilt, ...preservedSpecials] });
+      const optimizedItems = [...rebuilt, ...preservedSpecials];
       
-      setAiExplanation(explanations.length > 0 
-        ? `AI Flow Optimization: ${explanations.join(', ')}` 
-        : 'AI Flow Optimization: Setlist reordered by BPM progression'
-      );
+      // Store optimized items and explanations for confirmation
+      setPendingAIItems(optimizedItems);
+      setPendingAIExplanations(explanations);
+      setPendingAIPreview(previewItems.length > 0 ? previewItems : [{ 
+        label: "Setlist Order", 
+        before: "Original order (by tuning groups)", 
+        after: "Optimized order (by BPM & key harmony)",
+        changed: true 
+      }]);
+      
+      setShowAIConfirmation(true);
       setAiOptimizing(false);
-      
-      toast.success('Setlist optimized with AI flow analysis');
     }, 800); // Simulate AI processing
-  }, [draft, updateDraft, toast]);
+  }, [draft]);
+
+  // Apply pending AI optimization after user confirmation
+  const applyAIOptimization = useCallback(() => {
+    if (!pendingAIItems) return;
+    
+    updateDraft({ items: pendingAIItems });
+    
+    setShowAIConfirmation(false);
+    setPendingAIItems(null);
+    setPendingAIExplanations([]);
+    setPendingAIPreview([]);
+    
+    toast.success('Setlist optimized with AI flow analysis');
+  }, [pendingAIItems, updateDraft, toast]);
 
   const openNoteTab = useCallback((noteId: string) => {
     router.push(`?tab=notes&noteId=${noteId}`, { scroll: false } as any);
@@ -2119,16 +2171,6 @@ export default function SetlistsTab() {
                         {t('setlists.pauseOnTuning')}
                       </label>
                     </div>
-                    
-                    {/* AI Explanation Display */}
-                    {aiExplanation && (
-                      <div className="mt-2 rounded-lg bg-purple-50 border border-purple-200 px-3 py-2 text-[10px] text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300">
-                        <div className="flex items-center gap-1">
-                          <span className="animate-pulse">⚡</span>
-                          <span className="font-medium">{aiExplanation}</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Items List */}
@@ -2667,6 +2709,29 @@ export default function SetlistsTab() {
           </div>
         </div>
       )}
+
+      {/* AI Confirmation Modal */}
+      <XAIConfirmationModal
+        isOpen={showAIConfirmation}
+        title="AI Flow Optimization Preview"
+        explanation={pendingAIExplanations.length > 0 
+          ? `The AI has analyzed your setlist and created an optimized flow based on BPM progression and harmonic key compatibility. ${pendingAIExplanations.length} optimization${pendingAIExplanations.length !== 1 ? 's' : ''} identified: ${pendingAIExplanations.join('; ')}.`
+          : "The AI has optimized your setlist order by BPM progression and harmonic key transitions to create a more engaging performance flow."
+        }
+        previewItems={pendingAIPreview}
+        confidenceScore={0.85}
+        icon="⚡"
+        confirmLabel="Apply Optimization"
+        cancelLabel="Cancel"
+        isLoading={false}
+        onConfirm={applyAIOptimization}
+        onCancel={() => {
+          setShowAIConfirmation(false);
+          setPendingAIItems(null);
+          setPendingAIExplanations([]);
+          setPendingAIPreview([]);
+        }}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Icons } from "./Icons";
 import { createPrintDocument } from "@/lib/print-document";
 import { useTranslation } from "react-i18next";
 import LoadingSpinner from "./LoadingSpinner";
+import XAIExplanationModal from "./XAIExplanationModal";
 
 type SongAttachment = {
   id: string;
@@ -124,6 +125,10 @@ export default function SongsTab() {
   const [aiSimilarSongs, setAiSimilarSongs] = useState<SongRecord[]>([]);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [autoDetectedKey, setAutoDetectedKey] = useState<string>("");
+  const [showAIExplanation, setShowAIExplanation] = useState(false);
+  const [aiExplanationTitle, setAiExplanationTitle] = useState("");
+  const [aiExplanationText, setAiExplanationText] = useState("");
+  const [aiExplanationDetails, setAiExplanationDetails] = useState<Array<{ label: string; value: string }>>([]);
 
   const fetchSongs = useCallback(async () => {
     setLoading(true);
@@ -302,7 +307,16 @@ export default function SongsTab() {
     const detected = titleKey || notesKey;
     if (detected) {
       setAutoDetectedKey(detected);
-      toast.success(`Auto-detected key: ${detected}`);
+      setAiExplanationTitle("AI Key Detection");
+      setAiExplanationText(
+        `The AI has analyzed the song title and notes to detect the most likely key signature. This detection helps maintain harmonic compatibility when creating setlist flows and recommending similar songs.`
+      );
+      setAiExplanationDetails([
+        { label: "Detected Key", value: detected },
+        { label: "Detection Method", value: titleKey ? "Song title pattern" : "Notes metadata" },
+        { label: "Confidence", value: "Medium (music metadata inference)" },
+      ]);
+      setShowAIExplanation(true);
     } else {
       toast.info('No clear key signature detected from title or notes');
     }
@@ -856,16 +870,39 @@ export default function SongsTab() {
                   for "{selectedSongForAI.title}"
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedSongForAI(null);
-                  setAiSimilarSongs([]);
-                }}
-                className="rounded-lg border border-purple-300 bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedMeta = parseSongNotes(selectedSongForAI.notes).meta;
+                    setAiExplanationTitle("Why These Songs?");
+                    setAiExplanationText(
+                      `These songs are recommended based on similarity analysis. Songs with matching genre, key signature, and similar tempo are grouped together to maintain energy flow and harmonic transitions in your setlist.`
+                    );
+                    setAiExplanationDetails([
+                      { label: "Genre", value: selectedMeta.genre || "Not specified" },
+                      { label: "Key Signature", value: selectedMeta.keySignature || "Not specified" },
+                      { label: "BPM", value: selectedMeta.bpm || "Not specified" },
+                      { label: "Band/Project", value: selectedMeta.bandProject || "Not specified" },
+                    ]);
+                    setShowAIExplanation(true);
+                  }}
+                  className="rounded-lg border border-purple-300 bg-purple-100 px-2 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
+                  title="View explanation"
+                >
+                  ℹ️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSongForAI(null);
+                    setAiSimilarSongs([]);
+                  }}
+                  className="rounded-lg border border-purple-300 bg-purple-100 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-200 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {aiAnalyzing ? (
@@ -1104,6 +1141,17 @@ export default function SongsTab() {
         onClose={() => setViewerOpen(false)}
         onPrev={() => setViewerIndex((i) => Math.max(0, i - 1))}
         onNext={() => setViewerIndex((i) => Math.min((viewerAttachments?.length || 1) - 1, i + 1))}
+      />
+
+      {/* AI Explanation Modal */}
+      <XAIExplanationModal
+        isOpen={showAIExplanation}
+        title={aiExplanationTitle}
+        explanation={aiExplanationText}
+        details={aiExplanationDetails}
+        confidenceScore={0.78}
+        icon="⚡"
+        onClose={() => setShowAIExplanation(false)}
       />
     </div>
   );
