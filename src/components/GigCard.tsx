@@ -33,6 +33,8 @@ interface GigCardProps {
   isSelected?: boolean;
   onSelect?: (gigId: string) => void;
   onRequestLocalToggle?: () => void;
+  onDelete?: (gig: Gig) => void;
+  onDuplicate?: (gig: Gig) => void;
 }
 
 const GigCard = memo(function GigCard({
@@ -45,6 +47,8 @@ const GigCard = memo(function GigCard({
   isSelected = false,
   onSelect,
   onRequestLocalToggle,
+  onDelete,
+  onDuplicate,
 }: GigCardProps) {
   const router = useRouter();
   // Charity gigs start collapsed, others start expanded, but can be overridden by global state
@@ -225,8 +229,8 @@ const GigCard = memo(function GigCard({
           </button>
         </div>
 
-        {/* Actions - tablet+: show edit button, mobile: hidden */}
-        <div className="ml-4 flex shrink-0 gap-1">
+        {/* Actions */}
+        <div className="ml-4 flex shrink-0 items-center gap-1">
           {gig.setlistId && (
             <button
               onClick={(e) => {
@@ -239,13 +243,37 @@ const GigCard = memo(function GigCard({
               <Icons.ListView className="h-4 w-4 shrink-0" />
             </button>
           )}
+          {onDuplicate && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate(gig);
+              }}
+              title={isDutch ? "Dupliceer optreden" : "Duplicate gig"}
+              className="rounded-lg p-2 text-slate-400 transition-all duration-200 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-700/50 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              <Icons.Copy className="h-4 w-4 shrink-0" />
+            </button>
+          )}
           <button
             onClick={() => onEdit(gig)}
-            title="Edit"
+            title={isDutch ? "Bewerken" : "Edit"}
             className="rounded-lg p-2 text-slate-400 transition-all duration-200 hover:bg-brand-100/60 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:text-slate-300 dark:hover:text-brand-300"
           >
             <Icons.Edit className="h-4 w-4 shrink-0" />
           </button>
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(gig);
+              }}
+              title={isDutch ? "Verwijderen" : "Delete"}
+              className="rounded-lg p-2 text-slate-400 transition-all duration-200 hover:bg-red-100/60 hover:text-red-600 dark:hover:bg-red-900/30 dark:text-slate-400 dark:hover:text-red-400"
+            >
+              <Icons.Trash className="h-4 w-4 shrink-0" />
+            </button>
+          )}
         </div>
       </div>
 

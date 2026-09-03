@@ -954,6 +954,68 @@ export default function Dashboard() {
     }
   };
 
+  const handleDuplicateGig = useCallback(
+    async (gig: Gig) => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          toast.error("Could not get session. Please sign out and sign in again.");
+          return;
+        }
+
+        const res = await fetch("/api/gigs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            eventName: `${gig.eventName} (Copy)`,
+            date: gig.date ? gig.date.split("T")[0] : "",
+            performers: gig.performers,
+            numberOfMusicians: gig.numberOfMusicians,
+            performanceLineup: gig.performanceLineup || "",
+            managerPerforms: gig.managerPerforms,
+            isCharity: gig.isCharity,
+            isTentative: gig.isTentative,
+            performanceFee: gig.performanceFee,
+            performanceFeeUnknown: gig.performanceFeeUnknown,
+            technicalFee: gig.technicalFee,
+            managerBonusType: gig.managerBonusType,
+            managerBonusAmount: gig.managerBonusAmount,
+            performanceDistribution: gig.performanceDistribution,
+            managerPerformanceAmount: gig.managerPerformanceAmount,
+            claimPerformanceFee: gig.claimPerformanceFee,
+            claimTechnicalFee: gig.claimTechnicalFee,
+            technicalFeeClaimAmount: gig.technicalFeeClaimAmount,
+            managerHandlesDistribution: gig.managerHandlesDistribution,
+            advanceReceivedByManager: gig.advanceReceivedByManager,
+            advanceToMusicians: gig.advanceToMusicians,
+            paymentReceived: false,
+            paymentReceivedDate: null,
+            managerInstantPayment: gig.managerInstantPayment,
+            bandPaid: false,
+            bandPaidDate: null,
+            bookingDate: new Date().toISOString().split("T")[0],
+            notes: gig.notes || null,
+            bandId: gig.bandId || null,
+          }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Failed to duplicate gig");
+        }
+
+        toast.success(t("gigs.duplicateSuccess", "Performance duplicated successfully!"));
+        await fetchGigs();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to duplicate gig");
+      }
+    },
+    [getAccessToken, fetchGigs, t, toast]
+  );
+
   const handleExpandAll = () => {
     setGlobalExpandState(true);
     toast.info("Expanded all performances");
@@ -1939,6 +2001,9 @@ export default function Dashboard() {
             <AllGigsTab 
               gigs={gigs}
               onEdit={handleEditGig}
+              onDelete={(gig) => setDeleteGig(gig)}
+              onDuplicate={handleDuplicateGig}
+              onAddNew={() => setShowForm(true)}
               fmtCurrency={fmtCurrency}
               loading={loading}
             />
