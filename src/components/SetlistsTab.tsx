@@ -1266,95 +1266,173 @@ export default function SetlistsTab() {
     setAiOptimizing(true);
 
     setTimeout(() => {
-      const songsOnly = draft.items.filter((item) => item.kind === "song");
-      const specials = draft.items.filter((item) => item.kind === "special");
-
-      // Sort by BPM (tempo) for energy flow
-      const sortedByBPM = [...songsOnly].sort((a, b) => {
-        const bpmA = parseInt(a.tempo) || 0;
-        const bpmB = parseInt(b.tempo) || 0;
-        return bpmB - bpmA; // Higher BPM first for energy
-      });
-
-      // Apply harmonic key compatibility (simplified Camelot wheel logic)
-      const harmonicOrder = sortedByBPM.map((item, index, array) => {
-        if (index === 0) return item;
-        
-        const currentKey = item.tuning || "Onbekend";
-        const prevKey = array[index - 1].tuning || "Onbekend";
-        
-        // Simple key compatibility check
-        const keyCompatibility = Math.abs(
-          (currentKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12
-        );
-        
-        return item;
-      });
-
-      const rebuilt: DraftItem[] = [];
+      // Separate songs from all items, preserving positions of special blocks
+      const optimizedItems: DraftItem[] = [];
       const explanations: string[] = [];
       const previewItems: Array<{ label: string; before: string; after: string; changed?: boolean }> = [];
 
-      harmonicOrder.forEach((item, index) => {
-        rebuilt.push({ ...cloneItem(item), id: crypto.randomUUID(), expanded: false });
-        
-        if (index > 0) {
-          const prev = harmonicOrder[index - 1];
-          const prevBPM = parseInt(prev.tempo) || 0;
-          const currBPM = parseInt(item.tempo) || 0;
-          const prevKey = prev.tuning || "Onbekend";
-          const currKey = item.tuning || "Onbekend";
-          
-          // Generate XAI explanation for transition
-          if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
-            const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
-            if (keyDiff <= 2 || keyDiff >= 10) {
-              const explanation = `Smooth key transition: ${prevKey} → ${currKey}`;
-              explanations.push(explanation);
-              previewItems.push({ 
-                label: `Song ${index}: Key Transition`, 
-                before: prevKey, 
-                after: currKey,
-                changed: true
-              });
-            } else if (keyDiff >= 5 && keyDiff <= 7) {
-              const explanation = `Energy boost transition: ${prevKey} → ${currKey}`;
-              explanations.push(explanation);
-              previewItems.push({ 
-                label: `Song ${index}: Energy Boost`, 
-                before: prevKey, 
-                after: currKey,
-                changed: true
-              });
-            }
+      // Group items: known special blocks act as set boundaries
+      let currentSongGroup: DraftItem[] = [];
+      
+      draft.items.forEach((item, itemIndex) => {
+        if (item.kind === "special" && isKnownSpecialBlock(item.specialLabel)) {
+          // Known special block found: optimize songs before it, then add the special block
+          if (currentSongGroup.length > 0) {
+            // Optimize the current song group
+            const sortedByBPM = [...currentSongGroup].sort((a, b) => {
+              const bpmA = parseInt(a.tempo) || 0;
+              const bpmB = parseInt(b.tempo) || 0;
+              return bpmB - bpmA; // Higher BPM first for energy
+            });
+
+            sortedByBPM.forEach((song, songIndex) => {
+              optimizedItems.push({ ...cloneItem(song), id: crypto.randomUUID(), expanded: false });
+              
+              if (songIndex > 0) {
+                const prev = sortedByBPM[songIndex - 1];
+                const prevBPM = parseInt(prev.tempo) || 0;
+                const currBPM = parseInt(song.tempo) || 0;
+                const prevKey = prev.tuning || "Onbekend";
+                const currKey = song.tuning || "Onbekend";
+                
+                // Generate XAI explanation and preview for transition
+                if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
+                  const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
+                  if (keyDiff <= 2 || keyDiff >= 10) {
+                    const explanation = `Smooth key transition: ${prevKey} → ${currKey}`;
+                    explanations.push(explanation);
+                    previewItems.push({ 
+                      label: `Smooth transition: ${song.label}`, 
+                      before: prevKey, 
+                      after: currKey,
+                      changed: true
+                    });
+                  } else if (keyDiff >= 5 && keyDiff <= 7) {
+                    const explanation = `Energy boost transition: ${prevKey} → ${currKey}`;
+                    explanations.push(explanation);
+                    previewItems.push({ 
+                      label: `Energy boost: ${song.label}`, 
+                      before: prevKey, 
+                      after: currKey,
+                      changed: true
+                    });
+                  }
+                }
+                
+                if (prevBPM && currBPM) {
+                  if (currBPM > prevBPM + 10) {
+                    const explanation = `Energy increase: ${prevBPM} → ${currBPM} BPM`;
+                    explanations.push(explanation);
+                    previewItems.push({ 
+                      label: `Energy increase: ${song.label}`, 
+                      before: `${prevBPM} BPM`, 
+                      after: `${currBPM} BPM`,
+                      changed: true
+                    });
+                  } else if (currBPM < prevBPM - 10) {
+                    const explanation = `Energy decrease: ${prevBPM} → ${currBPM} BPM`;
+                    explanations.push(explanation);
+                    previewItems.push({ 
+                      label: `Energy decrease: ${song.label}`, 
+                      before: `${prevBPM} BPM`, 
+                      after: `${currBPM} BPM`,
+                      changed: true
+                    });
+                  }
+                }
+              }
+            });
+            currentSongGroup = [];
           }
           
-          if (prevBPM && currBPM) {
-            if (currBPM > prevBPM + 10) {
-              const explanation = `Energy increase: ${prevBPM} → ${currBPM} BPM`;
-              explanations.push(explanation);
-              previewItems.push({ 
-                label: `Song ${index}: BPM Change`, 
-                before: `${prevBPM} BPM`, 
-                after: `${currBPM} BPM`,
-                changed: true
-              });
-            } else if (currBPM < prevBPM - 10) {
-              const explanation = `Energy decrease: ${prevBPM} → ${currBPM} BPM`;
-              explanations.push(explanation);
-              previewItems.push({ 
-                label: `Song ${index}: BPM Change`, 
-                before: `${prevBPM} BPM`, 
-                after: `${currBPM} BPM`,
-                changed: true
-              });
-            }
+          // Add the special block (preserved in position)
+          optimizedItems.push({ ...cloneItem(item), id: crypto.randomUUID(), expanded: false });
+          if (explanations.length === 0) {
+            previewItems.push({
+              label: `Special marker: ${item.specialLabel}`,
+              before: "Preserved",
+              after: "In position",
+              changed: false
+            });
           }
+        } else if (item.kind === "song") {
+          // Collect songs for optimization
+          currentSongGroup.push(item);
+        } else if (item.kind === "special") {
+          // Unknown special block: keep it with current song group
+          currentSongGroup.push(item);
         }
       });
 
-      const preservedSpecials = specials.filter((item) => !isKnownSpecialBlock(item.specialLabel));
-      const optimizedItems = [...rebuilt, ...preservedSpecials];
+      // Optimize remaining songs after the last special block
+      if (currentSongGroup.length > 0) {
+        const songsOnly = currentSongGroup.filter((item) => item.kind === "song");
+        if (songsOnly.length > 0) {
+          const sortedByBPM = [...songsOnly].sort((a, b) => {
+            const bpmA = parseInt(a.tempo) || 0;
+            const bpmB = parseInt(b.tempo) || 0;
+            return bpmB - bpmA;
+          });
+
+          sortedByBPM.forEach((song, songIndex) => {
+            optimizedItems.push({ ...cloneItem(song), id: crypto.randomUUID(), expanded: false });
+            
+            if (songIndex > 0) {
+              const prev = sortedByBPM[songIndex - 1];
+              const prevBPM = parseInt(prev.tempo) || 0;
+              const currBPM = parseInt(song.tempo) || 0;
+              const prevKey = prev.tuning || "Onbekend";
+              const currKey = song.tuning || "Onbekend";
+              
+              if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
+                const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
+                if (keyDiff <= 2 || keyDiff >= 10) {
+                  explanations.push(`Smooth key transition: ${prevKey} → ${currKey}`);
+                  previewItems.push({
+                    label: `Smooth transition: ${song.label}`,
+                    before: prevKey,
+                    after: currKey,
+                    changed: true
+                  });
+                } else if (keyDiff >= 5 && keyDiff <= 7) {
+                  explanations.push(`Energy boost transition: ${prevKey} → ${currKey}`);
+                  previewItems.push({
+                    label: `Energy boost: ${song.label}`,
+                    before: prevKey,
+                    after: currKey,
+                    changed: true
+                  });
+                }
+              }
+              
+              if (prevBPM && currBPM) {
+                if (currBPM > prevBPM + 10) {
+                  explanations.push(`Energy increase: ${prevBPM} → ${currBPM} BPM`);
+                  previewItems.push({
+                    label: `Energy increase: ${song.label}`,
+                    before: `${prevBPM} BPM`,
+                    after: `${currBPM} BPM`,
+                    changed: true
+                  });
+                } else if (currBPM < prevBPM - 10) {
+                  explanations.push(`Energy decrease: ${prevBPM} → ${currBPM} BPM`);
+                  previewItems.push({
+                    label: `Energy decrease: ${song.label}`,
+                    before: `${prevBPM} BPM`,
+                    after: `${currBPM} BPM`,
+                    changed: true
+                  });
+                }
+              }
+            }
+          });
+        }
+        
+        // Add any unknown specials at the end
+        currentSongGroup.filter((item) => item.kind === "special").forEach((special) => {
+          optimizedItems.push({ ...cloneItem(special), id: crypto.randomUUID(), expanded: false });
+        });
+      }
       
       // Store optimized items and explanations for confirmation
       setPendingAIItems(optimizedItems);

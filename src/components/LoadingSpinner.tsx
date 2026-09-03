@@ -50,7 +50,7 @@ export default function LoadingSpinner({ size = "md", message, fullScreen = fals
   if (fullScreen) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-lg transition-colors"
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-lg transition-colors pointer-events-auto"
       >
         {/* Subtle ambient background glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

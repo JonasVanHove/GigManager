@@ -435,6 +435,18 @@ export default function Dashboard() {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  // Safety timeout: if loading state is stuck for more than 30 seconds, force it to complete
+  useEffect(() => {
+    if (!loading) return;
+
+    const timeoutId = setTimeout(() => {
+      console.warn("[Dashboard] Loading state stuck for 30s, forcing completion");
+      setLoading(false);
+    }, 30000);
+
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
+
   const handleToggleOverview = useCallback(() => {
     setIsOverviewExpanded((prev) => !prev);
   }, []);
@@ -1162,7 +1174,7 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => setShowWorkspaceMenu((open) => !open)}
                   className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
-                    workspaceTabs.includes(selectedTab)
+                    workspaceTabs.includes(selectedTab) && !getPrimaryNavTabs(settings).includes(selectedTab)
                       ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/70 dark:hover:text-white"
                   }`}
