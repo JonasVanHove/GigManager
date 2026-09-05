@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabaseClient } from "@/lib/supabase-client";
@@ -52,6 +52,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // Fail-safe timeout (3 seconds) to guarantee isLoading is cleared even if
+    // supabase auth getSession() or storage access hangs on mobile touch devices
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn("[AuthProvider] Auth session check timed out after 3s, clearing loading state");
+        setIsLoading(false);
+      }
+    }, 3000);
+
+    const unlockOnTouch = () => {
+      if (mounted) setIsLoading(false);
+    };
+
+    window.addEventListener("touchstart", unlockOnTouch, { once: true, passive: true });
+    window.addEventListener("pointerdown", unlockOnTouch, { once: true, passive: true });
+
     const checkSession = async () => {
       try {
         const {
@@ -87,6 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
+      window.removeEventListener("touchstart", unlockOnTouch);
+      window.removeEventListener("pointerdown", unlockOnTouch);
       subscription?.unsubscribe();
     };
   }, [updateSession]);

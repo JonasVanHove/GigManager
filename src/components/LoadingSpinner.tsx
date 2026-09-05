@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
   message?: string;
@@ -7,6 +9,18 @@ interface LoadingSpinnerProps {
 }
 
 export default function LoadingSpinner({ size = "md", message, fullScreen = false }: LoadingSpinnerProps) {
+  const [dismissed, setDismissed] = useState(false);
+  const [showDismissAction, setShowDismissAction] = useState(false);
+
+  useEffect(() => {
+    if (!fullScreen) return;
+    const timer = setTimeout(() => {
+      setShowDismissAction(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [fullScreen]);
+
+  if (fullScreen && dismissed) return null;
   const spinner = (
     <div className="flex flex-col items-center justify-center gap-3">
       <div className="relative flex items-center justify-center" role="status" aria-label="Loading"
@@ -108,6 +122,15 @@ export default function LoadingSpinner({ size = "md", message, fullScreen = fals
           <p className="text-sm font-medium text-slate-600 dark:text-slate-300 animate-pulse">
             {message || "Preparing your gigs..."}
           </p>
+
+          {showDismissAction && (
+            <button
+              onClick={() => setDismissed(true)}
+              className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline px-3 py-1.5 rounded-lg bg-white/80 dark:bg-slate-900/80 shadow-sm border border-slate-200 dark:border-slate-800 transition pointer-events-auto"
+            >
+              Taking too long? Tap to continue
+            </button>
+          )}
         </div>
       </div>
     );

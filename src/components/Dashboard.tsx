@@ -235,6 +235,7 @@ export default function Dashboard() {
   );
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileWorkspace, setShowMobileWorkspace] = useState(true);
   const [globalExpandState, setGlobalExpandState] = useState<boolean | undefined>(undefined);
   const [selectedGigIds, setSelectedGigIds] = useState<Set<string>>(new Set());
   const [showBulkEditor, setShowBulkEditor] = useState(false);
@@ -435,16 +436,46 @@ export default function Dashboard() {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Safety timeout: if loading state is stuck for more than 30 seconds, force it to complete
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+
+  // Safety timeout: if auth loading state is stuck for more than 3 seconds on mobile touch devices, force it to render
+  useEffect(() => {
+    if (!authLoading) return;
+
+    const timer = setTimeout(() => {
+      console.warn("[Dashboard] authLoading stuck for 3s, forcing render");
+      setAuthTimedOut(true);
+    }, 3000);
+
+    const unlock = () => setAuthTimedOut(true);
+    window.addEventListener("touchstart", unlock, { once: true, passive: true });
+    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("pointerdown", unlock);
+    };
+  }, [authLoading]);
+
+  // Safety timeout: if data loading state is stuck for more than 3 seconds, force it to complete
   useEffect(() => {
     if (!loading) return;
 
     const timeoutId = setTimeout(() => {
-      console.warn("[Dashboard] Loading state stuck for 30s, forcing completion");
+      console.warn("[Dashboard] Loading state stuck for 3s, forcing completion");
       setLoading(false);
-    }, 30000);
+    }, 3000);
 
-    return () => clearTimeout(timeoutId);
+    const unlock = () => setLoading(false);
+    window.addEventListener("touchstart", unlock, { once: true, passive: true });
+    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("pointerdown", unlock);
+    };
   }, [loading]);
 
   const handleToggleOverview = useCallback(() => {
@@ -1173,7 +1204,7 @@ export default function Dashboard() {
   // -- Render -----------------------------------------------------------------
 
   // Show loading state while checking auth
-  if (authLoading) {
+  if (authLoading && !authTimedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors">
         <LoadingSpinner size="lg" message={t('dashboard.loadingDashboard', 'Loading dashboard...')} />
@@ -1460,7 +1491,7 @@ export default function Dashboard() {
             data-testid="mobile-menu-button"
             type="button"
             onClick={() => setShowMobileMenu(true)}
-            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 min-h-[44px] text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
             aria-label="Open navigation menu"
           >
             <span className="flex min-w-0 items-center gap-2">
@@ -1485,7 +1516,8 @@ export default function Dashboard() {
                 <button
                   data-testid="close-mobile-menu"
                   onClick={() => setShowMobileMenu(false)}
-                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  aria-label="Close menu"
                 >
                   <Icons.Close className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                 </button>
@@ -1499,7 +1531,7 @@ export default function Dashboard() {
                     setEditGig(null);
                     setShowForm(true);
                   }}
-                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg bg-brand-600 px-2 tablet:px-3 py-2.5 text-xs tablet:text-sm font-medium text-white transition hover:bg-brand-700"
+                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-xl bg-brand-600 px-2 tablet:px-3 py-2.5 min-h-[44px] text-xs tablet:text-sm font-medium text-white transition hover:bg-brand-700 shadow-sm"
                 >
                   <Icons.Plus className="h-4 w-4 shrink-0" />
                   <span className="hidden tablet:inline">Add gig</span>
@@ -1510,10 +1542,11 @@ export default function Dashboard() {
                       setShowMobileMenu(false);
                       handleTabChange("setlists");
                     }}
-                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-lg border border-slate-200 bg-white px-2 tablet:px-3 py-2 text-xs tablet:text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  className="inline-flex items-center justify-center gap-1 tablet:gap-2 rounded-xl border border-slate-200 bg-white px-2 tablet:px-3 py-2.5 min-h-[44px] text-xs tablet:text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 shadow-sm"
                 >
                   <Icons.ListView className="h-4 w-4 shrink-0" />
                   <span className="hidden tablet:inline">Setlists</span>
+                  <span className="tablet:hidden">Setlists</span>
                 </button>
               </div>
               
@@ -1541,171 +1574,271 @@ export default function Dashboard() {
 
 
               {/* Navigation */}
-              <nav className="space-y-1">
-                {selectedTab !== "songs" && selectedTab !== "superadmin" && (
-                <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Overview
-                </div>
-                )}
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("gigs");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "gigs" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.GridView className="h-5 w-5 shrink-0" />
-                  <span>Overview</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("all-gigs");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "all-gigs" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.ListView className="h-5 w-5 shrink-0" />
-                  <span>All Gigs</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("calendar");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "calendar" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Calendar className="h-5 w-5 shrink-0" />
-                  <span>Calendar</span>
-                </button>
-                <div className="px-3 py-2 pt-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Workspace
-                </div>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("bands");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "bands"
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.People className="h-5 w-5 shrink-0" />
-                  <span>Bands</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("band-members");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "band-members" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.People className="h-5 w-5 shrink-0" />
-                  <span>Band Members</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("shared-links");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "shared-links" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Link className="h-5 w-5 shrink-0" />
-                  <span>Share</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("analytics");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "analytics" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Analytics className="h-5 w-5 shrink-0" />
-                  <span>Insights</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("investments");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "investments" 
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300" 
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Wallet className="h-5 w-5 shrink-0" />
-                  <span>Investments</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("setlists");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "setlists"
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.ListView className="h-5 w-5 shrink-0" />
-                  <span>Setlists</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    handleTabChange("songs");
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    selectedTab === "songs"
-                      ? "bg-brand-100 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icons.Music2 className="h-5 w-5 shrink-0" />
-                  <span>Songs</span>
-                </button>
-                {canAccessSuperAdmin && (
+              <nav className="space-y-4">
+                {/* 1. Primary Home/Overview */}
+                <div>
                   <button
                     onClick={() => {
                       setShowMobileMenu(false);
-                      handleTabChange("superadmin");
+                      handleTabChange("gigs");
                     }}
-                    className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                      selectedTab === "superadmin"
-                        ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-300"
-                        : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                      selectedTab === "gigs"
+                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                     }`}
                   >
-                    <Icons.Settings className="h-5 w-5 shrink-0" />
-                    <span>Superadmin</span>
+                    <div className="flex items-center gap-3">
+                      <Icons.GridView className={`h-5 w-5 shrink-0 ${selectedTab === "gigs" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                      <span>{tabLabels.gigs}</span>
+                    </div>
+                    {selectedTab === "gigs" && (
+                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                    )}
                   </button>
-                )}
+                </div>
+
+                {/* 2. Primary User Shortcuts ("Setlists", "Songs / Nummers") */}
+                <div className="space-y-1">
+                  <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {t('dashboard.shortcuts', 'Shortcuts')}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleTabChange("setlists");
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                      selectedTab === "setlists"
+                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.ListView className={`h-5 w-5 shrink-0 ${selectedTab === "setlists" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                      <span>{tabLabels.setlists}</span>
+                    </div>
+                    {selectedTab === "setlists" && (
+                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleTabChange("songs");
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                      selectedTab === "songs"
+                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.Music2 className={`h-5 w-5 shrink-0 ${selectedTab === "songs" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                      <span>{tabLabels.songs}</span>
+                    </div>
+                    {selectedTab === "songs" && (
+                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                    )}
+                  </button>
+                </div>
+
+                {/* 3. Gigs / Calendar */}
+                <div className="space-y-1">
+                  <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {t('dashboard.gigsAndSchedule', 'Gigs & Calendar')}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleTabChange("all-gigs");
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                      selectedTab === "all-gigs"
+                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.ListView className={`h-5 w-5 shrink-0 ${selectedTab === "all-gigs" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                      <span>{tabLabels["all-gigs"]}</span>
+                    </div>
+                    {selectedTab === "all-gigs" && (
+                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleTabChange("calendar");
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                      selectedTab === "calendar"
+                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.Calendar className={`h-5 w-5 shrink-0 ${selectedTab === "calendar" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                      <span>{tabLabels.calendar}</span>
+                    </div>
+                    {selectedTab === "calendar" && (
+                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                    )}
+                  </button>
+                </div>
+
+                {/* 4. Workspace dropdown menu */}
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileWorkspace((prev) => !prev)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition"
+                    aria-expanded={showMobileWorkspace}
+                  >
+                    <span>{t('dashboard.workspace', 'Workspace')}</span>
+                    <Icons.ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showMobileWorkspace ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {showMobileWorkspace && (
+                    <div className="space-y-1 pl-1">
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          handleTabChange("band-members");
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                          selectedTab === "band-members"
+                            ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icons.People className={`h-5 w-5 shrink-0 ${selectedTab === "band-members" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                          <span>{tabLabels["band-members"]}</span>
+                        </div>
+                        {selectedTab === "band-members" && (
+                          <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          handleTabChange("analytics");
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                          selectedTab === "analytics"
+                            ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icons.Analytics className={`h-5 w-5 shrink-0 ${selectedTab === "analytics" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                          <span>{tabLabels.analytics}</span>
+                        </div>
+                        {selectedTab === "analytics" && (
+                          <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          handleTabChange("investments");
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                          selectedTab === "investments"
+                            ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icons.Wallet className={`h-5 w-5 shrink-0 ${selectedTab === "investments" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                          <span>{tabLabels.investments}</span>
+                        </div>
+                        {selectedTab === "investments" && (
+                          <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          handleTabChange("bands");
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                          selectedTab === "bands"
+                            ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icons.People className={`h-5 w-5 shrink-0 ${selectedTab === "bands" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                          <span>{tabLabels.bands}</span>
+                        </div>
+                        {selectedTab === "bands" && (
+                          <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          handleTabChange("shared-links");
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                          selectedTab === "shared-links"
+                            ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icons.Link className={`h-5 w-5 shrink-0 ${selectedTab === "shared-links" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                          <span>{tabLabels["shared-links"]}</span>
+                        </div>
+                        {selectedTab === "shared-links" && (
+                          <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          setShowSettings(true);
+                        }}
+                        className="w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icons.Settings className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                          <span>{t('settings.title', 'Settings')}</span>
+                        </div>
+                      </button>
+
+                      {canAccessSuperAdmin && (
+                        <button
+                          onClick={() => {
+                            setShowMobileMenu(false);
+                            handleTabChange("superadmin");
+                          }}
+                          className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                            selectedTab === "superadmin"
+                              ? "bg-fuchsia-600 text-white shadow-sm dark:bg-fuchsia-500 font-semibold"
+                              : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icons.Settings className={`h-5 w-5 shrink-0 ${selectedTab === "superadmin" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
+                            <span>{tabLabels.superadmin}</span>
+                          </div>
+                          {selectedTab === "superadmin" && (
+                            <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </nav>
             </div>
           </div>

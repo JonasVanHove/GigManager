@@ -258,7 +258,8 @@
     "showTuningPanel": "Toon tuning paneel",
     "hideTuningPanel": "Verberg tuning paneel",
     "showSongPicker": "Toon songkiezer",
-    "hideSongPicker": "Verberg songkiezer"
+    "hideSongPicker": "Verberg songkiezer",
+    "aiOptimizeSuccess": "Setlist geoptimaliseerd en opgeslagen met AI-flowanalyse"
   },
   "gigs": {
     "title": "Optredens",
@@ -423,6 +424,9 @@
   },
   "dashboard": {
     "overview": "Overzicht",
+    "shortcuts": "Snelkoppelingen",
+    "gigsAndSchedule": "Optredens & Kalender",
+    "workspace": "Werkruimte",
     "allGigs": "Alle Optredens",
     "insights": "Inzichten",
     "investments": "Investeringen",

@@ -257,7 +257,8 @@
     "showTuningPanel": "Show tuning panel",
     "hideTuningPanel": "Hide tuning panel",
     "showSongPicker": "Show song picker",
-    "hideSongPicker": "Hide song picker"
+    "hideSongPicker": "Hide song picker",
+    "aiOptimizeSuccess": "Setlist optimized and saved with AI flow analysis"
   },
   "gigs": {
     "title": "Gigs",
@@ -425,6 +426,9 @@
   },
   "dashboard": {
     "overview": "Overview",
+    "shortcuts": "Shortcuts",
+    "gigsAndSchedule": "Gigs & Calendar",
+    "workspace": "Workspace",
     "allGigs": "All Gigs",
     "insights": "Insights",
     "investments": "Investments",

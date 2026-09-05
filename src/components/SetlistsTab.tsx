@@ -15,6 +15,7 @@ import {
   isKnownSpecialBlock,
   normalizeSpecialBlockKey,
 } from "@/lib/setlist-special-blocks";
+import { optimizeSetlistFlow } from "@/lib/setlist-flow";
 
 type SongRow = {
   id: string;
@@ -1266,202 +1267,61 @@ export default function SetlistsTab() {
     setAiOptimizing(true);
 
     setTimeout(() => {
-      // Separate songs from all items, preserving positions of special blocks
-      const optimizedItems: DraftItem[] = [];
-      const explanations: string[] = [];
-      const previewItems: Array<{ label: string; before: string; after: string; changed?: boolean }> = [];
+      const { optimizedItems, explanations, previewItems } = optimizeSetlistFlow(draft.items);
 
-      // Group items: known special blocks act as set boundaries
-      let currentSongGroup: DraftItem[] = [];
-      
-      draft.items.forEach((item, itemIndex) => {
-        if (item.kind === "special" && isKnownSpecialBlock(item.specialLabel)) {
-          // Known special block found: optimize songs before it, then add the special block
-          if (currentSongGroup.length > 0) {
-            // Optimize the current song group
-            const sortedByBPM = [...currentSongGroup].sort((a, b) => {
-              const bpmA = parseInt(a.tempo) || 0;
-              const bpmB = parseInt(b.tempo) || 0;
-              return bpmB - bpmA; // Higher BPM first for energy
-            });
-
-            sortedByBPM.forEach((song, songIndex) => {
-              optimizedItems.push({ ...cloneItem(song), id: crypto.randomUUID(), expanded: false });
-              
-              if (songIndex > 0) {
-                const prev = sortedByBPM[songIndex - 1];
-                const prevBPM = parseInt(prev.tempo) || 0;
-                const currBPM = parseInt(song.tempo) || 0;
-                const prevKey = prev.tuning || "Onbekend";
-                const currKey = song.tuning || "Onbekend";
-                
-                // Generate XAI explanation and preview for transition
-                if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
-                  const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
-                  if (keyDiff <= 2 || keyDiff >= 10) {
-                    const explanation = `Smooth key transition: ${prevKey} → ${currKey}`;
-                    explanations.push(explanation);
-                    previewItems.push({ 
-                      label: `Smooth transition: ${song.label}`, 
-                      before: prevKey, 
-                      after: currKey,
-                      changed: true
-                    });
-                  } else if (keyDiff >= 5 && keyDiff <= 7) {
-                    const explanation = `Energy boost transition: ${prevKey} → ${currKey}`;
-                    explanations.push(explanation);
-                    previewItems.push({ 
-                      label: `Energy boost: ${song.label}`, 
-                      before: prevKey, 
-                      after: currKey,
-                      changed: true
-                    });
-                  }
-                }
-                
-                if (prevBPM && currBPM) {
-                  if (currBPM > prevBPM + 10) {
-                    const explanation = `Energy increase: ${prevBPM} → ${currBPM} BPM`;
-                    explanations.push(explanation);
-                    previewItems.push({ 
-                      label: `Energy increase: ${song.label}`, 
-                      before: `${prevBPM} BPM`, 
-                      after: `${currBPM} BPM`,
-                      changed: true
-                    });
-                  } else if (currBPM < prevBPM - 10) {
-                    const explanation = `Energy decrease: ${prevBPM} → ${currBPM} BPM`;
-                    explanations.push(explanation);
-                    previewItems.push({ 
-                      label: `Energy decrease: ${song.label}`, 
-                      before: `${prevBPM} BPM`, 
-                      after: `${currBPM} BPM`,
-                      changed: true
-                    });
-                  }
-                }
-              }
-            });
-            currentSongGroup = [];
-          }
-          
-          // Add the special block (preserved in position)
-          optimizedItems.push({ ...cloneItem(item), id: crypto.randomUUID(), expanded: false });
-          if (explanations.length === 0) {
-            previewItems.push({
-              label: `Special marker: ${item.specialLabel}`,
-              before: "Preserved",
-              after: "In position",
-              changed: false
-            });
-          }
-        } else if (item.kind === "song") {
-          // Collect songs for optimization
-          currentSongGroup.push(item);
-        } else if (item.kind === "special") {
-          // Unknown special block: keep it with current song group
-          currentSongGroup.push(item);
-        }
-      });
-
-      // Optimize remaining songs after the last special block
-      if (currentSongGroup.length > 0) {
-        const songsOnly = currentSongGroup.filter((item) => item.kind === "song");
-        if (songsOnly.length > 0) {
-          const sortedByBPM = [...songsOnly].sort((a, b) => {
-            const bpmA = parseInt(a.tempo) || 0;
-            const bpmB = parseInt(b.tempo) || 0;
-            return bpmB - bpmA;
-          });
-
-          sortedByBPM.forEach((song, songIndex) => {
-            optimizedItems.push({ ...cloneItem(song), id: crypto.randomUUID(), expanded: false });
-            
-            if (songIndex > 0) {
-              const prev = sortedByBPM[songIndex - 1];
-              const prevBPM = parseInt(prev.tempo) || 0;
-              const currBPM = parseInt(song.tempo) || 0;
-              const prevKey = prev.tuning || "Onbekend";
-              const currKey = song.tuning || "Onbekend";
-              
-              if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
-                const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
-                if (keyDiff <= 2 || keyDiff >= 10) {
-                  explanations.push(`Smooth key transition: ${prevKey} → ${currKey}`);
-                  previewItems.push({
-                    label: `Smooth transition: ${song.label}`,
-                    before: prevKey,
-                    after: currKey,
-                    changed: true
-                  });
-                } else if (keyDiff >= 5 && keyDiff <= 7) {
-                  explanations.push(`Energy boost transition: ${prevKey} → ${currKey}`);
-                  previewItems.push({
-                    label: `Energy boost: ${song.label}`,
-                    before: prevKey,
-                    after: currKey,
-                    changed: true
-                  });
-                }
-              }
-              
-              if (prevBPM && currBPM) {
-                if (currBPM > prevBPM + 10) {
-                  explanations.push(`Energy increase: ${prevBPM} → ${currBPM} BPM`);
-                  previewItems.push({
-                    label: `Energy increase: ${song.label}`,
-                    before: `${prevBPM} BPM`,
-                    after: `${currBPM} BPM`,
-                    changed: true
-                  });
-                } else if (currBPM < prevBPM - 10) {
-                  explanations.push(`Energy decrease: ${prevBPM} → ${currBPM} BPM`);
-                  previewItems.push({
-                    label: `Energy decrease: ${song.label}`,
-                    before: `${prevBPM} BPM`,
-                    after: `${currBPM} BPM`,
-                    changed: true
-                  });
-                }
-              }
-            }
-          });
-        }
-        
-        // Add any unknown specials at the end
-        currentSongGroup.filter((item) => item.kind === "special").forEach((special) => {
-          optimizedItems.push({ ...cloneItem(special), id: crypto.randomUUID(), expanded: false });
-        });
-      }
-      
       // Store optimized items and explanations for confirmation
       setPendingAIItems(optimizedItems);
       setPendingAIExplanations(explanations);
-      setPendingAIPreview(previewItems.length > 0 ? previewItems : [{ 
-        label: "Setlist Order", 
-        before: "Original order (by tuning groups)", 
-        after: "Optimized order (by BPM & key harmony)",
-        changed: true 
-      }]);
-      
+      setPendingAIPreview(
+        previewItems.length > 0
+          ? previewItems
+          : [
+              {
+                label: "Setlist Order",
+                before: "Original order (by tuning groups)",
+                after: "Optimized order (by BPM & key harmony)",
+                changed: true,
+              },
+            ]
+      );
+
       setShowAIConfirmation(true);
       setAiOptimizing(false);
-    }, 800); // Simulate AI processing
+    }, 400); // Process AI flow optimization
   }, [draft]);
 
   // Apply pending AI optimization after user confirmation
-  const applyAIOptimization = useCallback(() => {
-    if (!pendingAIItems) return;
-    
-    updateDraft({ items: pendingAIItems });
-    
+  const applyAIOptimization = useCallback(async () => {
+    if (!pendingAIItems || !draft) return;
+
+    draftVersionRef.current += 1;
+    const version = draftVersionRef.current;
+
+    // Directly construct updated setlist with reordered items
+    const nextDraft: StoredSetlist = {
+      ...draft,
+      items: pendingAIItems.map(cloneItem),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Immediately update local state for draft and all setlists list
+    setDraft(nextDraft);
+    setSetlists((prev) => prev.map((s) => (s.id === nextDraft.id ? nextDraft : s)));
+    setSavingState("saving");
+
     setShowAIConfirmation(false);
     setPendingAIItems(null);
     setPendingAIExplanations([]);
     setPendingAIPreview([]);
-    
-    toast.success('Setlist optimized with AI flow analysis');
-  }, [pendingAIItems, updateDraft, toast]);
+
+    try {
+      await saveDraft(nextDraft, version);
+      toast.success(t('setlists.aiOptimizeSuccess', 'Setlist optimized and saved with AI flow analysis'));
+    } catch (err) {
+      console.error("[SetlistsTab] Failed to save AI optimized setlist:", err);
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }, [pendingAIItems, draft, saveDraft, toast, t]);
 
   const openNoteTab = useCallback((noteId: string) => {
     router.push(`?tab=notes&noteId=${noteId}`, { scroll: false } as any);
