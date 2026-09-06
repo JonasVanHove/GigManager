@@ -32,6 +32,9 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
   const processSongGroup = (group: T[]) => {
     if (group.length === 0) return;
 
+    // Store original order for preview
+    const originalOrder = group.map(item => item.label);
+
     // Sort songs by BPM descending for energy flow
     const sorted = [...group].sort((a, b) => {
       const bpmA = parseInt(a.tempo, 10) || 0;
@@ -39,8 +42,22 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
       return bpmB - bpmA;
     });
 
+    // Generate preview showing song order changes
+    const newOrder = sorted.map(item => item.label);
+    const orderChanged = originalOrder.some((label, idx) => label !== newOrder[idx]);
+
+    if (orderChanged && originalOrder.length > 0) {
+      previewItems.push({
+        label: "Song Order",
+        before: originalOrder.join(" → "),
+        after: newOrder.join(" → "),
+        changed: true,
+      });
+      explanations.push(`Reordered ${sorted.length} songs by BPM for better energy flow`);
+    }
+
     sorted.forEach((song, idx) => {
-      // Preserve the song's original ID and fields
+      // Preserve the song's original ID and fields (no metadata changes)
       optimizedItems.push({ ...song, expanded: false });
 
       if (idx > 0) {
@@ -50,50 +67,22 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
         const prevKey = prev.tuning || "Onbekend";
         const currKey = song.tuning || "Onbekend";
 
-        // Generate key transition insight
+        // Generate key transition insight (for explanation only, not preview)
         if (prevKey !== currKey && prevKey !== "Onbekend" && currKey !== "Onbekend") {
           const keyDiff = Math.abs((currKey.charCodeAt(0) - prevKey.charCodeAt(0)) % 12);
           if (keyDiff <= 2 || keyDiff >= 10) {
-            const explanation = `Smooth key transition: ${prevKey} → ${currKey}`;
-            explanations.push(explanation);
-            previewItems.push({
-              label: `Smooth transition: ${song.label}`,
-              before: prevKey,
-              after: currKey,
-              changed: true,
-            });
+            explanations.push(`Smooth key transition: ${prevKey} → ${currKey}`);
           } else if (keyDiff >= 5 && keyDiff <= 7) {
-            const explanation = `Energy boost transition: ${prevKey} → ${currKey}`;
-            explanations.push(explanation);
-            previewItems.push({
-              label: `Energy boost: ${song.label}`,
-              before: prevKey,
-              after: currKey,
-              changed: true,
-            });
+            explanations.push(`Energy boost transition: ${prevKey} → ${currKey}`);
           }
         }
 
-        // Generate BPM transition insight
+        // Generate BPM transition insight (for explanation only, not preview)
         if (prevBPM && currBPM) {
           if (currBPM > prevBPM + 10) {
-            const explanation = `Energy increase: ${prevBPM} → ${currBPM} BPM`;
-            explanations.push(explanation);
-            previewItems.push({
-              label: `Energy increase: ${song.label}`,
-              before: `${prevBPM} BPM`,
-              after: `${currBPM} BPM`,
-              changed: true,
-            });
+            explanations.push(`Energy increase: ${prevBPM} → ${currBPM} BPM`);
           } else if (currBPM < prevBPM - 10) {
-            const explanation = `Energy decrease: ${prevBPM} → ${currBPM} BPM`;
-            explanations.push(explanation);
-            previewItems.push({
-              label: `Energy decrease: ${song.label}`,
-              before: `${prevBPM} BPM`,
-              after: `${currBPM} BPM`,
-              changed: true,
-            });
+            explanations.push(`Energy decrease: ${prevBPM} → ${currBPM} BPM`);
           }
         }
       }

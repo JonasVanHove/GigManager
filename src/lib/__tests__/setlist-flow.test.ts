@@ -14,6 +14,13 @@ describe("optimizeSetlistFlow", () => {
     expect(result.optimizedItems[0].label).toBe("Fast Song");
     expect(result.optimizedItems[1].label).toBe("Mid Song");
     expect(result.optimizedItems[2].label).toBe("Slow Song");
+    
+    // Verify preview shows song order changes
+    expect(result.previewItems).toHaveLength(1);
+    expect(result.previewItems[0].label).toBe("Song Order");
+    expect(result.previewItems[0].before).toContain("Slow Song");
+    expect(result.previewItems[0].after).toContain("Fast Song");
+    expect(result.previewItems[0].changed).toBe(true);
   });
 
   it("maintains relative set boundaries for special blocks (PAUZE, BIS, BINDTEKST)", () => {
@@ -54,5 +61,27 @@ describe("optimizeSetlistFlow", () => {
     expect(result.optimizedItems.find((i) => i.id === "s4")?.label).toBe("Song 4 (150)");
     expect(result.optimizedItems.find((i) => i.id === "b1")?.specialLabel).toBe("PAUZE");
     expect(result.optimizedItems.find((i) => i.id === "b3")?.specialLabel).toBe("BIS");
+    
+    // Verify explanations are generated but preview only shows order changes
+    expect(result.explanations.length).toBeGreaterThan(0);
+    expect(result.previewItems.length).toBeGreaterThan(0);
+  });
+
+  it("preserves song metadata and only reorders songs", () => {
+    const items: FlowItemLike[] = [
+      { id: "s1", kind: "song", label: "Song A", specialLabel: "", tempo: "100", tuning: "Capo III" },
+      { id: "s2", kind: "song", label: "Song B", specialLabel: "", tempo: "150", tuning: "Standard" },
+    ];
+
+    const result = optimizeSetlistFlow(items);
+    
+    // Verify songs are reordered
+    expect(result.optimizedItems.map((i) => i.id)).toEqual(["s2", "s1"]);
+    
+    // Verify metadata is preserved (not changed)
+    expect(result.optimizedItems[0].tuning).toBe("Standard");
+    expect(result.optimizedItems[1].tuning).toBe("Capo III");
+    expect(result.optimizedItems[0].tempo).toBe("150");
+    expect(result.optimizedItems[1].tempo).toBe("100");
   });
 });

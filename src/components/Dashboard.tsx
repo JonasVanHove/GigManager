@@ -1427,19 +1427,7 @@ export default function Dashboard() {
                       >
                         <span className="inline-flex items-center gap-2">
                           <Icons.Settings className="h-4 w-4" />
-                          Profile
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowSettings(true);
-                          setShowProfileMenu(false);
-                        }}
-                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          <Icons.Settings className="h-4 w-4" />
-                          Language settings
+                          Settings
                         </span>
                       </button>
                       <button
