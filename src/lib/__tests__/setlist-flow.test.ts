@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { optimizeSetlistFlow, type FlowItemLike } from "@/lib/setlist-flow";
+import { optimizeSetlistFlow, type FlowItemLike, type OptimizationCriteria } from "@/lib/setlist-flow";
 
 describe("optimizeSetlistFlow", () => {
-  it("reorders songs by BPM descending within sets", () => {
+  it("reorders songs by BPM descending within sets (default criteria)", () => {
     const items: FlowItemLike[] = [
       { id: "s1", kind: "song", label: "Slow Song", specialLabel: "", tempo: "75", tuning: "Standard" },
       { id: "s2", kind: "song", label: "Fast Song", specialLabel: "", tempo: "140", tuning: "Standard" },
       { id: "s3", kind: "song", label: "Mid Song", specialLabel: "", tempo: "105", tuning: "Standard" },
     ];
 
-    const result = optimizeSetlistFlow(items);
+    const result = optimizeSetlistFlow(items, "bpm-flow");
     expect(result.optimizedItems.map((i) => i.id)).toEqual(["s2", "s3", "s1"]);
     expect(result.optimizedItems[0].label).toBe("Fast Song");
     expect(result.optimizedItems[1].label).toBe("Mid Song");
@@ -21,6 +21,28 @@ describe("optimizeSetlistFlow", () => {
     expect(result.previewItems[0].before).toContain("Slow Song");
     expect(result.previewItems[0].after).toContain("Fast Song");
     expect(result.previewItems[0].changed).toBe(true);
+  });
+
+  it("supports different optimization criteria", () => {
+    const items: FlowItemLike[] = [
+      { id: "s1", kind: "song", label: "Song A", specialLabel: "", tempo: "100", tuning: "Capo I" },
+      { id: "s2", kind: "song", label: "Song B", specialLabel: "", tempo: "120", tuning: "Capo III" },
+      { id: "s3", kind: "song", label: "Song C", specialLabel: "", tempo: "90", tuning: "Standard" },
+    ];
+
+    // Test BPM flow
+    const bpmResult = optimizeSetlistFlow(items, "bpm-flow");
+    expect(bpmResult.optimizedItems[0].id).toBe("s2"); // Highest BPM
+    expect(bpmResult.explanations.some(e => e.includes("BPM"))).toBe(true);
+
+    // Test minimize capo
+    const capoResult = optimizeSetlistFlow(items, "minimize-capo");
+    expect(capoResult.optimizedItems.length).toBe(3);
+    expect(capoResult.explanations.length).toBeGreaterThan(0);
+
+    // Test balanced
+    const balancedResult = optimizeSetlistFlow(items, "balanced");
+    expect(balancedResult.optimizedItems.length).toBe(3);
   });
 
   it("maintains relative set boundaries for special blocks (PAUZE, BIS, BINDTEKST)", () => {
@@ -42,7 +64,7 @@ describe("optimizeSetlistFlow", () => {
       { id: "s7", kind: "song", label: "Song 7 (110)", specialLabel: "", tempo: "110", tuning: "Standard" },
     ];
 
-    const result = optimizeSetlistFlow(items);
+    const result = optimizeSetlistFlow(items, "bpm-flow");
     const resultIds = result.optimizedItems.map((i) => i.id);
 
     // Set 1 reordered: s2 (120) before s1 (80), followed by PAUZE
@@ -73,7 +95,7 @@ describe("optimizeSetlistFlow", () => {
       { id: "s2", kind: "song", label: "Song B", specialLabel: "", tempo: "150", tuning: "Standard" },
     ];
 
-    const result = optimizeSetlistFlow(items);
+    const result = optimizeSetlistFlow(items, "bpm-flow");
     
     // Verify songs are reordered
     expect(result.optimizedItems.map((i) => i.id)).toEqual(["s2", "s1"]);

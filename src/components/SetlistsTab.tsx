@@ -10,12 +10,14 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { useTranslation } from "react-i18next";
 import LoadingSpinner from "./LoadingSpinner";
 import XAIConfirmationModal from "./XAIConfirmationModal";
+import OptimizeFlowModal from "./OptimizeFlowModal";
 import {
   getSpecialBlockTranslationKey,
   isKnownSpecialBlock,
   normalizeSpecialBlockKey,
 } from "@/lib/setlist-special-blocks";
-import { optimizeSetlistFlow } from "@/lib/setlist-flow";
+import { optimizeSetlistFlow, type OptimizationCriteria } from "@/lib/setlist-flow";
+import { areCaposEqual, normalizeCapo, formatCapo } from "@/lib/capo-utils";
 
 type SongRow = {
   id: string;
@@ -303,6 +305,8 @@ export default function SetlistsTab() {
   const [pendingAIItems, setPendingAIItems] = useState<DraftItem[] | null>(null);
   const [pendingAIExplanations, setPendingAIExplanations] = useState<string[]>([]);
   const [pendingAIPreview, setPendingAIPreview] = useState<Array<{ label: string; before?: string; after: string; changed?: boolean }>>([]);
+  const [optimizationCriteria, setOptimizationCriteria] = useState<OptimizationCriteria>("bpm-flow");
+  const [showOptimizeFlowModal, setShowOptimizeFlowModal] = useState(false);
   const [showPerformanceMode, setShowPerformanceMode] = useState(false);
   const [performanceAttachmentsOpen, setPerformanceAttachmentsOpen] = useState(false);
   const [performanceActiveSong, setPerformanceActiveSong] = useState<DraftItem | null>(null);
@@ -504,9 +508,11 @@ export default function SetlistsTab() {
         if (!tagFilter.some(tf => songTags.some(st => st.toLowerCase() === tf.toLowerCase()))) continue;
       }
       
-      const list = songsByGroup.get(tuning) || [];
+      // Use normalized capo value for grouping to handle "Capo I" vs "Capo 1" consistently
+      const normalizedTuning = normalizeCapo(tuning) !== null ? formatCapo(normalizeCapo(tuning)!) : tuning;
+      const list = songsByGroup.get(normalizedTuning) || [];
       list.push(song);
-      songsByGroup.set(tuning, list);
+      songsByGroup.set(normalizedTuning, list);
     }
 
     return Array.from(songsByGroup.entries())
@@ -534,15 +540,16 @@ export default function SetlistsTab() {
         continue;
       }
 
+      const currentTuning = item.tuning || "Onbekend";
       if (!sawFirstSong) {
         lines.push(t('setlists.opener'));
         sawFirstSong = true;
-      } else if ((item.tuning || "Onbekend") === previousTuning) {
-        lines.push(`✓ ${item.tuning || "Onbekend"} — ${t('setlists.noChange')}`);
+      } else if (areCaposEqual(currentTuning, previousTuning)) {
+        lines.push(`✓ ${currentTuning} — ${t('setlists.noChange')}`);
       } else {
-        lines.push(`⚠ ${t('setlists.tuningChange')}: ${previousTuning || "Onbekend"} → ${item.tuning || "Onbekend"}`);
+        lines.push(`⚠ ${t('setlists.tuningChange')}: ${previousTuning} → ${currentTuning}`);
       }
-      previousTuning = item.tuning || "Onbekend";
+      previousTuning = currentTuning;
     }
 
     return lines;
@@ -1155,7 +1162,7 @@ export default function SetlistsTab() {
       }
       
       const currentTuning = item.tuning || "Onbekend";
-      if (previousTuning && currentTuning !== previousTuning) {
+      if (previousTuning && !areCaposEqual(currentTuning, previousTuning)) {
         notes.push(createSpecialItem(`⚠ ${t('setlists.tuningChange')}: ${previousTuning} → ${currentTuning}`));
       }
       previousTuning = currentTuning;
@@ -1180,7 +1187,7 @@ export default function SetlistsTab() {
         }
         
         const currentTuning = item.tuning || "Onbekend";
-        if (previousTuning && currentTuning !== previousTuning && noteIndex < notes.length) {
+        if (previousTuning && !areCaposEqual(currentTuning, previousTuning) && noteIndex < notes.length) {
           newItems.push(notes[noteIndex]);
           noteIndex++;
         }
@@ -1244,7 +1251,7 @@ export default function SetlistsTab() {
     const specials = draft.items.filter((item) => item.kind === "special");
     const orderedSongs = tuningGroups.flatMap((group) =>
       songsOnly
-        .filter((item) => (item.tuning || "Onbekend").toLowerCase() === group.toLowerCase())
+        .filter((item) => areCaposEqual(item.tuning || "Onbekend", group))
         .sort((a, b) => songSortValue(b) - songSortValue(a))
     );
 
@@ -1252,7 +1259,7 @@ export default function SetlistsTab() {
     orderedSongs.forEach((item, index) => {
       rebuilt.push({ ...cloneItem(item), id: crypto.randomUUID(), expanded: false });
       const next = orderedSongs[index + 1];
-      if (draft.pauseOnTuningChange && next && (item.tuning || "Onbekend") !== (next.tuning || "Onbekend")) {
+      if (draft.pauseOnTuningChange && next && !areCaposEqual(item.tuning || "Onbekend", next.tuning || "Onbekend")) {
         rebuilt.push(createSpecialItem("PAUZE"));
       }
     });
@@ -1264,10 +1271,16 @@ export default function SetlistsTab() {
   // AI Auto-Order tool with XAI explanations and explicit confirmation
   const aiOptimizeFlow = useCallback(() => {
     if (!draft) return;
+    setShowOptimizeFlowModal(true);
+  }, [draft]);
+
+  const handleOptimizeFlowConfirm = useCallback((criteria: OptimizationCriteria) => {
+    if (!draft) return;
     setAiOptimizing(true);
+    setShowOptimizeFlowModal(false);
 
     setTimeout(() => {
-      const { optimizedItems, explanations, previewItems } = optimizeSetlistFlow(draft.items);
+      const { optimizedItems, explanations, previewItems } = optimizeSetlistFlow(draft.items, criteria);
 
       // Store optimized items and explanations for confirmation
       setPendingAIItems(optimizedItems);
@@ -1278,8 +1291,8 @@ export default function SetlistsTab() {
           : [
               {
                 label: "Setlist Order",
-                before: "Original order (by tuning groups)",
-                after: "Optimized order (by BPM & key harmony)",
+                before: "Original order",
+                after: "Optimized order",
                 changed: true,
               },
             ]
@@ -1454,7 +1467,7 @@ export default function SetlistsTab() {
     const song = item.songId ? activeSongMap.get(item.songId) : null;
     const songNotes = item.songId ? linkedNotesForSong(item.songId) : [];
     const hasImages = Boolean(song?.attachments?.some(isImageAttachment));
-    const tuningChanged = index > 0 ? (currentItems[index - 1]?.kind === "song" ? (currentItems[index - 1].tuning || "Onbekend") !== (item.tuning || "Onbekend") : false) : false;
+    const tuningChanged = index > 0 ? (currentItems[index - 1]?.kind === "song" ? !areCaposEqual(currentItems[index - 1].tuning || "Onbekend", item.tuning || "Onbekend") : false) : false;
 
     if (performance) {
       return (
@@ -2648,13 +2661,20 @@ export default function SetlistsTab() {
         </div>
       )}
 
+      {/* Optimize Flow Criteria Modal */}
+      <OptimizeFlowModal
+        isOpen={showOptimizeFlowModal}
+        onConfirm={handleOptimizeFlowConfirm}
+        onCancel={() => setShowOptimizeFlowModal(false)}
+      />
+
       {/* AI Confirmation Modal */}
       <XAIConfirmationModal
         isOpen={showAIConfirmation}
         title="AI Flow Optimization Preview"
         explanation={pendingAIExplanations.length > 0 
-          ? `The AI has analyzed your setlist and created an optimized flow based on BPM progression and harmonic key compatibility. ${pendingAIExplanations.length} optimization${pendingAIExplanations.length !== 1 ? 's' : ''} identified: ${pendingAIExplanations.join('; ')}.`
-          : "The AI has optimized your setlist order by BPM progression and harmonic key transitions to create a more engaging performance flow."
+          ? `The AI has analyzed your setlist and created an optimized flow based on your selected criteria. ${pendingAIExplanations.length} optimization${pendingAIExplanations.length !== 1 ? 's' : ''} identified: ${pendingAIExplanations.join('; ')}.`
+          : "The AI has optimized your setlist order to create a more engaging performance flow."
         }
         previewItems={pendingAIPreview}
         confidenceScore={0.85}

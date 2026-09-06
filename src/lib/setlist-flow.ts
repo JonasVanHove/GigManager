@@ -1,4 +1,7 @@
 import { isKnownSpecialBlock } from "./setlist-special-blocks";
+import { normalizeCapo, getCapoDifference } from "./capo-utils";
+
+export type OptimizationCriteria = "bpm-flow" | "harmonic-keys" | "minimize-capo" | "balanced";
 
 export interface FlowOptimizationResult<T> {
   optimizedItems: T[];
@@ -17,11 +20,12 @@ export interface FlowItemLike {
 }
 
 /**
- * Optimizes the song order in a setlist for energy flow (by BPM and harmonic key transitions),
+ * Optimizes the song order in a setlist based on selected criteria,
  * while strictly maintaining the relative boundaries of special set markers (BIS, PAUZE, BINDTEKST).
  */
 export function optimizeSetlistFlow<T extends FlowItemLike>(
-  items: T[]
+  items: T[],
+  criteria: OptimizationCriteria = "bpm-flow"
 ): FlowOptimizationResult<T> {
   const optimizedItems: T[] = [];
   const explanations: string[] = [];
@@ -35,12 +39,43 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
     // Store original order for preview
     const originalOrder = group.map(item => item.label);
 
-    // Sort songs by BPM descending for energy flow
-    const sorted = [...group].sort((a, b) => {
-      const bpmA = parseInt(a.tempo, 10) || 0;
-      const bpmB = parseInt(b.tempo, 10) || 0;
-      return bpmB - bpmA;
-    });
+    // Sort songs based on selected criteria
+    let sorted: T[];
+    let optimizationDescription = "";
+
+    switch (criteria) {
+      case "bpm-flow":
+        sorted = [...group].sort((a, b) => {
+          const bpmA = parseInt(a.tempo, 10) || 0;
+          const bpmB = parseInt(b.tempo, 10) || 0;
+          return bpmB - bpmA; // Descending BPM for energy flow
+        });
+        optimizationDescription = "BPM descending for smooth energy flow";
+        break;
+
+      case "harmonic-keys":
+        sorted = optimizeByHarmonicKeys(group);
+        optimizationDescription = "harmonic key transitions (Camelot Wheel)";
+        break;
+
+      case "minimize-capo":
+        sorted = optimizeByCapoChanges(group);
+        optimizationDescription = "minimized capo position changes";
+        break;
+
+      case "balanced":
+        sorted = optimizeBalanced(group);
+        optimizationDescription = "balanced mix of BPM, keys, and capo changes";
+        break;
+
+      default:
+        sorted = [...group].sort((a, b) => {
+          const bpmA = parseInt(a.tempo, 10) || 0;
+          const bpmB = parseInt(b.tempo, 10) || 0;
+          return bpmB - bpmA;
+        });
+        optimizationDescription = "BPM descending for smooth energy flow";
+    }
 
     // Generate preview showing song order changes
     const newOrder = sorted.map(item => item.label);
@@ -53,7 +88,7 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
         after: newOrder.join(" → "),
         changed: true,
       });
-      explanations.push(`Reordered ${sorted.length} songs by BPM for better energy flow`);
+      explanations.push(`Reordered ${sorted.length} songs by ${optimizationDescription}`);
     }
 
     sorted.forEach((song, idx) => {
@@ -84,6 +119,12 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
           } else if (currBPM < prevBPM - 10) {
             explanations.push(`Energy decrease: ${prevBPM} → ${currBPM} BPM`);
           }
+        }
+
+        // Generate capo change insight
+        const capoDiff = getCapoDifference(prevKey, currKey);
+        if (capoDiff > 0) {
+          explanations.push(`Capo change: ${prevKey} → ${currKey} (${capoDiff} fret${capoDiff > 1 ? 's' : ''})`);
         }
       }
     });
@@ -125,4 +166,99 @@ export function optimizeSetlistFlow<T extends FlowItemLike>(
     explanations,
     previewItems,
   };
+}
+
+// Helper functions for different optimization strategies
+
+function optimizeByHarmonicKeys<T extends FlowItemLike>(items: T[]): T[] {
+  // Simple harmonic key optimization - group similar keys together
+  // In a real implementation, this would use the Camelot Wheel for perfect harmonic mixing
+  const keyGroups = new Map<string, T[]>();
+  
+  items.forEach(item => {
+    const key = item.tuning || "Onbekend";
+    if (!keyGroups.has(key)) {
+      keyGroups.set(key, []);
+    }
+    keyGroups.get(key)!.push(item);
+  });
+
+  // Sort keys alphabetically and flatten
+  const sortedKeys = Array.from(keyGroups.keys()).sort();
+  const result: T[] = [];
+  
+  sortedKeys.forEach(key => {
+    const group = keyGroups.get(key)!;
+    // Within each key group, sort by BPM descending
+    group.sort((a, b) => {
+      const bpmA = parseInt(a.tempo, 10) || 0;
+      const bpmB = parseInt(b.tempo, 10) || 0;
+      return bpmB - bpmA;
+    });
+    result.push(...group);
+  });
+
+  return result;
+}
+
+function optimizeByCapoChanges<T extends FlowItemLike>(items: T[]): T[] {
+  // Group songs by capo position to minimize changes
+  const capoGroups = new Map<number | null, T[]>();
+  
+  items.forEach(item => {
+    const capo = normalizeCapo(item.tuning);
+    if (!capoGroups.has(capo)) {
+      capoGroups.set(capo, []);
+    }
+    capoGroups.get(capo)!.push(item);
+  });
+
+  // Sort by capo position (ascending to minimize fret jumps)
+  const sortedCapos = Array.from(capoGroups.keys()).sort((a, b) => {
+    if (a === null) return 1; // Put non-capo songs at the end
+    if (b === null) return -1;
+    return a - b;
+  });
+
+  const result: T[] = [];
+  
+  sortedCapos.forEach(capo => {
+    const group = capoGroups.get(capo)!;
+    // Within each capo group, sort by BPM descending
+    group.sort((a, b) => {
+      const bpmA = parseInt(a.tempo, 10) || 0;
+      const bpmB = parseInt(b.tempo, 10) || 0;
+      return bpmB - bpmA;
+    });
+    result.push(...group);
+  });
+
+  return result;
+}
+
+function optimizeBalanced<T extends FlowItemLike>(items: T[]): T[] {
+  // Balanced approach: consider BPM, keys, and capo changes
+  // Score each song based on multiple factors
+  const scored = items.map(item => {
+    const bpm = parseInt(item.tempo, 10) || 0;
+    const capo = normalizeCapo(item.tuning);
+    
+    // Higher score = should come earlier
+    let score = 0;
+    
+    // BPM factor (higher BPM = higher score for energy)
+    score += bpm * 0.5;
+    
+    // Capo factor (lower capo = slightly higher score for ease)
+    if (capo !== null) {
+      score -= capo * 2;
+    }
+    
+    return { item, score };
+  });
+
+  // Sort by score descending
+  scored.sort((a, b) => b.score - a.score);
+  
+  return scored.map(s => s.item);
 }

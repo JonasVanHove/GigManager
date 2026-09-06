@@ -436,47 +436,7 @@ export default function Dashboard() {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  const [authTimedOut, setAuthTimedOut] = useState(false);
 
-  // Safety timeout: if auth loading state is stuck for more than 3 seconds on mobile touch devices, force it to render
-  useEffect(() => {
-    if (!authLoading) return;
-
-    const timer = setTimeout(() => {
-      console.warn("[Dashboard] authLoading stuck for 3s, forcing render");
-      setAuthTimedOut(true);
-    }, 3000);
-
-    const unlock = () => setAuthTimedOut(true);
-    window.addEventListener("touchstart", unlock, { once: true, passive: true });
-    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("pointerdown", unlock);
-    };
-  }, [authLoading]);
-
-  // Safety timeout: if data loading state is stuck for more than 3 seconds, force it to complete
-  useEffect(() => {
-    if (!loading) return;
-
-    const timeoutId = setTimeout(() => {
-      console.warn("[Dashboard] Loading state stuck for 3s, forcing completion");
-      setLoading(false);
-    }, 3000);
-
-    const unlock = () => setLoading(false);
-    window.addEventListener("touchstart", unlock, { once: true, passive: true });
-    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
-
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("pointerdown", unlock);
-    };
-  }, [loading]);
 
   const handleToggleOverview = useCallback(() => {
     setIsOverviewExpanded((prev) => !prev);
@@ -1202,15 +1162,6 @@ export default function Dashboard() {
   }, [filteredGigs]);
 
   // -- Render -----------------------------------------------------------------
-
-  // Show loading state while checking auth
-  if (authLoading && !authTimedOut) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors">
-        <LoadingSpinner size="lg" message={t('dashboard.loadingDashboard', 'Loading dashboard...')} />
-      </div>
-    );
-  }
 
   // Show login if not authenticated
   if (!session?.user) {
