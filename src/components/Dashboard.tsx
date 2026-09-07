@@ -199,13 +199,14 @@ async function parseApiError(res: Response): Promise<string> {
 export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
+  const { session, signOut, getAccessToken } = useAuth();
   const { settings, fmtCurrency, locale } = useSettings();
   const { t } = useTranslation();
   const toast = useToast();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [totalGigCount, setTotalGigCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [initialAuthCheck, setInitialAuthCheck] = useState(true);
   const [investmentOverview, setInvestmentOverview] = useState({
     totalInvested: 0,
     totalInvestments: 0,
@@ -553,11 +554,8 @@ export default function Dashboard() {
     }
     lastFetchTimeRef.current = now;
 
-    // Wait until auth bootstrap completes to avoid noisy initial no-session calls.
-    if (authLoading) {
-      return;
-    }
-
+    // Don't wait for auth loading - render immediately and fetch data in background
+    // This prevents mobile blank screen on pull-to-refresh
     if (!session?.user) {
       if (!noSessionLoggedRef.current) {
         console.log("[fetchGigs] No user session");
@@ -734,17 +732,14 @@ export default function Dashboard() {
       fetchGigsInFlightRef.current = false;
       setLoading(false);
     }
-  }, [authLoading, session?.user, getAccessToken, gigsCacheKey, toast]);
+  }, [session?.user, getAccessToken, gigsCacheKey, toast]);
 
   const fetchInvestmentOverview = useCallback(async () => {
     if (fetchInvestmentsInFlightRef.current) {
       return;
     }
 
-    if (authLoading) {
-      return;
-    }
-
+    // Don't wait for auth loading - render immediately and fetch data in background
     if (!session?.user) {
       setInvestmentOverview({
         totalInvested: 0,
@@ -795,7 +790,7 @@ export default function Dashboard() {
     } finally {
       fetchInvestmentsInFlightRef.current = false;
     }
-  }, [authLoading, session?.user, getAccessToken]);
+  }, [session?.user, getAccessToken]);
 
   useEffect(() => {
     fetchGigs();
@@ -804,6 +799,11 @@ export default function Dashboard() {
   useEffect(() => {
     fetchInvestmentOverview();
   }, [fetchInvestmentOverview]);
+
+  // Mark initial auth check as complete after first render
+  useEffect(() => {
+    setInitialAuthCheck(false);
+  }, []);
 
   // Filter gigs based on search query
   const filteredGigs = useMemo(() => {
@@ -1163,11 +1163,12 @@ export default function Dashboard() {
 
   // -- Render -----------------------------------------------------------------
 
-  // Show login if not authenticated
+  // Show login if not authenticated (but render immediately, don't block)
   if (!session?.user) {
     return <LandingPage />;
   }
 
+  // Render dashboard immediately - don't block on loading states
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       <RouteProgressBar isLoading={loading || isPending} />

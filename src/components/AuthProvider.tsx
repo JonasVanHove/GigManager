@@ -52,21 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Fail-safe timeout (3 seconds) to guarantee isLoading is cleared even if
-    // supabase auth getSession() or storage access hangs on mobile touch devices
-    const safetyTimeout = setTimeout(() => {
+    // Use requestAnimationFrame to ensure immediate rendering on mobile pull-to-refresh
+    // This pushes the loading state clear to the next animation frame without waiting for user interaction
+    const immediateRender = () => {
       if (mounted) {
-        console.warn("[AuthProvider] Auth session check timed out after 3s, clearing loading state");
         setIsLoading(false);
       }
-    }, 3000);
-
-    const unlockOnTouch = () => {
-      if (mounted) setIsLoading(false);
     };
 
-    window.addEventListener("touchstart", unlockOnTouch, { once: true, passive: true });
-    window.addEventListener("pointerdown", unlockOnTouch, { once: true, passive: true });
+    // Schedule immediate render to prevent mobile blank screen
+    requestAnimationFrame(immediateRender);
+    // Fallback with setTimeout(..., 0) to ensure it runs in the next event loop iteration
+    setTimeout(immediateRender, 0);
 
     const checkSession = async () => {
       try {
@@ -82,11 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.error("Failed to check session:", err);
         if (mounted) updateSession(null);
-      } finally {
-        if (mounted) setIsLoading(false);
       }
     };
 
+    // Check session in background without blocking render
     checkSession();
 
     const {
@@ -97,15 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           session?.user ?? null,
           session?.access_token ?? null
         );
-        setIsLoading(false);
       }
     });
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimeout);
-      window.removeEventListener("touchstart", unlockOnTouch);
-      window.removeEventListener("pointerdown", unlockOnTouch);
       subscription?.unsubscribe();
     };
   }, [updateSession]);
