@@ -418,6 +418,8 @@ export default function Dashboard() {
   }, [selectedTab]);
 
   useEffect(() => {
+    // Hydration-safe localStorage access
+    if (typeof window === "undefined") return;
     try {
       const saved = localStorage.getItem("dashboard-wide-view");
       if (saved !== null) {
@@ -457,7 +459,8 @@ export default function Dashboard() {
 
   // Show the last known gigs immediately while we fetch fresh data.
   useEffect(() => {
-    if (!gigsCacheKey) return;
+    // Hydration-safe localStorage access
+    if (typeof window === "undefined" || !gigsCacheKey) return;
     try {
       const raw = localStorage.getItem(gigsCacheKey);
       if (!raw) return;

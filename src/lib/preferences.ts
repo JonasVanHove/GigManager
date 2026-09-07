@@ -66,6 +66,11 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
   if (resolvedBandColor) {
     const solidTextColor = getContrastColor(resolvedBandColor);
     const borderColor = adjustColor(resolvedBandColor, -20);
+    // Calculate soft background by blending with white (light mode) and slate-900 (dark mode)
+    const softBgLight = blendColors(resolvedBandColor, '#ffffff', 0.18);
+    const softBgDark = blendColors(resolvedBandColor, '#0f172a', 0.18);
+    // Use darker background for contrast calculation (worst case)
+    const softTextColor = getContrastColor(softBgDark);
     return {
       solid: {
         backgroundColor: resolvedBandColor,
@@ -75,7 +80,7 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
       soft: {
         backgroundColor: hexToRgba(resolvedBandColor, 0.18),
         borderColor: adjustColor(resolvedBandColor, -15),
-        color: solidTextColor,
+        color: softTextColor,
       },
       line: {
         borderColor: resolvedBandColor,
@@ -90,6 +95,9 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
   const solidTextColor = getContrastColor(solidHex);
   const softColor = hslToRgba(hue, 68, 94, 0.15);
   const borderColor = `hsl(${hue} 70% 78%)`;
+  // Calculate soft background for contrast
+  const softBgDark = blendColors(solidHex, '#0f172a', 0.15);
+  const softTextColor = getContrastColor(softBgDark);
 
   return {
     solid: {
@@ -100,7 +108,7 @@ export function getBandColorStyles(bandName: string, bandColor?: string | null) 
     soft: {
       backgroundColor: softColor,
       borderColor,
-      color: solidTextColor,
+      color: softTextColor,
     },
     line: {
       borderColor: solidColor,
@@ -202,8 +210,17 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function getContrastColor(backgroundColor: string): string {
   const { r, g, b } = colorToRgb(backgroundColor);
-  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return luminance > 0.55 ? '#111827' : '#ffffff';
+  // Calculate relative luminance (WCAG 2.0 formula)
+  const linearR = r / 255;
+  const linearG = g / 255;
+  const linearB = b / 255;
+  const R = linearR <= 0.03928 ? linearR / 12.92 : Math.pow((linearR + 0.055) / 1.055, 2.4);
+  const G = linearG <= 0.03928 ? linearG / 12.92 : Math.pow((linearG + 0.055) / 1.055, 2.4);
+  const B = linearB <= 0.03928 ? linearB / 12.92 : Math.pow((linearB + 0.055) / 1.055, 2.4);
+  const luminance = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+  // Use a more conservative threshold for better contrast (WCAG AA requires 4.5:1)
+  // Luminance > 0.5 indicates a light background, use dark text
+  return luminance > 0.5 ? '#0f172a' : '#ffffff';
 }
 
 function colorToRgb(color: string): { r: number; g: number; b: number } {
@@ -221,5 +238,14 @@ function adjustColor(hex: string, amount: number): string {
   const r = Math.min(255, Math.max(0, rgb.r + amount));
   const g = Math.min(255, Math.max(0, rgb.g + amount));
   const b = Math.min(255, Math.max(0, rgb.b + amount));
+  return rgbToHex(r, g, b);
+}
+
+function blendColors(color1: string, color2: string, ratio: number): string {
+  const rgb1 = colorToRgb(color1);
+  const rgb2 = colorToRgb(color2);
+  const r = Math.round(rgb1.r * ratio + rgb2.r * (1 - ratio));
+  const g = Math.round(rgb1.g * ratio + rgb2.g * (1 - ratio));
+  const b = Math.round(rgb1.b * ratio + rgb2.b * (1 - ratio));
   return rgbToHex(r, g, b);
 }
