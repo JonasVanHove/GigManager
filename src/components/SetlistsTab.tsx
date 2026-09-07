@@ -1872,7 +1872,7 @@ export default function SetlistsTab() {
       </div>
 
       {/* Main content area - flexible layout */}
-      <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden relative">
+      <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden relative max-h-[calc(100vh-4rem)]">
         {/* Sidebar - collapsible desktop/mobile drawer */}
         <aside className={`hidden md:flex flex-shrink-0 border-r border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/80 transition-all duration-300 ease-in-out ${
           sidebarCollapsed 
@@ -2188,7 +2188,7 @@ export default function SetlistsTab() {
                 </section>
 
                 {/* Right Repertoire Drawer (Desktop & Medium screens) */}
-                <aside className={`hidden md:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm ${
+                <aside className={`hidden md:flex flex-col rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/60 shrink-0 transition-all duration-300 ease-in-out shadow-sm max-h-[calc(100vh-8rem)] ${
                   repertoireCollapsed 
                     ? 'w-0 min-w-0 max-w-0 opacity-0 pointer-events-none p-0 border-0 m-0 overflow-hidden' 
                     : 'w-72 xl:w-80 opacity-100 pointer-events-auto p-3 space-y-3'
@@ -2310,7 +2310,7 @@ export default function SetlistsTab() {
                     )}
 
                     {/* Songs grouped by tuning */}
-                    <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0">
+                    <div className="flex-1 space-y-2 overflow-y-auto pr-1 animate-in fade-in duration-300 min-h-0 max-h-[calc(100vh-12rem)]">
                       {songGroups.map(([tuning, group]) => (
                         <div key={tuning} className="space-y-1">
                           <div className={`inline-flex max-w-full rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}>
@@ -2367,9 +2367,9 @@ export default function SetlistsTab() {
                   </button>
                   
                   {!repertoireCollapsed && (
-                    <div className="mt-2 flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2" />
-                      <div className="flex-1 min-h-0 max-h-[80vh] space-y-2 overflow-y-auto">
+                    <div className="mt-2 flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2 max-h-[60vh]">
+                      <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-2 shrink-0" />
+                      <div className="flex-1 min-h-0 space-y-2 overflow-y-auto">
                         {songGroups.map(([tuning, group]) => (
                           <div key={tuning}>
                             <div className={`mb-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
@@ -2452,7 +2452,7 @@ export default function SetlistsTab() {
               <button type="button" onClick={() => { setShowSongPicker(false); setConvertingItemId(null); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">×</button>
             </div>
             <input value={songSearch} onChange={(e) => setSongSearch(e.target.value)} placeholder={t('setlists.searchSongs')} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 mb-4 shrink-0" />
-            <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 min-h-0 max-h-[60vh]">
               {songGroups.map(([tuning, group]) => (
                 <div key={tuning}>
                   <div className={`mb-2 inline-flex max-w-full rounded-full border px-2 py-0.5 text-xs font-semibold ${tuningBadgeClass(tuning)}`}><span className="block truncate">{tuning}</span></div>
