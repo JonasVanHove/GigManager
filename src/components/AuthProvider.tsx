@@ -6,6 +6,16 @@ import type { AuthSession } from "@/types/index";
 
 export type SignUpResult = "signed-in" | "confirm-email";
 
+/**
+ * Strict fail-safe window for the initial auth evaluation. On a hard refresh
+ * (Ctrl+Shift+R / Ctrl+Shift+F5) the Supabase session promise - or the Service
+ * Worker cache revalidation backing it - can stall indefinitely, which used to
+ * leave the app on an endless loading screen. After this timeout `isLoading`
+ * is forced to false so the app shell / login view renders automatically; a
+ * late-resolving session is still applied afterwards via onAuthStateChange.
+ */
+const AUTH_FAILSAFE_TIMEOUT_MS = 3_500;
+
 interface AuthContextType {
   session: AuthSession | null;
   isLoading: boolean;
@@ -51,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let failsafeTimer: ReturnType<typeof setTimeout> | null = null;
 
     const checkSession = async () => {
       try {
@@ -64,15 +75,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
           // Only set loading to false after session is resolved
           setIsLoading(false);
+          // Session resolved in time - cancel the fail-safe
+          if (failsafeTimer) clearTimeout(failsafeTimer);
         }
       } catch (err) {
         console.error("Failed to check session:", err);
         if (mounted) {
           updateSession(null);
           setIsLoading(false);
+          if (failsafeTimer) clearTimeout(failsafeTimer);
         }
       }
     };
+
+    // Fail-safe timeout: if getSession() never resolves (hard refresh, stalled
+    // Service Worker, suspended tab), force isLoading to false so the shell /
+    // login view renders. Deliberately does NOT clear the session here - if
+    // onAuthStateChange already delivered one, it must survive the timeout.
+    failsafeTimer = setTimeout(() => {
+      if (mounted) {
+        console.warn(
+          `[AuthProvider] Auth check timed out after ${AUTH_FAILSAFE_TIMEOUT_MS}ms; forcing loading state off (fail-safe)`
+        );
+        setIsLoading(false);
+      }
+    }, AUTH_FAILSAFE_TIMEOUT_MS);
 
     // Check session immediately to resolve auth state before data fetching
     checkSession();

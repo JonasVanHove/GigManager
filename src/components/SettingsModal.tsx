@@ -208,13 +208,13 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md modal-backdrop-enter"
       onClick={handleBackdropClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="modal-sheet-mobile flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 sm:max-h-[90vh] sm:rounded-2xl modal-content-enter">
-        <div className="flex items-center justify-between border-b border-slate-100/50 px-6 py-5 dark:border-slate-700/50">
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 modal-content-enter">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100/50 px-6 py-5 dark:border-slate-700/50">
           <h2 className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-lg font-semibold text-transparent dark:from-white dark:to-slate-200">
             {t('settings.title')}
           </h2>
@@ -227,7 +227,11 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           </button>
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+        {/* min-h-0 is critical: without it the tall settings content cannot
+            shrink below its content height, pushing the footer outside the
+            clipped card on short laptop viewports. pr-2 reserves a scrollbar
+            gutter so content is never hidden behind it. */}
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pl-6 pr-2 py-6">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {t('settings.profile')}
@@ -682,7 +686,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100/50 px-6 py-4 dark:border-slate-700/50">
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100/50 bg-white/95 px-6 py-4 dark:border-slate-700/50 dark:bg-slate-900/95">
           <button
             onClick={onClose}
             className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"

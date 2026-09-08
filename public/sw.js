@@ -1,7 +1,7 @@
 // Service Worker for GigsManager
 // Provides offline support and intelligent caching strategies
 
-const CACHE_NAME = 'gigs-manager-v1.11.16';
+const CACHE_NAME = 'gigs-manager-v1.28.21';
 const STATIC_CACHE = 'gigs-manager-static-v3';
 const DYNAMIC_CACHE = 'gigs-manager-dynamic-v3';
 const LONG_TERM_CACHE = 'gigs-manager-longterm-v3';
@@ -14,13 +14,29 @@ const STATIC_ASSETS = [
 ];
 
 // Install event - cache static assets
+// Assets are cached individually with per-item error handling so that a single
+// failure (offline, quota, aborted hard refresh) can never fail installation
+// and leave the new worker stuck.
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      console.log('Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
-    })
+    (async () => {
+      try {
+        const cache = await caches.open(STATIC_CACHE);
+        console.log('Caching static assets');
+        await Promise.all(
+          STATIC_ASSETS.map(async (asset) => {
+            try {
+              await cache.add(asset);
+            } catch (err) {
+              console.warn('SW: failed to cache static asset during install:', asset, err);
+            }
+          })
+        );
+      } catch (err) {
+        console.warn('SW: install caching skipped:', err);
+      }
+    })()
   );
   self.skipWaiting();
 });
@@ -43,6 +59,8 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).catch((err) => {
+      console.warn('SW: cache cleanup failed:', err);
     })
   );
   self.clients.claim();
@@ -103,34 +121,45 @@ self.addEventListener('fetch', (event) => {
   // Strategy 2: Images - cache first with fallback
   if (destination === 'image') {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(request)
-          .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+      caches
+        .match(request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(request)
+            .then((response) => {
+              if (!response || response.status !== 200 || response.type !== 'basic') {
+                return response;
+              }
+              const cloned = response.clone();
+              caches
+                .open(DYNAMIC_CACHE)
+                .then((cache) => cache.put(request, cloned))
+                .catch(() => {});
               return response;
-            }
-            const cloned = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, cloned);
-            });
-            return response;
-          })
-          .catch(() => {
-            // Return a placeholder or cached version if available
-            return caches.match(request).catch(() => {
-              return new Response('Image not available offline', {
-                status: 503,
-                statusText: 'Service Unavailable',
-                headers: new Headers({
-                  'Content-Type': 'text/plain',
-                }),
+            })
+            .catch(() => {
+              // Return a placeholder or cached version if available
+              return caches.match(request).catch(() => {
+                return new Response('Image not available offline', {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                  headers: new Headers({
+                    'Content-Type': 'text/plain',
+                  }),
+                });
               });
             });
-          });
-      })
+        })
+        .catch(() => {
+          // A Cache API failure must never block or break the request -
+          // fall back to the network and degrade gracefully.
+          return fetch(request).catch(() => new Response('', {
+            status: 503,
+            statusText: 'Service Unavailable',
+          }));
+        })
     );
     return;
   }
@@ -174,9 +203,10 @@ self.addEventListener('fetch', (event) => {
           // Cache successful responses
           if (response && response.status === 200) {
             const cloned = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, cloned);
-            });
+            caches
+              .open(DYNAMIC_CACHE)
+              .then((cache) => cache.put(request, cloned))
+              .catch(() => {});
           }
           return response;
         })
@@ -211,9 +241,10 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         const cloned = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, cloned);
-        });
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(request, cloned))
+          .catch(() => {});
         return response;
       })
       .catch(() => {
@@ -234,16 +265,26 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Message handler for cache clearing
+// Errors are caught and logged so cache revalidation problems can never throw
+// inside (and stall) the worker's event loop.
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    caches.keys().then((cacheNames) => {
-      cacheNames.forEach((cacheName) => {
-        caches.delete(cacheName);
-      });
-    });
+  try {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
+    if (event.data && event.data.type === 'CLEAR_CACHE') {
+      caches
+        .keys()
+        .then((cacheNames) => Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName))))
+        .catch((err) => console.warn('SW: failed to clear caches:', err))
+        .finally(() => {
+          if (event.source) {
+            event.source.postMessage({ type: 'CACHE_CLEARED' });
+          }
+        });
+    }
+  } catch (err) {
+    console.warn('SW: message handler error:', err);
   }
 });
 

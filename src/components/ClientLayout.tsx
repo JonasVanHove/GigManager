@@ -15,6 +15,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     requestAnimationFrame(() => {
       setIsMounted(true);
     });
+    // Hydration guard marker: the inline watchdog in app/layout.tsx checks this
+    // attribute after a grace period. If React never hydrated (e.g. a stale or
+    // SW-cached chunk after a hard refresh), the watchdog performs a single
+    // cache-busting reload instead of leaving the user on "Loading
+    // application..." forever.
+    try {
+      document.documentElement.setAttribute("data-app-mounted", "1");
+      sessionStorage.removeItem("__gigs_hydration_reload");
+    } catch {
+      // Storage access can throw in private browsing - the watchdog still works
+    }
   }, []);
 
   // Always render children - don't block on mounting state

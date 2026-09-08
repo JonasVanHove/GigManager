@@ -825,6 +825,30 @@ export default function Dashboard() {
     setInitialAuthCheck(false);
   }, []);
 
+  // Fail-safe: a hard refresh (Ctrl+Shift+R / Ctrl+Shift+F5) can stall the auth
+  // evaluation or Service Worker cache revalidation, leaving the UI on an
+  // endless loading state. After a strict timeout, force the application shell
+  // (or the login view) to render instead of hanging on the loading spinner.
+  const LOADING_FAILSAFE_MS = 3_500;
+  const authLoadingRef = useRef(authLoading);
+  useEffect(() => {
+    authLoadingRef.current = authLoading;
+  }, [authLoading]);
+
+  useEffect(() => {
+    const failsafeTimer = setTimeout(() => {
+      setInitialAuthCheck(false);
+      if (authLoadingRef.current) {
+        console.warn(
+          `[Dashboard] Auth still pending after ${LOADING_FAILSAFE_MS}ms; forcing shell render (fail-safe)`
+        );
+        setLoading(false);
+      }
+    }, LOADING_FAILSAFE_MS);
+    return () => clearTimeout(failsafeTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Filter gigs based on search query
   const filteredGigs = useMemo(() => {
     if (!deferredSearchQuery.trim()) return gigs;
