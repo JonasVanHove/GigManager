@@ -28,20 +28,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (theme === "dark") {
       // Force dark mode — add dark class
       htmlElement.classList.add("dark");
-      document.body.style.backgroundColor = "#0a0a0f";
+      // Do NOT set inline body background — the CSS gradient in globals.css handles it
     } else if (theme === "light") {
       // Force light mode — remove dark class
       htmlElement.classList.remove("dark");
-      document.body.style.backgroundColor = "#f8fafc";
     } else {
       // System preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       if (prefersDark) {
         htmlElement.classList.add("dark");
-        document.body.style.backgroundColor = "#0a0a0f";
       } else {
         htmlElement.classList.remove("dark");
-        document.body.style.backgroundColor = "#f8fafc";
       }
 
       // Listen for system preference changes
@@ -49,10 +46,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const handleChange = (e: MediaQueryListEvent) => {
         if (e.matches) {
           htmlElement.classList.add("dark");
-          document.body.style.backgroundColor = "#0a0a0f";
         } else {
           htmlElement.classList.remove("dark");
-          document.body.style.backgroundColor = "#f8fafc";
         }
       };
 

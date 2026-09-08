@@ -1190,7 +1190,7 @@ export default function Dashboard() {
 
   // Render dashboard immediately - don't block on loading states
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
+    <div className="min-h-screen bg-transparent transition-colors">
       <RouteProgressBar isLoading={loading || isPending} />
       {/* -- Navbar -------------------------------------------------------- */}
       <header className="sticky top-0 z-30 border-b border-slate-200/40 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:backdrop-blur-xl shadow-md dark:shadow-lg transition-colors">
@@ -1789,7 +1789,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen pb-safe transition-colors dark:bg-black ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
+      <main className={`mx-auto w-full px-3 sm:px-4 lg:px-6 py-4 sm:py-8 min-h-screen pb-safe transition-colors ${effectiveWideView ? "max-w-none 2xl:px-10" : "max-w-[1800px]"}`}>
         {/* Search results indicator */}
         {searchQuery && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-brand-50 px-4 py-2 text-sm dark:bg-brand-950/30">

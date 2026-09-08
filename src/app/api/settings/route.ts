@@ -19,6 +19,8 @@ const DEFAULT_SETTINGS = {
   claimPerformanceFee: true,
   claimTechnicalFee: true,
   theme: "system",
+  customTab1: "setlists",
+  customTab2: "songs",
   pdfIncludeLogo: true,
   pdfFont: "inter",
   pdfPageSize: "a4",
@@ -325,6 +327,8 @@ export async function GET(request: NextRequest) {
         claimPerformanceFee: settings.claimPerformanceFee ?? DEFAULT_SETTINGS.claimPerformanceFee,
         claimTechnicalFee: settings.claimTechnicalFee ?? DEFAULT_SETTINGS.claimTechnicalFee,
         theme: settings.theme || DEFAULT_SETTINGS.theme,
+        customTab1: settingsData.customTab1 || DEFAULT_SETTINGS.customTab1,
+        customTab2: settingsData.customTab2 || DEFAULT_SETTINGS.customTab2,
         pdfIncludeLogo: settingsData.pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
         pdfFont: settingsData.pdfFont || DEFAULT_SETTINGS.pdfFont,
         pdfPageSize: settingsData.pdfPageSize || DEFAULT_SETTINGS.pdfPageSize,
@@ -367,6 +371,7 @@ const VALID_PDF_FONTS = ["inter", "arial", "times", "georgia", "courier"];
 const VALID_PDF_SIZES = ["a4", "letter", "legal"];
 const VALID_PDF_PAGE_BREAKS = ["auto", "song", "section", "none"];
 const VALID_PDF_MARGINS = ["small", "medium", "large"];
+const VALID_CUSTOM_TABS = ["setlists", "songs", "calendar", "bands", "band-members", "analytics", "investments", "shared-links"];
 
 export async function PUT(request: NextRequest) {
   console.log("[PUT /api/settings] Starting");
@@ -425,6 +430,10 @@ export async function PUT(request: NextRequest) {
     const pdfMarginSize = typeof body.pdfMarginSize === "string" && VALID_PDF_MARGINS.includes(body.pdfMarginSize) ? body.pdfMarginSize : undefined;
     const excludeSelfFromMemberCount = typeof body.excludeSelfFromMemberCount === "boolean" ? body.excludeSelfFromMemberCount : undefined;
 
+    // Custom Navigation Tabs validation
+    const customTab1 = typeof body.customTab1 === "string" && VALID_CUSTOM_TABS.includes(body.customTab1) ? body.customTab1 : undefined;
+    const customTab2 = typeof body.customTab2 === "string" && VALID_CUSTOM_TABS.includes(body.customTab2) ? body.customTab2 : undefined;
+
     // 5. Authenticate
     console.log("[PUT /api/settings] Authenticating...");
     const authResult = await requireAuth(request, supabaseAdmin, getOrCreateUser);
@@ -456,6 +465,8 @@ export async function PUT(request: NextRequest) {
     if (pdfShowPageNumbers !== undefined) updateData.pdfShowPageNumbers = pdfShowPageNumbers;
     if (pdfMarginSize !== undefined) updateData.pdfMarginSize = pdfMarginSize;
     if (excludeSelfFromMemberCount !== undefined) updateData.excludeSelfFromMemberCount = excludeSelfFromMemberCount;
+    if (customTab1 !== undefined) updateData.customTab1 = customTab1;
+    if (customTab2 !== undefined) updateData.customTab2 = customTab2;
 
     // 7. Upsert to database
     try {
@@ -480,6 +491,8 @@ export async function PUT(request: NextRequest) {
           pdfShowPageNumbers: pdfShowPageNumbers ?? DEFAULT_SETTINGS.pdfShowPageNumbers,
           pdfMarginSize: pdfMarginSize ?? DEFAULT_SETTINGS.pdfMarginSize,
           excludeSelfFromMemberCount: excludeSelfFromMemberCount ?? DEFAULT_SETTINGS.excludeSelfFromMemberCount,
+          customTab1: customTab1 ?? DEFAULT_SETTINGS.customTab1,
+          customTab2: customTab2 ?? DEFAULT_SETTINGS.customTab2,
         },
       });
 
@@ -490,6 +503,8 @@ export async function PUT(request: NextRequest) {
         claimPerformanceFee: settings.claimPerformanceFee,
         claimTechnicalFee: settings.claimTechnicalFee,
         theme: settings.theme,
+        customTab1: settingsData.customTab1 || DEFAULT_SETTINGS.customTab1,
+        customTab2: settingsData.customTab2 || DEFAULT_SETTINGS.customTab2,
         pdfIncludeLogo: settingsData.pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
         pdfFont: settingsData.pdfFont ?? DEFAULT_SETTINGS.pdfFont,
         pdfPageSize: settingsData.pdfPageSize ?? DEFAULT_SETTINGS.pdfPageSize,

@@ -207,6 +207,9 @@ model UserSettings {
   updatedAt           DateTime @updatedAt
   theme               String   @default("system")
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Custom Navigation Tabs
+  customTab1          String   @default("setlists")
+  customTab2          String   @default("songs")
   // PDF Export Settings
   pdfIncludeLogo      Boolean  @default(true)
   pdfFont             String   @default("inter")

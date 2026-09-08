@@ -65,7 +65,7 @@ export default function LandingPage() {
   const [showAuth, setShowAuth] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-transparent transition-colors">
       {/* -- Navbar ------------------------------------------------------ */}
       <header className="sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg transition-colors">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -109,7 +109,7 @@ export default function LandingPage() {
       </header>
 
       {/* -- Hero -------------------------------------------------------- */}
-      <section className="relative overflow-hidden bg-white dark:bg-slate-950 transition-colors">
+      <section className="relative overflow-hidden bg-white dark:bg-transparent transition-colors">
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-brand-100/60 dark:bg-brand-500/20 blur-3xl" />
@@ -253,7 +253,7 @@ export default function LandingPage() {
       </section>
 
       {/* -- Benefits ---------------------------------------------------- */}
-      <section className="py-20 sm:py-28 bg-white dark:bg-slate-950/50 transition-colors">
+      <section className="py-20 sm:py-28 bg-white dark:bg-transparent transition-colors">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
@@ -310,7 +310,7 @@ export default function LandingPage() {
       {/* -- CTA / Auth Section ------------------------------------------ */}
       <section
         id="auth-section"
-        className="border-t border-slate-100 dark:border-slate-800 bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-950 py-20 sm:py-28 transition-colors"
+        className="border-t border-slate-100 dark:border-slate-800 bg-gradient-to-b from-slate-50 dark:from-slate-900/60 to-white dark:to-transparent py-20 sm:py-28 transition-colors"
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
