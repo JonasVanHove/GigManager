@@ -11,6 +11,7 @@ import { useImmersiveMode } from "@/lib/use-immersive-mode";
 import type { AppLanguage } from "@/types";
 import { useTranslation } from "react-i18next";
 import { useModalLock } from "@/hooks/useModalLock";
+import { createPortal } from "react-dom";
 
 const CURRENCIES = [
   { code: "EUR", label: "Euro (€)", symbol: "€" },
@@ -206,14 +207,25 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     }
   };
 
-  return (
+  // Decouple the modal DOM node from the React tree via a portal mounted
+  // directly under document.body (same pattern as XAIConfirmationModal).
+  // This prevents parent transforms, filters, overflow or stacking contexts in
+  // the layout from breaking `position: fixed` dead-center positioning.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md modal-backdrop-enter"
       onClick={handleBackdropClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 modal-content-enter">
+      {/* dvh-based max height (vh fallback in globals.css) + explicit max
+          width; flex column with pinned header/footer and an internal
+          scroll body so every settings category stays reachable. */}
+      <div
+        className="settings-modal-card flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 modal-content-enter"
+        role="dialog"
+        aria-modal="true"
+      >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100/50 px-6 py-5 dark:border-slate-700/50">
           <h2 className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-lg font-semibold text-transparent dark:from-white dark:to-slate-200">
             {t('settings.title')}
@@ -229,9 +241,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* min-h-0 is critical: without it the tall settings content cannot
             shrink below its content height, pushing the footer outside the
-            clipped card on short laptop viewports. pr-2 reserves a scrollbar
-            gutter so content is never hidden behind it. */}
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pl-6 pr-2 py-6">
+            clipped card on short laptop viewports. */}
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-6">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {t('settings.profile')}
@@ -708,6 +719,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

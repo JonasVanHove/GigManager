@@ -670,6 +670,15 @@ body.modal-open {
   }
 }
 
+/* Portal-mounted centered dialog cards (SettingsModal).
+   Dynamic viewport units keep the card clear of mobile/laptop browser
+   toolbars; the static vh declaration acts as the fallback for browsers
+   without dvh support (unsupported units are dropped by the parser). */
+.settings-modal-card {
+  max-height: 85vh;
+  max-height: 85dvh;
+}
+
 /* Horizontal scroll containers for dense tables */
 .responsive-scroll-x {
   overflow-x: auto;
