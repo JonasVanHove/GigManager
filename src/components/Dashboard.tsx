@@ -199,7 +199,7 @@ async function parseApiError(res: Response): Promise<string> {
 export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { session, signOut, getAccessToken } = useAuth();
+  const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
   const { settings, fmtCurrency, locale } = useSettings();
   const { t } = useTranslation();
   const toast = useToast();
@@ -557,8 +557,13 @@ export default function Dashboard() {
     }
     lastFetchTimeRef.current = now;
 
-    // Don't wait for auth loading - render immediately and fetch data in background
-    // This prevents mobile blank screen on pull-to-refresh
+    // Block data fetching until auth is fully resolved to prevent hydration race condition
+    if (authLoading) {
+      console.log("[fetchGigs] Auth still loading, deferring fetch...");
+      return;
+    }
+
+    // Only fetch if we have a valid session
     if (!session?.user) {
       if (!noSessionLoggedRef.current) {
         console.log("[fetchGigs] No user session");
@@ -735,14 +740,20 @@ export default function Dashboard() {
       fetchGigsInFlightRef.current = false;
       setLoading(false);
     }
-  }, [session?.user, getAccessToken, gigsCacheKey, toast]);
+  }, [session?.user, getAccessToken, gigsCacheKey, toast, authLoading]);
 
   const fetchInvestmentOverview = useCallback(async () => {
     if (fetchInvestmentsInFlightRef.current) {
       return;
     }
 
-    // Don't wait for auth loading - render immediately and fetch data in background
+    // Block data fetching until auth is fully resolved to prevent hydration race condition
+    if (authLoading) {
+      console.log("[fetchInvestmentOverview] Auth still loading, deferring fetch...");
+      return;
+    }
+
+    // Only fetch if we have a valid session
     if (!session?.user) {
       setInvestmentOverview({
         totalInvested: 0,
@@ -793,15 +804,21 @@ export default function Dashboard() {
     } finally {
       fetchInvestmentsInFlightRef.current = false;
     }
-  }, [session?.user, getAccessToken]);
+  }, [session?.user, getAccessToken, authLoading]);
 
   useEffect(() => {
-    fetchGigs();
-  }, [fetchGigs]);
+    // Only fetch data when auth is resolved
+    if (!authLoading) {
+      fetchGigs();
+    }
+  }, [fetchGigs, authLoading]);
 
   useEffect(() => {
-    fetchInvestmentOverview();
-  }, [fetchInvestmentOverview]);
+    // Only fetch data when auth is resolved
+    if (!authLoading) {
+      fetchInvestmentOverview();
+    }
+  }, [fetchInvestmentOverview, authLoading]);
 
   // Mark initial auth check as complete after first render
   useEffect(() => {
@@ -1541,49 +1558,33 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                {/* 2. Primary User Shortcuts ("Setlists", "Songs / Nummers") */}
+                {/* 2. Primary User Shortcuts (Custom Tabs from Settings) */}
                 <div className="space-y-1">
                   <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     {t('dashboard.shortcuts', 'Shortcuts')}
                   </div>
-                  <button
-                    onClick={() => {
-                      setShowMobileMenu(false);
-                      handleTabChange("setlists");
-                    }}
-                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
-                      selectedTab === "setlists"
-                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
-                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icons.ListView className={`h-5 w-5 shrink-0 ${selectedTab === "setlists" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
-                      <span>{tabLabels.setlists}</span>
-                    </div>
-                    {selectedTab === "setlists" && (
-                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMobileMenu(false);
-                      handleTabChange("songs");
-                    }}
-                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
-                      selectedTab === "songs"
-                        ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
-                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icons.Music2 className={`h-5 w-5 shrink-0 ${selectedTab === "songs" ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
-                      <span>{tabLabels.songs}</span>
-                    </div>
-                    {selectedTab === "songs" && (
-                      <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
-                    )}
-                  </button>
+                  {getPrimaryNavTabs(settings).slice(1).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => {
+                        setShowMobileMenu(false);
+                        handleTabChange(tab);
+                      }}
+                      className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition active:scale-[0.98] ${
+                        selectedTab === tab
+                          ? "bg-brand-600 text-white shadow-sm dark:bg-brand-500 font-semibold"
+                          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {renderTabIcon(tab, "h-5 w-5")}
+                        <span>{tabLabels[tab]}</span>
+                      </div>
+                      {selectedTab === tab && (
+                        <span className="h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                      )}
+                    </button>
+                  ))}
                 </div>
 
                 {/* 3. Gigs / Calendar */}

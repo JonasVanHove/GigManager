@@ -52,19 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Use requestAnimationFrame to ensure immediate rendering on mobile pull-to-refresh
-    // This pushes the loading state clear to the next animation frame without waiting for user interaction
-    const immediateRender = () => {
-      if (mounted) {
-        setIsLoading(false);
-      }
-    };
-
-    // Schedule immediate render to prevent mobile blank screen
-    requestAnimationFrame(immediateRender);
-    // Fallback with setTimeout(..., 0) to ensure it runs in the next event loop iteration
-    setTimeout(immediateRender, 0);
-
     const checkSession = async () => {
       try {
         const {
@@ -75,14 +62,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             session?.user ?? null,
             session?.access_token ?? null
           );
+          // Only set loading to false after session is resolved
+          setIsLoading(false);
         }
       } catch (err) {
         console.error("Failed to check session:", err);
-        if (mounted) updateSession(null);
+        if (mounted) {
+          updateSession(null);
+          setIsLoading(false);
+        }
       }
     };
 
-    // Check session in background without blocking render
+    // Check session immediately to resolve auth state before data fetching
     checkSession();
 
     const {
