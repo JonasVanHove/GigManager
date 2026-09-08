@@ -334,12 +334,27 @@ input[type="radio"]:checked {
   }
 }
 
+@keyframes slideUpSheet {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .modal-backdrop-enter {
   animation: fadeInBackdrop 0.2s ease-out;
 }
 
 .modal-content-enter {
   animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-sheet-enter {
+  animation: slideUpSheet 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Loading shimmer effect */
@@ -587,10 +602,70 @@ body {
   overflow-x: clip;
 }
 
+/* ── Modal & Bottom Sheet Responsive System ──────────────────────────── */
+
+/*
+ * Modal responsive system:
+ * - Mobile (< 640px): Modals render as bottom sheets with top-rounded corners,
+ *   capped at 90vh so content is never cut off by browser address bars.
+ * - Desktop (>= 640px): Modals center with proper max-widths and backdrop blur.
+ *
+ * Usage:
+ *   Backdrop:  `modal-backdrop` (handles flex centering + backdrop blur)
+ *   Container: `modal-sheet`   (handles bottom-sheet vs centered layout)
+ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: fadeInBackdrop 0.2s ease-out;
+}
+
+@media (min-width: 640px) {
+  .modal-backdrop {
+    align-items: center;
+    padding: 1rem;
+  }
+}
+
+.modal-sheet {
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 1rem 1rem 0 0;
+  background: #fff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUpSheet 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 640px) {
+  .modal-sheet {
+    max-height: 90vh;
+    border-radius: 1rem;
+    animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Prevent body scroll while a modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
+
 /* Full-screen modals on small phones */
 @media (max-width: 639px) {
   .modal-sheet-mobile {
-    max-height: 100dvh;
+    max-height: 90vh;
     border-radius: 1rem 1rem 0 0;
   }
 }
@@ -652,4 +727,3 @@ body {
     overflow-x: auto;
   }
 }
-

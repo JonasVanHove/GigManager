@@ -1259,7 +1259,7 @@ export default function Dashboard() {
                 </button>
 
                 {showWorkspaceMenu && (
-                  <div className="absolute left-0 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/60 bg-white/95 p-1.5 text-xs shadow-2xl backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+                  <div className="absolute left-0 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/60 bg-white/95 p-1.5 text-xs shadow-2xl backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95 menu-enter">
                     <div className="space-y-0.5">
                       {workspaceTabs.map((tab) => (
                         <button
@@ -1269,7 +1269,7 @@ export default function Dashboard() {
                             setShowWorkspaceMenu(false);
                             handleTabChange(tab);
                           }}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition ${
+                          className={`flex min-h-[44px] w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition ${
                             selectedTab === tab
                               ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
                               : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -1395,7 +1395,7 @@ export default function Dashboard() {
                           setShowSettings(true);
                           setShowProfileMenu(false);
                         }}
-                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="flex min-h-[44px] w-full items-center rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         <span className="inline-flex items-center gap-2">
                           <Icons.Settings className="h-4 w-4" />
@@ -1407,7 +1407,7 @@ export default function Dashboard() {
                           handleToggleWideView();
                           setShowProfileMenu(false);
                         }}
-                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="flex min-h-[44px] w-full items-center rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         <span className="inline-flex items-center gap-2">
                           <Icons.Expand className="h-4 w-4" />
@@ -1419,7 +1419,7 @@ export default function Dashboard() {
                           setShowKeyboardShortcuts(true);
                           setShowProfileMenu(false);
                         }}
-                        className="w-full rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="flex min-h-[44px] w-full items-center rounded-xl px-3 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         <span className="inline-flex items-center gap-2">
                           <Icons.Keyboard className="h-4 w-4" />
@@ -1433,7 +1433,7 @@ export default function Dashboard() {
                           setShowProfileMenu(false);
                           await signOut();
                         }}
-                        className="w-full px-3 py-2.5 text-left text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
+                        className="flex min-h-[44px] w-full items-center px-3 py-2.5 text-left text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
                       >
                         Sign Out
                       </button>

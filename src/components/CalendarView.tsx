@@ -11,6 +11,7 @@ import type { Gig as AppGig } from "@/types";
 import { calculateGigFinancials } from "@/lib/calculations";
 import { getBandColorStyles, formatDateTime } from "@/lib/preferences";
 import BandTag from "./BandTag";
+import { useModalLock } from "@/hooks/useModalLock";
 
 moment.updateLocale("en", {
   week: {
@@ -433,6 +434,11 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
     setSelectedEvent(null);
   };
 
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    isOpen: selectedEvent !== null,
+    onClose: handleCloseModal,
+  });
+
   const handleEditClick = () => {
     if (selectedEvent && onEditGig) {
       onEditGig(selectedEvent.id);
@@ -848,11 +854,13 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
       {/* Event Detail Modal */}
       {selectedEvent && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 modal-backdrop-enter"
-          onClick={handleCloseModal}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+          onClick={handleBackdropClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 modal-content-enter"
+            className="modal-sheet-mobile w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-2xl modal-content-enter"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-700/50 dark:bg-slate-800/50">
@@ -867,7 +875,8 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
                 </div>
                 <button
                   onClick={handleCloseModal}
-                  className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                  aria-label="Close"
+                  className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
                 >
                   <Icons.Close className="h-5 w-5" />
                 </button>
@@ -951,14 +960,14 @@ export default function CalendarView({ fmtCurrency, onEditGig, gigs: preloadedGi
                 {onEditGig && (
                   <button
                     onClick={handleEditClick}
-                    className="flex-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+                    className="touch-target inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
                   >
                     View/Edit Gig
                   </button>
                 )}
                 <button
                   onClick={handleCloseModal}
-                  className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="touch-target inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   Close
                 </button>

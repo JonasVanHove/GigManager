@@ -8,6 +8,7 @@ import { useAuth } from "./AuthProvider";
 import { PhotoAnnotationEditor } from "./PhotoAnnotationEditor";
 import { useSettings } from "./SettingsProvider";
 import { hasGigFormChanges } from "@/lib/gig-form-dirty-state";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface BandMemberOption {
   id: string;
@@ -496,6 +497,10 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
     onCancel();
   }, [isDirty, onCancel]);
 
+  const { handleBackdropClick } = useModalLock({
+    onClose: handleCancelAction,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -579,12 +584,8 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 sm:items-start sm:px-4 sm:py-10 backdrop-blur-sm modal-backdrop-enter"
-        onClick={(event) => {
-          if (event.target === event.currentTarget) {
-            handleCancelAction();
-          }
-        }}
+        className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 sm:items-start sm:px-4 sm:py-10 backdrop-blur-md modal-backdrop-enter"
+        onClick={handleBackdropClick}
       >
         <div
           className="modal-sheet-mobile flex max-h-[100dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-slate-900 sm:max-h-none sm:rounded-2xl modal-content-enter"
@@ -1014,8 +1015,8 @@ export default function GigForm({ gig, onSubmit, onCancel, onDelete }: GigFormPr
                 {gig && <button type="button" onClick={() => setShowNotesEditor(true)} className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-950/30 dark:text-brand-400 dark:hover:bg-brand-900/40">📝 Notes</button>}
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={handleCancelAction} disabled={loading} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Cancel</button>
-                <button type="submit" form="gig-form" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50">{loading && <Icons.Spinner className="h-4 w-4" />}{gig ? "Save Changes" : "Save"}</button>
+                <button type="button" onClick={handleCancelAction} disabled={loading} className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Cancel</button>
+                <button type="submit" form="gig-form" disabled={loading} className="touch-target inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50">{loading && <Icons.Spinner className="h-4 w-4" />}{gig ? "Save Changes" : "Save"}</button>
               </div>
             </div>
           </div>

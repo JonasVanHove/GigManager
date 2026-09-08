@@ -13,6 +13,7 @@ import { getBandColorStyles } from "@/lib/preferences";
 import Avatar from "./Avatar";
 import BandLogoFrame from "./BandLogoFrame";
 import { normalizeArrayResponse } from "@/lib/api-response";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface BandMemberGig {
   gigId: string;
@@ -532,6 +533,14 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
     setShowForm(!showForm);
   };
 
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    isOpen: showForm || showGigPicker,
+    onClose: () => {
+      if (showForm) handleCancel();
+      if (showGigPicker) closeGigPicker();
+    },
+  });
+
   const toggleFormBand = (band: string) => {
     setFormBands((prev) =>
       prev.includes(band) ? prev.filter((item) => item !== band) : [...prev, band]
@@ -622,15 +631,21 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
 
       {/* Modal for Add/Edit Member */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:p-8">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+          onClick={handleBackdropClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="modal-sheet-mobile max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-2xl sm:p-8 modal-content-enter">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {editingId ? copy.updateMember : copy.addMember}
               </h3>
               <button
                 onClick={handleCancel}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                aria-label="Close"
+                className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <Icons.X className="h-5 w-5" />
               </button>
@@ -1144,8 +1159,13 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
       )}
 
       {showGigPicker && activeMember && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10">
-          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 backdrop-blur-md sm:items-start sm:px-4 sm:py-10 modal-backdrop-enter"
+          onClick={handleBackdropClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="modal-sheet-mobile w-full max-w-3xl rounded-t-2xl bg-white shadow-2xl dark:bg-slate-900 sm:rounded-2xl modal-content-enter">
             <div className="flex items-start justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -1157,7 +1177,8 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
               </div>
               <button
                 onClick={closeGigPicker}
-                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                aria-label="Close"
+                className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
                 title="Close"
               >
                 <Icons.Close className="h-5 w-5" />
@@ -1320,7 +1341,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
               <button
                 type="button"
                 onClick={closeGigPicker}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 Cancel
               </button>
@@ -1328,7 +1349,7 @@ export default function BandMembers({ fmtCurrency, gigs: preloadedGigs }: BandMe
                 type="button"
                 onClick={handleSaveGigs}
                 disabled={savingGigs || gigsLoading}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {savingGigs ? "Saving..." : "Save gigs"}
               </button>

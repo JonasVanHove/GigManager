@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icons } from "./Icons";
 import { type OptimizationCriteria } from "@/lib/setlist-flow";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface OptimizeFlowModalProps {
   isOpen: boolean;
@@ -45,11 +46,21 @@ const CRITERIA_OPTIONS: Array<{
 export default function OptimizeFlowModal({ isOpen, onConfirm, onCancel }: OptimizeFlowModalProps) {
   const [selectedCriteria, setSelectedCriteria] = useState<OptimizationCriteria>("bpm-flow");
 
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    isOpen,
+    onClose: onCancel,
+  });
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+      onClick={handleBackdropClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="modal-sheet-mobile w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl sm:rounded-2xl modal-content-enter">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
@@ -63,7 +74,8 @@ export default function OptimizeFlowModal({ isOpen, onConfirm, onCancel }: Optim
             </div>
             <button
               onClick={onCancel}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+              aria-label="Close"
+              className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
             >
               <Icons.X className="h-5 w-5" />
             </button>
@@ -108,14 +120,14 @@ export default function OptimizeFlowModal({ isOpen, onConfirm, onCancel }: Optim
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={() => onConfirm(selectedCriteria)}
-              className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition"
+              className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition"
             >
               Optimize Flow
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface Shortcut {
   keys: string[];
@@ -33,6 +34,11 @@ export default function KeyboardShortcuts({
     setShowHelp(false);
     onClose?.();
   }, [onClose]);
+
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    isOpen: showHelp,
+    onClose: handleCloseHelp,
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,15 +89,21 @@ export default function KeyboardShortcuts({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 backdrop-blur-md sm:items-center sm:px-4 sm:py-10 modal-backdrop-enter"
+      onClick={handleBackdropClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="modal-sheet-mobile w-full max-w-2xl rounded-t-2xl bg-white dark:bg-slate-900 shadow-2xl sm:rounded-2xl modal-content-enter">
         {/* Header */}
         <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Keyboard Shortcuts</h2>
           <button
             onClick={handleCloseHelp}
             title="Close (Esc)"
-            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            aria-label="Close"
+            className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -197,7 +209,7 @@ export default function KeyboardShortcuts({
         <div className="border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex justify-end">
           <button
             onClick={() => setShowHelp(false)}
-            className="rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 transition hover:bg-slate-200 dark:hover:bg-slate-700"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 transition hover:bg-slate-200 dark:hover:bg-slate-700"
           >
             Close (Esc)
           </button>

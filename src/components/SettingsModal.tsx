@@ -10,6 +10,7 @@ import { useSettings } from "./SettingsProvider";
 import { useImmersiveMode } from "@/lib/use-immersive-mode";
 import type { AppLanguage } from "@/types";
 import { useTranslation } from "react-i18next";
+import { useModalLock } from "@/hooks/useModalLock";
 
 const CURRENCIES = [
   { code: "EUR", label: "Euro (€)", symbol: "€" },
@@ -100,19 +101,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     setAppLanguage(language);
   }, [language]);
 
-  useEffect(() => {
-    const { body, documentElement } = document;
-    const previousBodyOverflow = body.style.overflow;
-    const previousDocumentOverflow = documentElement.style.overflow;
-
-    body.style.overflow = "hidden";
-    documentElement.style.overflow = "hidden";
-
-    return () => {
-      body.style.overflow = previousBodyOverflow;
-      documentElement.style.overflow = previousDocumentOverflow;
-    };
-  }, []);
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    onClose,
+  });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,15 +207,21 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 py-4 backdrop-blur-md sm:items-center modal-backdrop-enter">
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 modal-content-enter">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+      onClick={handleBackdropClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="modal-sheet-mobile flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 sm:max-h-[90vh] sm:rounded-2xl modal-content-enter">
         <div className="flex items-center justify-between border-b border-slate-100/50 px-6 py-5 dark:border-slate-700/50">
           <h2 className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-lg font-semibold text-transparent dark:from-white dark:to-slate-200">
             {t('settings.title')}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition-all duration-200 hover:bg-slate-100/60 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800/60 dark:hover:text-slate-300"
+            aria-label="Close settings"
+            className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-slate-100/60 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800/60 dark:hover:text-slate-300"
           >
             <Icons.Close className="h-5 w-5" />
           </button>
@@ -688,14 +685,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         <div className="flex items-center justify-end gap-3 border-t border-slate-100/50 px-6 py-4 dark:border-slate-700/50">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             {t('settings.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-brand-700 hover:to-brand-800 disabled:opacity-50"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-brand-700 hover:to-brand-800 disabled:opacity-50"
           >
             {saving && (
               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

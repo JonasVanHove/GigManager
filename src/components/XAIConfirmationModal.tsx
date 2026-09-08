@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Icons } from "./Icons";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface PreviewItem {
   label: string;
@@ -67,12 +68,23 @@ export default function XAIConfirmationModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    isOpen,
+    onClose: onCancel,
+    preventEscapeClose: true, // Escape is handled by handleKeyDown above
+  });
+
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md modal-backdrop-enter">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+      onClick={handleBackdropClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-purple-200/50 bg-white/95 dark:border-purple-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl modal-content-enter max-h-[90vh] overflow-y-auto"
+        className="modal-sheet-mobile w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-t-2xl border border-purple-200/50 bg-white/95 dark:border-purple-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl sm:rounded-2xl modal-content-enter"
         role="dialog"
         aria-modal="true"
       >
@@ -109,7 +121,7 @@ export default function XAIConfirmationModal({
             <button
               onClick={onCancel}
               disabled={isLoading}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition disabled:opacity-50"
+              className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition disabled:opacity-50"
               aria-label="Close"
             >
               <Icons.X className="h-5 w-5" />
@@ -184,7 +196,7 @@ export default function XAIConfirmationModal({
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="rounded-lg border border-slate-300/50 bg-white/70 backdrop-blur px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/50 dark:backdrop-blur dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-2 dark:focus:ring-slate-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300/50 bg-white/70 backdrop-blur px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/50 dark:backdrop-blur dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-2 dark:focus:ring-slate-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {cancelLabel}
             <span className="text-xs text-slate-400 dark:text-slate-500">
@@ -195,7 +207,7 @@ export default function XAIConfirmationModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 dark:focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 dark:focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isLoading ? (
               <>

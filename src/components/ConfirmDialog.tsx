@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { Icons } from "./Icons";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -44,6 +45,12 @@ export default function ConfirmDialog({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  const { handleBackdropClick, handleTouchStart, handleTouchEnd } = useModalLock({
+    isOpen,
+    onClose: onCancel,
+    preventEscapeClose: true, // Escape is handled by handleKeyDown above
+  });
+
   if (!isOpen) return null;
 
   const icons = {
@@ -60,8 +67,13 @@ export default function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md modal-backdrop-enter">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl modal-content-enter" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-md sm:items-center sm:px-4 sm:py-4 modal-backdrop-enter"
+      onClick={handleBackdropClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="modal-sheet-mobile w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-slate-200/50 bg-white/95 dark:border-slate-700/50 dark:bg-slate-900/95 backdrop-blur shadow-2xl dark:shadow-xl sm:rounded-2xl modal-content-enter" role="dialog" aria-modal="true">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className="shrink-0">{icons[icon]}</div>
@@ -79,7 +91,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-slate-300/50 bg-white/70 backdrop-blur px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/50 dark:backdrop-blur dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-2 dark:focus:ring-slate-500/50 flex items-center gap-2"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300/50 bg-white/70 backdrop-blur px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/50 dark:backdrop-blur dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-2 dark:focus:ring-slate-500/50 flex items-center gap-2"
           >
             {cancelLabel}
             <span className="text-xs text-slate-400 dark:text-slate-500">ESC</span>
@@ -87,7 +99,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className={`rounded-lg px-4 py-2.5 text-sm font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center gap-2 ${confirmStyles[confirmVariant]}`}
+            className={`touch-target inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center gap-2 ${confirmStyles[confirmVariant]}`}
           >
             {confirmLabel}
             <span className="text-xs opacity-75">⌘↵</span>
