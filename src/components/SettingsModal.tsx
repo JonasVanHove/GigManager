@@ -213,16 +213,18 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   // the layout from breaking `position: fixed` dead-center positioning.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md modal-backdrop-enter"
+      className="fixed inset-0 z-50 flex h-[100dvh] w-[100dvw] items-center justify-center bg-black/70 p-4 backdrop-blur-sm modal-backdrop-enter"
       onClick={handleBackdropClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* dvh-based max height (vh fallback in globals.css) + explicit max
-          width; flex column with pinned header/footer and an internal
-          scroll body so every settings category stays reachable. */}
+      {/* Strict layout reset: `relative my-auto` guarantees no stray
+          margin-top / top / translate offset can leak in — combined with
+          items-center it yields perfect vertical symmetry (equal space above
+          the header and below the footer). Surface colours stay theme-aware
+          (a hard bg-slate-900 would be unreadable in light mode). */}
       <div
-        className="settings-modal-card flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-700/50 dark:bg-slate-900/95 modal-content-enter"
+        className="relative my-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-slate-200/50 bg-white/95 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900 max-h-[85dvh] settings-modal-card modal-content-enter"
         role="dialog"
         aria-modal="true"
       >

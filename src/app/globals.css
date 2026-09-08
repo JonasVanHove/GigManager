@@ -52,10 +52,12 @@ html.dark body {
     linear-gradient(135deg, #0b0f17 0%, #090d16 50%, #0a0f18 100%);
   background-attachment: fixed;
   background-size: 100% 100%;
-  /* Hardware acceleration for smooth scrolling */
+  /* GPU hint for smoother scrolling. IMPORTANT: never add `transform` (e.g.
+     translateZ(0)) on body/html — a transform turns body into the containing
+     block for every `position: fixed` descendant, which made portal-mounted
+     fixed overlays (settings modal backdrop) size to the full document height
+     and render dead-center of the PAGE instead of the viewport. */
   will-change: background;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 
 /* ── Scrollbar polish ──────────────────────────────────────────────────── */
