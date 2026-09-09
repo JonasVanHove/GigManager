@@ -135,6 +135,12 @@
     "tuningChangesAdded": "tuning changes added",
     "failedToLoadSongs": "Failed to load songs",
     "failedToLoadSetlists": "Failed to load setlists",
+    "pinForOffline": "Pin for Offline",
+    "pinForOfflineTitle": "Save this setlist with lyrics, chords and notes for offline use",
+    "offlinePinning": "Saving offline…",
+    "offlineReady": "Setlist Offline Ready",
+    "offlineReadyTitle": "This setlist is available offline. Click to remove it from offline storage",
+    "offlinePinFailed": "Saving for offline use failed",
     "saveFailed": "Save failed",
     "failedToCreateSetlist": "Failed to create setlist",
     "setlistCreated": "Setlist created",
@@ -425,6 +431,8 @@
     "errorSaveFailed": "Failed to save settings. Please try again."
   },
   "dashboard": {
+    "offlineBadge": "Offline — local setlists",
+    "offlineBadgeTitle": "No connection: repertoire is loaded from local storage",
     "overview": "Overview",
     "shortcuts": "Shortcuts",
     "gigsAndSchedule": "Gigs & Calendar",

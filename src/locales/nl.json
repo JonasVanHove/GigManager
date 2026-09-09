@@ -136,6 +136,12 @@
     "tuningChangesAdded": "tuningwissels toegevoegd",
     "failedToLoadSongs": "Songs laden mislukt",
     "failedToLoadSetlists": "Setlists laden mislukt",
+    "pinForOffline": "Offline opslaan",
+    "pinForOfflineTitle": "Sla deze setlist op met teksten, akkoorden en notities voor offline gebruik",
+    "offlinePinning": "Offline opslaan…",
+    "offlineReady": "Setlist Offline Ready",
+    "offlineReadyTitle": "Deze setlist is offline beschikbaar. Klik om te verwijderen uit offline opslag",
+    "offlinePinFailed": "Offline opslaan mislukt",
     "saveFailed": "Opslaan mislukt",
     "failedToCreateSetlist": "Setlist aanmaken mislukt",
     "setlistCreated": "Setlist aangemaakt",
@@ -423,6 +429,8 @@
     "errorSaveFailed": "Instellingen opslaan mislukt. Probeer het opnieuw."
   },
   "dashboard": {
+    "offlineBadge": "Offline — lokale setlists",
+    "offlineBadgeTitle": "Geen verbinding: repertoire wordt uit lokale opslag geladen",
     "overview": "Overzicht",
     "shortcuts": "Snelkoppelingen",
     "gigsAndSchedule": "Optredens & Kalender",

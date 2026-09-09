@@ -25,6 +25,7 @@ import BulkEditor from "./BulkEditor";
 import { useTranslation } from "react-i18next";
 
 import LoadingSpinner, { CardSkeleton } from "./LoadingSpinner";
+import { useOnlineStatus } from "@/lib/offline/hooks";
 
 // Lazy load heavy components for better initial load time
 const AnalyticsPage = lazy(() => import("./AnalyticsPage"));
@@ -263,6 +264,7 @@ export default function Dashboard() {
   const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
   const { settings, updateSettings, fmtCurrency, locale } = useSettings();
   const { t } = useTranslation();
+  const isOnline = useOnlineStatus();
   const toast = useToast();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [totalGigCount, setTotalGigCount] = useState(0);
@@ -1334,6 +1336,15 @@ export default function Dashboard() {
                 Gigs<span className="text-gold-600 dark:text-gold-400">Manager</span>
               </h1>
             </button>
+            {!isOnline && (
+              <span
+                className="hidden items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-400/40 dark:text-amber-400 sm:inline-flex"
+                title={t('dashboard.offlineBadgeTitle', 'No connection: repertoire is loaded from local storage')}
+              >
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" aria-hidden />
+                {t('dashboard.offlineBadge', 'Offline — local setlists')}
+              </span>
+            )}
           </div>
 
           {/* Center: Primary navigation + search */}

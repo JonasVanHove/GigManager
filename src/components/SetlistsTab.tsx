@@ -18,6 +18,13 @@ import {
 } from "@/lib/setlist-special-blocks";
 import { optimizeSetlistFlow, type OptimizationCriteria } from "@/lib/setlist-flow";
 import { areCaposEqual, normalizeCapo, formatCapo } from "@/lib/capo-utils";
+import { useOfflineSongs, useOfflineSetlists } from "@/lib/offline/hooks";
+import {
+  getPinnedSetlistIds,
+  getPinnedSetlists,
+  pinSetlistForOffline,
+  unpinSetlistFromOffline,
+} from "@/lib/offline/pin";
 
 type SongRow = {
   id: string;
@@ -47,6 +54,25 @@ type ApiSetlistItem = {
   notes: string | null;
   chords: string | null;
   tuning: string | null;
+};
+
+type ApiSongRow = {
+  id: string;
+  title: string;
+  notes?: string | null;
+  date: string;
+  tags?: Array<{ name: string }>;
+  attachments?: Array<{ id: string; publicUrl: string; contentType?: string; caption?: string | null }>;
+};
+
+type ApiSetlistRow = {
+  id: string;
+  title?: string;
+  description?: string | null;
+  items?: ApiSetlistItem[];
+  gigs?: Array<{ id: string; eventName?: string; date?: string | null }>;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type SetlistMeta = {
@@ -292,6 +318,14 @@ export default function SetlistsTab() {
   const [notes, setNotes] = useState<LinkedNote[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<StoredSetlist | null>(null);
+
+  // --- Offline support (IndexedDB) ------------------------------------------
+  const { fetchCollection: fetchSongsCollection } = useOfflineSongs<ApiSongRow>(getAccessToken);
+  const { fetchCollection: fetchSetlistsCollection } = useOfflineSetlists<ApiSetlistRow>(getAccessToken);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
+  const [pinningId, setPinningId] = useState<string | null>(null);
+  const rawSongsRef = useRef<ApiSongRow[] | null>(null);
+  const rawSetlistsRef = useRef<ApiSetlistRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingState, setSavingState] = useState<"saved" | "saving" | "dirty">("saved");
   const [statusFilter, setStatusFilter] = useState<"alle" | SetlistMeta["status"]>("alle");
@@ -624,22 +658,36 @@ export default function SetlistsTab() {
     setError("");
 
     try {
-      const token = await getAccessToken();
-      if (!token) return;
-
-      const [songsResponse, setlistsResponse, bandsResponse] = await Promise.all([
-        fetch("/api/songs?includeAttachments=true", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/setlists", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } }),
+      // Offline-first repertoire fetch: try the network (auto-shadow-copies
+      // the response into IndexedDB); on failure or while offline, fall back
+      // to the last known IndexedDB data with zero blocking errors.
+      const [songsResult, setlistsResult] = await Promise.all([
+        fetchSongsCollection(),
+        fetchSetlistsCollection(),
       ]);
+      const songPayload = songsResult.data;
+      const setlistPayload = setlistsResult.data;
+      if (!songPayload || !setlistPayload) throw new Error(t('setlists.failedToLoadSetlists'));
+      const offlineData = songsResult.fromCache || setlistsResult.fromCache;
 
-      if (!songsResponse.ok) throw new Error(t('setlists.failedToLoadSongs'));
-      if (!setlistsResponse.ok) throw new Error(t('setlists.failedToLoadSetlists'));
+      // Keep the raw payloads available for the "Offline Opslaan" pin action.
+      rawSongsRef.current = songPayload;
+      rawSetlistsRef.current = setlistPayload;
 
-      const songPayload = (await songsResponse.json()) as Array<{ id: string; title: string; notes?: string | null; date: string; tags?: Array<{ name: string }>; attachments?: any[] }>;
-      const setlistPayload = (await setlistsResponse.json()) as Array<{ id: string; title?: string; description?: string | null; items?: ApiSetlistItem[]; gigs?: Array<{ id: string; eventName?: string; date?: string | null }>; createdAt: string; updatedAt: string }>;
-      const bandsPayload = (await bandsResponse.json()) as Array<{ id: string; name: string; logoUrl?: string; color?: string | null }>;
-      
+      // Bands are optional; offline the filter list is non-critical.
+      const token = await getAccessToken();
+      let bandsPayload: Array<{ id: string; name: string; logoUrl?: string; color?: string | null }> = [];
+      if (token) {
+        try {
+          const bandsResponse = await fetch("/api/bands", { headers: { Authorization: `Bearer ${token}` } });
+          if (bandsResponse.ok) {
+            bandsPayload = (await bandsResponse.json()) as Array<{ id: string; name: string; logoUrl?: string; color?: string | null }>;
+          }
+        } catch {
+          // Offline: the band filter list is non-critical.
+        }
+      }
+
       setBandsList(bandsPayload || []);
       const songIdByTitle = new Map((Array.isArray(songPayload) ? songPayload : []).map((song) => [song.title.trim().toLocaleLowerCase(), song.id]));
 
@@ -690,6 +738,24 @@ export default function SetlistsTab() {
       setSongs(Array.isArray(songPayload) ? songPayload.map((song) => ({ id: song.id, title: song.title, notes: song.notes || null, date: song.date, tags: song.tags || [], attachments: song.attachments || [] })) : []);
       setSetlists(hydratedSetlists);
 
+      if (offlineData) {
+        // Serving from IndexedDB: restore the pinned item attachments that
+        // are normally fetched lazily per item while online.
+        const pinnedRecords = await getPinnedSetlists();
+        setItemAttachments((prev) => {
+          const merged = new Map(prev);
+          pinnedRecords.forEach((record) => {
+            Object.entries(record.itemAttachments || {}).forEach(([itemId, list]) => {
+              if (Array.isArray(list)) {
+                merged.set(itemId, list as Array<{ id: string; url: string; type: string; title?: string }>);
+              }
+            });
+          });
+          return merged;
+        });
+      }
+      void getPinnedSetlistIds().then((ids) => setPinnedIds(ids));
+
       if (!selectedId && hydratedSetlists[0]) {
         const first = hydratedSetlists[0];
         setSelectedId(first.id);
@@ -702,6 +768,7 @@ export default function SetlistsTab() {
       void loadNotes();
       void (async () => {
         try {
+          if (!token) return;
           const gigsRes = await fetch('/api/gigs', { headers: { Authorization: `Bearer ${token}` } });
           if (gigsRes.ok) {
             const gigsJson = await gigsRes.json();
@@ -718,11 +785,53 @@ export default function SetlistsTab() {
     } finally {
       setLoading(false);
     }
-  }, [getAccessToken, loadNotes, session?.user, selectedId, toast, t]);
+  }, [getAccessToken, loadNotes, session?.user, selectedId, toast, t, fetchSongsCollection, fetchSetlistsCollection]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handlePinForOffline = useCallback(async () => {
+    const setlistId = draft?.id || selectedId;
+    if (!setlistId) return;
+    const raw = rawSetlistsRef.current?.find((entry) => entry.id === setlistId);
+    if (!raw) return;
+    setPinningId(setlistId);
+    try {
+      const attachments: Record<string, unknown[]> = {};
+      itemAttachments.forEach((value, key) => {
+        attachments[key] = value;
+      });
+      await pinSetlistForOffline({
+        id: setlistId,
+        setlist: raw,
+        itemAttachments: attachments,
+        songs: rawSongsRef.current || [],
+      });
+      setPinnedIds((prev) => new Set(prev).add(setlistId));
+      toast.success(t('setlists.offlineReady'));
+    } catch (err) {
+      console.error('[SetlistsTab] offline pin failed:', err);
+      toast.error(t('setlists.offlinePinFailed'));
+    } finally {
+      setPinningId(null);
+    }
+  }, [draft?.id, selectedId, itemAttachments, toast, t]);
+
+  const handleUnpinFromOffline = useCallback(async () => {
+    const setlistId = draft?.id || selectedId;
+    if (!setlistId) return;
+    try {
+      await unpinSetlistFromOffline(setlistId);
+      setPinnedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(setlistId);
+        return next;
+      });
+    } catch (err) {
+      console.error('[SetlistsTab] offline unpin failed:', err);
+    }
+  }, [draft?.id, selectedId]);
 
   // Load attachments for items in the currently selected setlist
   useEffect(() => {
@@ -1831,6 +1940,33 @@ export default function SetlistsTab() {
           {error && <p className="hidden sm:block text-xs text-rose-400">{error}</p>}
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {draft ? (
+            pinnedIds.has(draft.id) ? (
+              <button
+                type="button"
+                onClick={handleUnpinFromOffline}
+                title={t('setlists.offlineReadyTitle')}
+                aria-label={t('setlists.offlineReadyTitle')}
+                className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-emerald-400 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="hidden md:inline">{t('setlists.offlineReady')} ✓</span>
+                <span className="md:hidden" aria-hidden>✓</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePinForOffline}
+                disabled={pinningId !== null}
+                title={t('setlists.pinForOfflineTitle')}
+                aria-label={t('setlists.pinForOfflineTitle')}
+                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-cyan-300 transition-all duration-200 hover:scale-105 hover:bg-cyan-500/20 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-1.5"
+              >
+                <span className="text-sm" aria-hidden>{pinningId ? '⏳' : '📴'}</span>
+                <span className="hidden md:inline">{pinningId ? t('setlists.offlinePinning') : t('setlists.pinForOffline')}</span>
+              </button>
+            )
+          ) : null}
           <button type="button" onClick={() => setShowCreateModal(true)} className="rounded-lg bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg hover:shadow-cyan-500/20 transition hover:scale-[1.02] active:scale-[0.98]">{t('setlists.newSetlist')}</button>
           
           {/* Toggle Left Sidebar Button */}
