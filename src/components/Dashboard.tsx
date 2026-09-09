@@ -195,12 +195,73 @@ async function parseApiError(res: Response): Promise<string> {
   return bodyText || `HTTP ${res.status}`;
 }
 
+/**
+ * Compact Overview row: high-density, streamlined list layout for quick
+ * scanning of upcoming / handled performances in the Overview tab.
+ */
+const OverviewCompactRow = ({
+  gig,
+  onEdit,
+  isHandled,
+}: {
+  gig: Gig;
+  onEdit: (gig: Gig) => void;
+  isHandled?: boolean;
+}) => {
+  const gigDate = new Date(gig.date);
+  const dateLabel = gigDate.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const statusBadge = isHandled
+    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+    : gig.isTentative
+      ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+      : "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300";
+  const statusText = isHandled
+    ? "Handled"
+    : gig.isTentative
+      ? "Tentative"
+      : "Active";
+
+  return (
+    <div
+      className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm hover:border-slate-300 hover:shadow-md transition dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-slate-600"
+    >
+      {/* Date */}
+      <div className="min-w-[92px] text-sm font-medium text-slate-700 dark:text-slate-200">
+        {dateLabel}
+      </div>
+      {/* Venue / name */}
+      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900 dark:text-white">
+        {gig.eventName}
+      </div>
+      {/* Performers/venue sub-label */}
+      <div className="hidden md:flex min-w-0 max-w-[180px] truncate text-xs text-slate-500 dark:text-slate-400">
+        {gig.performers}
+      </div>
+      {/* Status badge */}
+      <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadge}`}>
+        {statusText}
+      </span>
+      {/* Edit */}
+      <button
+        onClick={() => onEdit(gig)}
+        title="Edit performance"
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+      >
+        <Icons.Edit className="h-4 w-4" />
+      </button>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { session, isLoading: authLoading, signOut, getAccessToken } = useAuth();
-  const { settings, fmtCurrency, locale } = useSettings();
+  const { settings, updateSettings, fmtCurrency, locale } = useSettings();
   const { t } = useTranslation();
   const toast = useToast();
   const [gigs, setGigs] = useState<Gig[]>([]);
@@ -241,6 +302,42 @@ export default function Dashboard() {
   const [selectedGigIds, setSelectedGigIds] = useState<Set<string>>(new Set());
   const [showBulkEditor, setShowBulkEditor] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(activeTab === "gigs");
+  // Overview view mode: 'grid' (cards) or 'compact' (dense list).
+  // Account-bound via settings (overviewViewMode) with a localStorage mirror
+  // so the choice survives instant refresh and syncs across devices.
+  // Guarded for SSR: localStorage only exists on the client.
+  let overviewLocalFallback: "grid" | "compact" = "grid";
+  if (typeof localStorage !== "undefined") {
+    try {
+      const stored = localStorage.getItem("gig-manager-overview-view-mode");
+      overviewLocalFallback = stored === "compact" ? "compact" : "grid";
+    } catch {
+      overviewLocalFallback = "grid";
+    }
+  }
+  const [overviewViewMode, setOverviewViewMode] = useState<"grid" | "compact">(
+    settings.overviewViewMode === "compact" ? "compact" : overviewLocalFallback
+  );
+  // Keep in sync if the account settings load in later (e.g. first fetch, or a
+  // different device updated the preference).
+  useEffect(() => {
+    if (settings.overviewViewMode === "compact" || settings.overviewViewMode === "grid") {
+      setOverviewViewMode(settings.overviewViewMode);
+    }
+  }, [settings.overviewViewMode]);
+  const handleSetOverviewViewMode = useCallback(
+    (mode: "grid" | "compact") => {
+      setOverviewViewMode(mode);
+      try {
+        localStorage.setItem("gig-manager-overview-view-mode", mode);
+      } catch (e) {
+        console.error("Failed to save overview view mode:", e);
+      }
+      // Optimistic local update + persist to the account (PUT /api/settings).
+      void updateSettings({ overviewViewMode: mode });
+    },
+    [updateSettings]
+  );
   const tabLabels = useMemo(() => getTabLabels(t), [t]);
   const [exportingType, setExportingType] = useState<"gigs" | "summary" | "report" | null>(null);
   const [isActiveSectionExpanded, setIsActiveSectionExpanded] = useState(true);
@@ -1875,6 +1972,37 @@ export default function Dashboard() {
                 )}
                 <span className="hidden sm:inline">Report</span>
               </button>
+              {/* View mode toggle: Card Grid vs Compact List */}
+              <div
+                className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 ml-1"
+                role="group"
+                aria-label="Overview view"
+              >
+                <button
+                  onClick={() => handleSetOverviewViewMode("grid")}
+                  className={`rounded-md p-1.5 transition ${
+                    overviewViewMode === "grid"
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                  title="Card grid view"
+                  aria-pressed={overviewViewMode === "grid"}
+                >
+                  <Icons.GridView className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleSetOverviewViewMode("compact")}
+                  className={`rounded-md p-1.5 transition ${
+                    overviewViewMode === "compact"
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                  title="Compact list view"
+                  aria-pressed={overviewViewMode === "compact"}
+                >
+                  <Icons.ListView className="h-4 w-4" />
+                </button>
+              </div>
               {/* Collapse/expand toggle */}
               <button
                 onClick={handleToggleOverview}
@@ -2016,6 +2144,15 @@ export default function Dashboard() {
                             )}
                           </div>
                           {isActiveSectionExpanded && (
+                            overviewViewMode === "compact" ? (
+                              <div className="space-y-2">
+                                {activeGigs.map((gig, idx) => (
+                                  <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
+                                    <OverviewCompactRow gig={gig} onEdit={handleEditGig} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
                             <div className={effectiveWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
                               {activeGigs.map((gig, idx) => (
                                 <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
@@ -2032,6 +2169,7 @@ export default function Dashboard() {
                                 </div>
                               ))}
                             </div>
+                            )
                           )}
                   </div>
                 )}
@@ -2075,6 +2213,15 @@ export default function Dashboard() {
                             )}
                           </div>
                           {isHandledSectionExpanded && (
+                            overviewViewMode === "compact" ? (
+                              <div className="space-y-2">
+                                {handledGigs.map((gig, idx) => (
+                                  <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
+                                    <OverviewCompactRow gig={gig} onEdit={handleEditGig} isHandled />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
                             <div className={effectiveWideView ? "grid gap-4 lg:grid-cols-1 2xl:grid-cols-2" : "grid gap-5 xl:grid-cols-2 2xl:grid-cols-3"}>
                               {handledGigs.map((gig, idx) => (
                                 <div key={gig.id} className={`animate-fade-in animate-stagger-${Math.min(idx + 1, 10)}`}>
@@ -2091,6 +2238,7 @@ export default function Dashboard() {
                                 </div>
                               ))}
                             </div>
+                            )
                           )}
                   </div>
                 )}

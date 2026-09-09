@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Avatar from "./Avatar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Icons } from "./Icons";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useAuth } from "./AuthProvider";
 import { useSettings } from "./SettingsProvider";
+import { useToast } from "./ToastContainer";
 import { useImmersiveMode } from "@/lib/use-immersive-mode";
-import type { AppLanguage } from "@/types";
+import type { AppLanguage, UserSettingsData } from "@/types";
 import { useTranslation } from "react-i18next";
 import { useModalLock } from "@/hooks/useModalLock";
 import { createPortal } from "react-dom";
@@ -36,6 +37,7 @@ interface SettingsModalProps {
 export default function SettingsModal({ onClose }: SettingsModalProps) {
   const { session } = useAuth();
   const { settings, updateSettings, language, setLanguage } = useSettings();
+  const toast = useToast();
   const { isFullscreen, canRequestFullscreen, toggleFullscreen } = useImmersiveMode();
   const { t } = useTranslation();
   const [currency, setCurrency] = useState(settings.currency);
@@ -67,6 +69,25 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   // Custom Navigation Tabs
   const [customTab1, setCustomTab1] = useState(settings.customTab1 ?? "setlists");
   const [customTab2, setCustomTab2] = useState(settings.customTab2 ?? "songs");
+
+  /**
+   * Account-bound persistence: persist a custom-tab change to Supabase
+   * immediately (not only when the modal is saved), keeping local state and
+   * the database in sync so the choice follows the user across devices.
+   * @param which "Tab 1"|"Tab 2" (for the toast)
+   */
+  const persistCustomTab = useCallback(
+    async (patch: Pick<UserSettingsData, "customTab1"> | Pick<UserSettingsData, "customTab2">, label: string) => {
+      try {
+        await updateSettings(patch); // optimistic local update + PUT to /api/settings
+        toast.success(`${label}: ${t("common.saved", "Saved")}`);
+      } catch (err) {
+        console.error("Failed to save custom tab to account:", err);
+        toast.error(t("settings.errorSaveFailed"));
+      }
+    },
+    [updateSettings, t, toast]
+  );
 
   const hasSettingsChanges =
     currency !== settings.currency ||
@@ -245,10 +266,15 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             shrink below its content height, pushing the footer outside the
             clipped card on short laptop viewports. */}
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-6">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {t('settings.profile')}
-            </label>
+          <div className="rounded-2xl border border-indigo-500/30 bg-indigo-50/40 p-4 backdrop-blur dark:border-indigo-500/20 dark:bg-indigo-950/10">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+                <Icons.People className="h-3.5 w-3.5" />
+              </span>
+              <label className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                {t('settings.profile')}
+              </label>
+            </div>
             <div className="flex items-center gap-3">
               <Avatar
                 src={avatarUrl}
@@ -352,19 +378,28 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </p>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {t('settings.customTabs')}
-            </label>
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/40 p-4 backdrop-blur dark:border-emerald-500/20 dark:bg-emerald-950/10">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300">
+                <Icons.ListView className="h-3.5 w-3.5" />
+              </span>
+              <label className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                {t('settings.customTabs')}
+              </label>
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                {t('settings.tabAccountBound', 'Account')}
+              </span>
+            </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   {t('settings.customTab1')}
                 </label>
                 <select
                   value={customTab1}
-                  onChange={(e) => setCustomTab1(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                  onChange={(e) => { setCustomTab1(e.target.value); persistCustomTab({ customTab1: e.target.value }, t('settings.customTab1')); }}
+                  className="w-full rounded-lg border-2 border-emerald-500/40 bg-emerald-50/30 px-3 py-2 text-sm text-slate-900 shadow-sm transition-all duration-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-emerald-500/30 dark:bg-emerald-950/20 dark:text-slate-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/30"
                 >
                   <option value="setlists">{t('dashboard.setlists')}</option>
                   <option value="songs">{t('dashboard.songs')}</option>
@@ -377,13 +412,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   {t('settings.customTab2')}
                 </label>
                 <select
                   value={customTab2}
-                  onChange={(e) => setCustomTab2(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm backdrop-blur transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-400/20"
+                  onChange={(e) => { setCustomTab2(e.target.value); persistCustomTab({ customTab2: e.target.value }, t('settings.customTab2')); }}
+                  className="w-full rounded-lg border-2 border-emerald-500/40 bg-emerald-50/30 px-3 py-2 text-sm text-slate-900 shadow-sm transition-all duration-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-emerald-500/30 dark:bg-emerald-950/20 dark:text-slate-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/30"
                 >
                   <option value="setlists">{t('dashboard.setlists')}</option>
                   <option value="songs">{t('dashboard.songs')}</option>
@@ -401,10 +437,15 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {t('settings.appearance')}
-            </label>
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-50/40 p-4 backdrop-blur dark:border-amber-500/20 dark:bg-amber-950/10">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:bg-amber-400/20 dark:text-amber-300">
+                <Icons.Music2 className="h-3.5 w-3.5" />
+              </span>
+              <label className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+                {t('settings.appearance')}
+              </label>
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {(["light", "dark", "system"] as const).map((themeOption) => (
                 <button
@@ -709,7 +750,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="touch-target inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-brand-700 hover:to-brand-800 disabled:opacity-50"
+            className="touch-target inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-indigo-600 hover:to-purple-700 hover:scale-[1.03] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving && (
               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS "UserSettings" (
     "theme"                 TEXT         NOT NULL DEFAULT 'system',
     "customTab1"            TEXT         NOT NULL DEFAULT 'setlists',
     "customTab2"            TEXT         NOT NULL DEFAULT 'songs',
+    "overviewViewMode"      TEXT         NOT NULL DEFAULT 'grid',
     "pdfIncludeLogo"        BOOLEAN      NOT NULL DEFAULT true,
     "pdfFont"               TEXT         NOT NULL DEFAULT 'inter',
     "pdfPageSize"           TEXT         NOT NULL DEFAULT 'a4',

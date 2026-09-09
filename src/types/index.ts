@@ -170,6 +170,8 @@ export interface UserSettingsData {
   // Custom Navigation Tabs
   customTab1?: string;
   customTab2?: string;
+  // Overview (Dashboard) view mode: 'grid' (card grid) or 'compact' (dense list)
+  overviewViewMode?: "grid" | "compact";
   // PDF Export Settings
   pdfIncludeLogo?: boolean;
   pdfFont?: string;
@@ -194,6 +196,7 @@ export const DEFAULT_SETTINGS: UserSettingsData = {
   theme: "system",
   customTab1: "setlists",
   customTab2: "songs",
+  overviewViewMode: "grid",
   pdfIncludeLogo: true,
   pdfFont: "inter",
   pdfPageSize: "a4",

@@ -210,6 +210,8 @@ model UserSettings {
   // Custom Navigation Tabs
   customTab1          String   @default("setlists")
   customTab2          String   @default("songs")
+  // Overview (Dashboard) view mode: "grid" (card grid) or "compact" (dense list)
+  overviewViewMode    String   @default("grid")
   // PDF Export Settings
   pdfIncludeLogo      Boolean  @default(true)
   pdfFont             String   @default("inter")

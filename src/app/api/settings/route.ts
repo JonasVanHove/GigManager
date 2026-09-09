@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
   theme: "system",
   customTab1: "setlists",
   customTab2: "songs",
+  overviewViewMode: "grid",
   pdfIncludeLogo: true,
   pdfFont: "inter",
   pdfPageSize: "a4",
@@ -329,6 +330,7 @@ export async function GET(request: NextRequest) {
         theme: settings.theme || DEFAULT_SETTINGS.theme,
         customTab1: settingsData.customTab1 || DEFAULT_SETTINGS.customTab1,
         customTab2: settingsData.customTab2 || DEFAULT_SETTINGS.customTab2,
+        overviewViewMode: (settingsData.overviewViewMode === "compact" ? "compact" : "grid"),
         pdfIncludeLogo: settingsData.pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
         pdfFont: settingsData.pdfFont || DEFAULT_SETTINGS.pdfFont,
         pdfPageSize: settingsData.pdfPageSize || DEFAULT_SETTINGS.pdfPageSize,
@@ -372,6 +374,7 @@ const VALID_PDF_SIZES = ["a4", "letter", "legal"];
 const VALID_PDF_PAGE_BREAKS = ["auto", "song", "section", "none"];
 const VALID_PDF_MARGINS = ["small", "medium", "large"];
 const VALID_CUSTOM_TABS = ["setlists", "songs", "calendar", "bands", "band-members", "analytics", "investments", "shared-links"];
+const VALID_OVERVIEW_VIEW_MODES = ["grid", "compact"];
 
 export async function PUT(request: NextRequest) {
   console.log("[PUT /api/settings] Starting");
@@ -434,6 +437,9 @@ export async function PUT(request: NextRequest) {
     const customTab1 = typeof body.customTab1 === "string" && VALID_CUSTOM_TABS.includes(body.customTab1) ? body.customTab1 : undefined;
     const customTab2 = typeof body.customTab2 === "string" && VALID_CUSTOM_TABS.includes(body.customTab2) ? body.customTab2 : undefined;
 
+    // Overview view-mode validation
+    const overviewViewMode = typeof body.overviewViewMode === "string" && VALID_OVERVIEW_VIEW_MODES.includes(body.overviewViewMode) ? body.overviewViewMode : undefined;
+
     // 5. Authenticate
     console.log("[PUT /api/settings] Authenticating...");
     const authResult = await requireAuth(request, supabaseAdmin, getOrCreateUser);
@@ -467,6 +473,7 @@ export async function PUT(request: NextRequest) {
     if (excludeSelfFromMemberCount !== undefined) updateData.excludeSelfFromMemberCount = excludeSelfFromMemberCount;
     if (customTab1 !== undefined) updateData.customTab1 = customTab1;
     if (customTab2 !== undefined) updateData.customTab2 = customTab2;
+    if (overviewViewMode !== undefined) updateData.overviewViewMode = overviewViewMode;
 
     // 7. Upsert to database
     try {
@@ -493,6 +500,7 @@ export async function PUT(request: NextRequest) {
           excludeSelfFromMemberCount: excludeSelfFromMemberCount ?? DEFAULT_SETTINGS.excludeSelfFromMemberCount,
           customTab1: customTab1 ?? DEFAULT_SETTINGS.customTab1,
           customTab2: customTab2 ?? DEFAULT_SETTINGS.customTab2,
+          overviewViewMode: overviewViewMode ?? DEFAULT_SETTINGS.overviewViewMode,
         },
       });
 
@@ -505,6 +513,7 @@ export async function PUT(request: NextRequest) {
         theme: settings.theme,
         customTab1: settingsData.customTab1 || DEFAULT_SETTINGS.customTab1,
         customTab2: settingsData.customTab2 || DEFAULT_SETTINGS.customTab2,
+        overviewViewMode: (settingsData.overviewViewMode === "compact" ? "compact" : "grid"),
         pdfIncludeLogo: settingsData.pdfIncludeLogo ?? DEFAULT_SETTINGS.pdfIncludeLogo,
         pdfFont: settingsData.pdfFont ?? DEFAULT_SETTINGS.pdfFont,
         pdfPageSize: settingsData.pdfPageSize ?? DEFAULT_SETTINGS.pdfPageSize,
